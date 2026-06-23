@@ -1,0 +1,236 @@
+@import "tailwindcss";
+
+/*
+ * Explicit content sources for Tailwind v4.
+ * Tailwind v4's automatic content detection can fail in a freshly
+ * downloaded/unzipped project (no git root, or files outside the CSS
+ * directory), which results in NO utility classes being generated.
+ * Declaring the globs explicitly — with file extensions — guarantees the
+ * oxide scanner picks up every class used across the app.
+ * Paths are relative to this file (app/globals.css).
+ */
+@source "../app/**/*.{ts,tsx}";
+@source "../components/**/*.{ts,tsx}";
+@source not "../.claude";
+
+
+@layer base {
+  /* ===== Highveld — shared South African brand base (light) ===== */
+  :root {
+    --background: 40 38% 97%;        /* warm white / sand paper */
+    --foreground: 25 28% 16%;        /* roasted-earth charcoal */
+    --card: 40 44% 99%;
+    --card-foreground: 25 28% 16%;
+    --popover: 40 44% 99%;
+    --popover-foreground: 25 28% 16%;
+
+    --primary: 145 32% 22%;          /* deep bushveld green */
+    --primary-foreground: 43 60% 96%;
+    --primary-accent: 32 78% 46%;    /* ochre */
+    --primary-accent-foreground: 43 70% 97%;
+
+    --secondary: 40 30% 92%;
+    --secondary-foreground: 25 28% 18%;
+    --muted: 40 26% 91%;
+    --muted-foreground: 28 12% 42%;
+    --accent: 43 74% 52%;            /* warm gold */
+    --accent-foreground: 25 35% 14%;
+
+    --destructive: 8 62% 46%;        /* terracotta-red */
+    --destructive-foreground: 43 60% 96%;
+
+    --border: 38 24% 85%;
+    --input: 38 24% 85%;
+    --ring: 32 78% 46%;
+    --radius: 0.85rem;
+
+    /* craft-pattern ink color */
+    --craft: 32 78% 46%;
+  }
+
+  /* ===== Highveld base (dark) ===== */
+  .dark {
+    --background: 160 18% 8%;
+    --foreground: 43 40% 92%;
+    --card: 160 16% 11%;
+    --card-foreground: 43 40% 92%;
+    --popover: 160 16% 11%;
+    --popover-foreground: 43 40% 92%;
+
+    --primary: 145 30% 60%;
+    --primary-foreground: 160 25% 9%;
+    --primary-accent: 32 80% 56%;
+    --primary-accent-foreground: 160 25% 9%;
+
+    --secondary: 160 12% 16%;
+    --secondary-foreground: 43 40% 92%;
+    --muted: 160 10% 17%;
+    --muted-foreground: 40 16% 66%;
+    --accent: 43 70% 58%;
+    --accent-foreground: 160 25% 10%;
+
+    --destructive: 8 58% 52%;
+    --destructive-foreground: 43 40% 95%;
+
+    --border: 160 10% 20%;
+    --input: 160 10% 22%;
+    --ring: 32 80% 56%;
+    --craft: 32 80% 56%;
+  }
+
+  /* ===== Vertical: Events — "Function Season" (warm gold + terracotta) ===== */
+  .vertical-events {
+    --primary: 16 58% 34%;           /* celebratory terracotta-brown */
+    --primary-accent: 38 86% 50%;    /* festive gold */
+    --accent: 8 72% 52%;
+    --ring: 38 86% 50%;
+    --craft: 8 72% 52%;
+  }
+  .vertical-events.dark {
+    --primary: 24 60% 64%;
+    --primary-accent: 38 88% 58%;
+    --accent: 10 68% 60%;
+    --ring: 38 88% 58%;
+    --craft: 38 88% 58%;
+  }
+
+  /* ===== Vertical: Cleaning — "Sand & Water" (sand + clean water) ===== */
+  .vertical-cleaning {
+    --primary: 192 42% 30%;          /* clean deep water teal */
+    --primary-accent: 36 70% 52%;    /* sand-ochre */
+    --accent: 188 48% 46%;
+    --ring: 188 48% 46%;
+    --craft: 192 42% 34%;
+  }
+  .vertical-cleaning.dark {
+    --primary: 188 44% 62%;
+    --primary-accent: 36 74% 58%;
+    --accent: 188 48% 56%;
+    --ring: 188 48% 56%;
+    --craft: 188 48% 56%;
+  }
+
+  /* ===== Vertical: Security — "Bushveld Watch" (cool khaki/bush green) ===== */
+  .vertical-security {
+    --primary: 122 22% 24%;          /* vigilant bush green */
+    --primary-accent: 84 30% 40%;    /* khaki */
+    --accent: 48 60% 48%;
+    --ring: 84 30% 40%;
+    --craft: 84 30% 40%;
+  }
+  .vertical-security.dark {
+    --primary: 110 24% 58%;
+    --primary-accent: 84 32% 56%;
+    --accent: 48 56% 56%;
+    --ring: 84 32% 56%;
+    --craft: 84 32% 56%;
+  }
+
+  /* ===== Vertical: Legal — "Stone & Brass" (stone + restrained brass) ===== */
+  .vertical-legal {
+    --primary: 150 14% 24%;          /* stone-green gravitas */
+    --primary-accent: 40 52% 44%;    /* brass */
+    --accent: 40 44% 50%;
+    --ring: 40 52% 44%;
+    --craft: 40 52% 44%;
+  }
+  .vertical-legal.dark {
+    --primary: 150 12% 60%;
+    --primary-accent: 40 56% 56%;
+    --accent: 40 48% 58%;
+    --ring: 40 56% 56%;
+    --craft: 40 56% 56%;
+  }
+}
+
+@theme inline {
+  --color-background: hsl(var(--background));
+  --color-foreground: hsl(var(--foreground));
+  --color-card: hsl(var(--card));
+  --color-card-foreground: hsl(var(--card-foreground));
+  --color-popover: hsl(var(--popover));
+  --color-popover-foreground: hsl(var(--popover-foreground));
+  --color-primary: hsl(var(--primary));
+  --color-primary-foreground: hsl(var(--primary-foreground));
+  --color-primary-accent: hsl(var(--primary-accent));
+  --color-primary-accent-foreground: hsl(var(--primary-accent-foreground));
+  --color-secondary: hsl(var(--secondary));
+  --color-secondary-foreground: hsl(var(--secondary-foreground));
+  --color-muted: hsl(var(--muted));
+  --color-muted-foreground: hsl(var(--muted-foreground));
+  --color-accent: hsl(var(--accent));
+  --color-accent-foreground: hsl(var(--accent-foreground));
+  --color-destructive: hsl(var(--destructive));
+  --color-destructive-foreground: hsl(var(--destructive-foreground));
+  --color-border: hsl(var(--border));
+  --color-input: hsl(var(--input));
+  --color-ring: hsl(var(--ring));
+  --color-craft: hsl(var(--craft));
+  --font-sans: "Hanken Grotesk", "Hanken Grotesk Fallback", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Bricolage Grotesque", "Bricolage Grotesque Fallback", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "Spline Sans Mono", "Spline Sans Mono Fallback", ui-monospace, monospace;
+  --radius: var(--radius);
+}
+
+@layer base {
+  * {
+    border-color: hsl(var(--border));
+  }
+  body {
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
+    font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+  }
+
+  h1, h2, h3, .font-display {
+    font-family: var(--font-display), var(--font-sans), sans-serif;
+    letter-spacing: -0.01em;
+  }
+
+  a,
+  button,
+  input,
+  select,
+  textarea {
+    text-underline-offset: 4px;
+  }
+}
+
+@layer utilities {
+  .font-display {
+    font-family: var(--font-display), var(--font-sans), sans-serif;
+  }
+
+  /* Ndebele-inspired craft pattern — a brand-layer accent, used sparingly */
+  .craft-pattern {
+    background-image:
+      repeating-linear-gradient(45deg, hsl(var(--craft) / 0.14) 0 2px, transparent 2px 10px),
+      repeating-linear-gradient(-45deg, hsl(var(--craft) / 0.10) 0 2px, transparent 2px 10px);
+    background-size: 14px 14px;
+  }
+  .craft-rule {
+    height: 6px;
+    background-image: repeating-linear-gradient(
+      90deg,
+      hsl(var(--primary-accent)) 0 10px,
+      hsl(var(--accent)) 10px 20px,
+      hsl(var(--primary)) 20px 30px
+    );
+  }
+
+  /* Intentional, restrained entrance motion */
+  @keyframes dpm-rise {
+    from { opacity: 0; transform: translateY(14px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .reveal {
+    animation: dpm-rise 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+  .reveal-delay-1 { animation-delay: 0.08s; }
+  .reveal-delay-2 { animation-delay: 0.16s; }
+  .reveal-delay-3 { animation-delay: 0.24s; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .reveal { animation: none; }
+  }
+}

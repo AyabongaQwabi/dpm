@@ -1,0 +1,223 @@
+// Signal assembly layer for provider search ranking.
+// Translates raw Supabase query results into the RelevanceSignals shape that
+// lib/domain/ranking.ts expects, without coupling ranking logic to DB types.
+// Tech stack ARCH-013: Postgres full-text + pg_trgm for v1 text scoring.
+
+import { createClient } from '@/lib/supabase/server'
+import { rankProviders, type ScoredProvider } from '@/lib/domain/ranking'
+import { type ConfigStore } from '@/lib/domain/config'
+import type { BusinessType, VerificationState } from '@/components/ui/VerifiedBadge'
+
+export interface SearchResult {
+  providerId: string
+  slug: string | null
+  businessName: string
+  bio: string | null
+  profileImage: string | null
+  locationCity: string | null
+  providerTypeSlug: string
+  providerTypeName: string
+  tags: string[]
+  avgRating: number | null
+  finalScore: number
+  businessType: BusinessType
+  verification: VerificationState
+}
+
+// ---- Fetch + rank ----
+
+export async function searchProviders(params: {
+  categoryId: string | null
+  query?: string
+  providerTypeSlug?: string
+  tagNames?: string[]
+  config: ConfigStore
+  limit?: number
+}): Promise<SearchResult[]> {
+  const { categoryId, query, providerTypeSlug, tagNames, config, limit = 50 } = params
+  const supabase = await createClient()
+  const now = new Date().toISOString()
+
+  // Build provider type filter: resolve slug → id if needed, scoped to category.
+  let providerTypeIds: string[] | null = null
+  if (providerTypeSlug || categoryId) {
+    let ptQuery = supabase.from('provider_types').select('id')
+    if (categoryId) ptQuery = ptQuery.eq('category_id', categoryId)
+    if (providerTypeSlug) ptQuery = ptQuery.eq('slug', providerTypeSlug)
+    const { data: pts } = await ptQuery
+    providerTypeIds = pts?.map((pt) => pt.id) ?? []
+  }
+
+  // Build tag filter: resolve tag names → provider ids.
+  let tagFilteredProviderIds: string[] | null = null
+  if (tagNames && tagNames.length > 0) {
+    const { data: tags } = await supabase
+      .from('tags')
+      .select('id')
+      .in('name', tagNames)
+    const tagIds = tags?.map((t) => t.id) ?? []
+    if (tagIds.length > 0) {
+      const { data: provTags } = await supabase
+        .from('provider_tags')
+        .select('provider_id')
+        .in('tag_id', tagIds)
+      tagFilteredProviderIds = [...new Set(provTags?.map((pt) => pt.provider_id) ?? [])]
+    } else {
+      tagFilteredProviderIds = []
+    }
+  }
+
+  // Fetch providers with all related data needed for ranking.
+  let providersQuery = supabase
+    .from('providers')
+    .select(`
+      id,
+      slug,
+      business_name,
+      bio,
+      profile_image,
+      location_city,
+      is_published,
+      provider_type_id,
+      business_type,
+      verified_contact,
+      verified_cipc,
+      verified_fica,
+      provider_types!inner(id, name, slug, category_id),
+      provider_tags(tag:tags(name)),
+      reviews(rating),
+      paid_placements(boost_factor, active_from, active_until)
+    `)
+    .eq('is_published', true)
+    .limit(limit * 3)
+
+  if (providerTypeIds !== null && providerTypeIds.length > 0) {
+    providersQuery = providersQuery.in('provider_type_id', providerTypeIds)
+  } else if (providerTypeIds !== null && providerTypeIds.length === 0) {
+    // No matching types — return empty early.
+    return []
+  }
+
+  if (tagFilteredProviderIds !== null) {
+    if (tagFilteredProviderIds.length === 0) return []
+    providersQuery = providersQuery.in('id', tagFilteredProviderIds)
+  }
+
+  const { data: rows } = await providersQuery
+  if (!rows || rows.length === 0) return []
+
+  const candidates: ScoredProvider[] = rows.map((row) => {
+    const reviews = (row.reviews as { rating: number }[] | null) ?? []
+    const avgRating = reviews.length > 0
+      ? reviews.reduce((s: number, r: { rating: number }) => s + r.rating, 0) / reviews.length
+      : 0
+
+    const tags = ((row.provider_tags as { tag: { name: string }[] }[] | null) ?? [])
+      .map((pt) => pt.tag?.[0]?.name)
+      .filter((n): n is string => !!n)
+
+    const activePlacements = ((row.paid_placements as { boost_factor: number; active_from: string; active_until: string }[] | null) ?? [])
+      .filter((p) => p.active_from <= now && p.active_until >= now)
+      .sort((a, b) => b.boost_factor - a.boost_factor)
+
+    const boost = activePlacements.length > 0 ? activePlacements[0].boost_factor : null
+
+    const textMatch = scoreTextMatch(row.business_name, row.bio, query)
+    const tagMatch = scoreTagMatch(tags, tagNames)
+    const reviewQuality = avgRating / 5
+    const profileCompleteness = scoreProfileCompleteness(row)
+
+    return {
+      providerId: row.id,
+      isPublished: row.is_published,
+      activeBoostFactor: boost,
+      reliabilityPenaltyScore: 0, // placeholder — no reliability data in v1
+      signals: {
+        textMatch,
+        location: 0, // no location data in v1
+        tags: tagMatch,
+        reviewQuality,
+        completedBookings: 0, // excluded from this query to keep it fast
+        profileCompleteness,
+        reliabilityPenalty: 0,
+      },
+    }
+  })
+
+  const ranked = await rankProviders(candidates, config)
+
+  const rowById = new Map(rows.map((r) => [r.id, r]))
+
+  return ranked.slice(0, limit).map((r) => {
+    const row = rowById.get(r.providerId)!
+    const reviews = (row.reviews as { rating: number }[] | null) ?? []
+    const avgRating = reviews.length > 0
+      ? reviews.reduce((s: number, rv: { rating: number }) => s + rv.rating, 0) / reviews.length
+      : null
+    const providerType = Array.isArray(row.provider_types)
+      ? row.provider_types[0]
+      : row.provider_types
+    const tags = ((row.provider_tags as { tag: { name: string }[] }[] | null) ?? [])
+      .map((pt) => pt.tag?.[0]?.name)
+      .filter((n): n is string => !!n)
+
+    return {
+      providerId: row.id,
+      slug: row.slug,
+      businessName: row.business_name,
+      bio: row.bio,
+      profileImage: row.profile_image,
+      locationCity: row.location_city,
+      providerTypeSlug: (providerType as { slug: string } | null)?.slug ?? '',
+      providerTypeName: (providerType as { name: string } | null)?.name ?? '',
+      tags,
+      avgRating,
+      finalScore: r.finalScore,
+      businessType: (row as { business_type?: BusinessType }).business_type ?? null,
+      verification: {
+        contact: Boolean((row as { verified_contact?: boolean | null }).verified_contact),
+        cipc: Boolean((row as { verified_cipc?: boolean | null }).verified_cipc),
+        fica: Boolean((row as { verified_fica?: boolean | null }).verified_fica),
+      },
+    }
+  })
+}
+
+// ---- Signal helpers ----
+
+function scoreTextMatch(
+  businessName: string,
+  bio: string | null,
+  query?: string,
+): number {
+  if (!query || query.trim() === '') return 0.5 // neutral when no query
+  const q = query.toLowerCase()
+  const haystack = `${businessName} ${bio ?? ''}`.toLowerCase()
+  if (businessName.toLowerCase().includes(q)) return 1
+  if (haystack.includes(q)) return 0.7
+  const tokens = q.split(/\s+/)
+  const matched = tokens.filter((t) => haystack.includes(t)).length
+  return matched / tokens.length
+}
+
+function scoreTagMatch(providerTags: string[], filterTags?: string[]): number {
+  if (!filterTags || filterTags.length === 0) return 0.5
+  const matched = filterTags.filter((t) => providerTags.includes(t)).length
+  return matched / filterTags.length
+}
+
+function scoreProfileCompleteness(row: {
+  business_name: string
+  bio: string | null
+  profile_image: string | null
+  provider_tags: unknown
+  reviews: unknown
+}): number {
+  let score = 0
+  if (row.business_name) score += 0.3
+  if (row.bio) score += 0.3
+  if (row.profile_image) score += 0.2
+  if (Array.isArray(row.provider_tags) && row.provider_tags.length > 0) score += 0.1
+  if (Array.isArray(row.reviews) && row.reviews.length > 0) score += 0.1
+  return score
+}
