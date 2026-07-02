@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { PolicyLinks } from '@/components/PolicyLinks'
 
 export function SiteFooter() {
   return (
@@ -36,8 +37,10 @@ export function SiteFooter() {
           <h3 className="font-semibold">Company</h3>
           <ul className="mt-3 space-y-2 text-sm text-primary-foreground/75">
             <li><Link href="/about" className="hover:text-primary-foreground">About</Link></li>
-            <li><Link href="/terms" className="hover:text-primary-foreground">Terms</Link></li>
-            <li><Link href="/privacy" className="hover:text-primary-foreground">Privacy</Link></li>
+            <li><Link href="/terms" className="hover:text-primary-foreground">Terms of Service</Link></li>
+            <li><Link href="/privacy" className="hover:text-primary-foreground">Privacy Policy</Link></li>
+            <li><Link href="/refund" className="hover:text-primary-foreground">Refund Policy</Link></li>
+            <li><Link href="/delivery" className="hover:text-primary-foreground">Delivery Policy</Link></li>
           </ul>
         </div>
       </div>
