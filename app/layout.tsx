@@ -26,16 +26,74 @@ const VERTICAL_CLASS: Record<string, string> = {
 };
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://servicepros.co.za"),
   title: {
-    default: "Service Pros",
-    template: "%s | Service Pros",
+    default: "ServicePros — Find trusted local providers in South Africa",
+    template: "%s | ServicePros",
   },
   description:
-    "South Africa's home for trusted local providers — events, cleaning, security, legal and more, township to suburb, Cape Town to Joburg.",
-  icons: {
-    icon: "/images/logo-mark.png",
-    apple: "/images/logo-mark.png",
+    "Find, compare and hire trusted South African service providers. Browse verified profiles, reviews, and services from Cape Town to Joburg.",
+  applicationName: "ServicePros",
+  authors: [{ name: "Namoota Technology", url: "https://servicepros.co.za" }],
+  creator: "Namoota Technology",
+  publisher: "Namoota Technology",
+  keywords: [
+    "service providers",
+    "South Africa",
+    "marketplace",
+    "hire local services",
+    "verified providers",
+    "Cape Town",
+    "Johannesburg",
+  ],
+  alternates: {
+    canonical: "https://servicepros.co.za",
+    languages: { "en-ZA": "https://servicepros.co.za" },
   },
+  openGraph: {
+    type: "website",
+    locale: "en_ZA",
+    url: "https://servicepros.co.za",
+    siteName: "ServicePros",
+    title: "ServicePros — Find trusted local providers in South Africa",
+    description:
+      "Find, compare and hire trusted South African service providers. Browse verified profiles, reviews, and services from Cape Town to Joburg.",
+    images: [
+      {
+        url: "/images/og-default.png",
+        width: 1200,
+        height: 630,
+        alt: "ServicePros — trusted South African service providers",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "ServicePros — Find trusted local providers in South Africa",
+    description:
+      "Find, compare and hire trusted South African service providers. Browse verified profiles, reviews, and services.",
+    images: ["/images/og-default.png"],
+  },
+  icons: {
+    icon: [
+      { url: "/favicon.ico" },
+      { url: "/favicon-32x32.png", sizes: "32x32", type: "image/png" },
+      { url: "/favicon-16x16.png", sizes: "16x16", type: "image/png" },
+    ],
+    apple: "/apple-touch-icon.png",
+    other: [{ rel: "manifest", url: "/site.webmanifest" }],
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+    },
+  },
+  category: "business",
 };
 
 export default async function RootLayout({
