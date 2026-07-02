@@ -1,0 +1,13 @@
+{
+  "promotions": [
+    {
+      "id": "launch-bonus-2026",
+      "name": "Launch offer",
+      "description": "Get 15% extra credits on every purchase",
+      "type": "percentage_bonus",
+      "value": 18,
+      "applies_to": "all",
+      "active": true
+    }
+  ]
+}

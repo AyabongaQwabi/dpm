@@ -9,6 +9,8 @@ export type ActorType = 'customer' | 'provider' | 'system'
 export type DiscountType = 'amount' | 'percent' | 'none'
 export type ServiceType = 'time_based' | 'fixed_deliverable'
 export type MessageActor = 'provider' | 'customer'
+export type CreditTransactionType = 'purchase' | 'spend' | 'refund'
+export type ProviderPayoutStatus = 'pending' | 'processing' | 'paid'
 export type InputType =
   | 'short_text'
   | 'rich_text'
@@ -171,6 +173,7 @@ export interface Customer {
   name: string
   phone: string | null
   auth_provider_id: string | null
+  credit_balance: number
   created_at: string
   updated_at: string
 }
@@ -180,6 +183,8 @@ export interface Booking {
   provider_id: string
   customer_id: string
   service_id: string
+  package_id: string | null
+  notes: string | null
   status: BookingStatus
   payment_status: PaymentStatus | null
   final_price: number
@@ -187,6 +192,31 @@ export interface Booking {
   provider_payout_amount: number
   cancellation_reason: string | null
   requested_at: string
+  created_at: string
+  updated_at: string
+}
+
+export interface CreditTransaction {
+  id: string
+  customer_id: string
+  type: CreditTransactionType
+  amount: number
+  bonus_credits: number | null
+  promotion_id: string | null
+  description: string
+  booking_id: string | null
+  paystack_ref: string | null
+  created_at: string
+}
+
+export interface ProviderPayout {
+  id: string
+  booking_id: string
+  provider_id: string
+  gross_amount: number
+  commission_amount: number
+  net_payout_amount: number
+  status: ProviderPayoutStatus
   created_at: string
   updated_at: string
 }
