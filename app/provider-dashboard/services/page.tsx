@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { requireProviderSession } from '@/lib/session'
 import type { DiscountType } from '@/lib/db'
+import { formatCredits } from '@/lib/format-credits'
 
 function displayPrice(price: number, discountType: DiscountType, discountAmount: number | null) {
   if (discountType === 'none' || discountAmount === null) return price
@@ -93,7 +94,7 @@ export default async function ServicesPage() {
                   <p className="font-medium truncate">{svc.title}</p>
                   <p className="text-sm text-muted-foreground mt-0.5">
                     {packages.length > 0
-                      ? `${packages.length} package${packages.length !== 1 ? 's' : ''} · from R ${Number(defaultPkg?.price ?? 0).toFixed(2)}`
+                      ? `${packages.length} package${packages.length !== 1 ? 's' : ''} · from ${formatCredits(finalPrice ?? Number(defaultPkg?.price ?? 0))}`
                       : 'No packages yet'}
                   </p>
                 </div>

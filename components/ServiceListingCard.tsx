@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { Avatar } from '@/components/ui/Avatar'
 import { StarRating } from '@/components/ui/StarRating'
 import type { ServiceView } from '@/lib/public-data'
+import { formatCredits } from '@/lib/format-credits'
 
 function effectivePrice(price: number, type: string, amount: number | null): number {
   if (type === 'amount' && amount !== null) return price - amount
@@ -87,11 +88,11 @@ export function ServiceListingCard({ service }: { service: ServiceView }) {
           <div>
             <div className="flex items-baseline gap-2">
               <span className="text-lg font-bold text-foreground">
-                from R&nbsp;{lowestPrice.toFixed(2)}
+                from {formatCredits(lowestPrice)}
               </span>
               {hasDiscount && defaultPkg && (
                 <span className="text-sm text-muted-foreground line-through">
-                  R&nbsp;{defaultPkg.price.toFixed(2)}
+                  {formatCredits(defaultPkg.price)}
                 </span>
               )}
             </div>

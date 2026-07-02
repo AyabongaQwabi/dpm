@@ -6,6 +6,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { requireProviderSession } from '@/lib/session'
 import { revalidatePath } from 'next/cache'
 import Link from 'next/link'
+import { acceptBooking, declineBooking } from '@/lib/actions/provider-bookings'
 
 interface PageProps {
   params: Promise<{ id: string }>
@@ -53,10 +54,11 @@ export default async function ThreadPage({ params }: PageProps) {
   const { data: thread } = await supabase
     .from('message_threads')
     .select(`
-      id,
+      id, booking_id,
       service:services(id, title),
       customer:customers(id, name, email),
-      messages(id, actor, body, created_at)
+      messages(id, actor, body, created_at),
+      booking:bookings(id, status, final_price)
     `)
     .eq('id', threadId)
     .eq('provider_id', provider.id)
@@ -66,13 +68,14 @@ export default async function ThreadPage({ params }: PageProps) {
 
   const service = Array.isArray(thread.service) ? thread.service[0] : thread.service
   const customer = Array.isArray(thread.customer) ? thread.customer[0] : thread.customer
+  const booking = Array.isArray(thread.booking) ? thread.booking[0] : thread.booking
+  const showBookingActions = booking?.status === 'requested'
 
   const messages = [...((thread.messages ?? []) as { id: string; actor: string; body: string; created_at: string }[])]
     .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-10 flex flex-col h-[calc(100vh-3.5rem)]">
-      {/* Header */}
       <div className="flex items-center gap-3 mb-6 flex-shrink-0">
         <Link href="/provider-dashboard/messages" className="text-muted-foreground hover:text-foreground text-sm">
           ← Messages
@@ -84,7 +87,31 @@ export default async function ThreadPage({ params }: PageProps) {
         </div>
       </div>
 
-      {/* Message thread */}
+      {showBookingActions && booking && (
+        <div className="mb-4 rounded-xl border border-primary/20 bg-primary/5 px-4 py-3 flex flex-wrap items-center gap-3">
+          <p className="text-sm font-medium flex-1">New booking request — accept or decline</p>
+          <form action={acceptBooking}>
+            <input type="hidden" name="bookingId" value={booking.id} />
+            <button
+              type="submit"
+              className="rounded-lg bg-green-600 px-3 py-1.5 text-xs font-semibold text-white hover:opacity-90 cursor-pointer"
+            >
+              Accept
+            </button>
+          </form>
+          <form action={declineBooking}>
+            <input type="hidden" name="bookingId" value={booking.id} />
+            <input type="hidden" name="reason" value="Declined by provider" />
+            <button
+              type="submit"
+              className="rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-100 cursor-pointer"
+            >
+              Decline & refund
+            </button>
+          </form>
+        </div>
+      )}
+
       <div className="flex-1 overflow-y-auto space-y-3 mb-4 pr-1">
         {messages.map((msg) => {
           const isProvider = msg.actor === 'provider'
@@ -108,7 +135,6 @@ export default async function ThreadPage({ params }: PageProps) {
         })}
       </div>
 
-      {/* Reply form */}
       <div className="flex-shrink-0 border-t pt-4">
         <form action={sendMessage} className="flex gap-2">
           <input type="hidden" name="threadId" value={threadId} />

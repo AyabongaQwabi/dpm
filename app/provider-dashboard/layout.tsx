@@ -7,6 +7,7 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { DashboardSidebar } from '@/components/provider-dashboard/DashboardSidebar'
+import { PolicyLinks } from '@/components/PolicyLinks'
 
 export default async function ProviderDashboardLayout({
   children,
@@ -73,6 +74,9 @@ export default async function ProviderDashboardLayout({
           {children}
         </main>
       </div>
+      <footer className="border-t bg-background px-4 py-4">
+        <PolicyLinks />
+      </footer>
     </div>
   )
 }

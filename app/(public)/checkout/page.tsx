@@ -5,24 +5,27 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { revalidatePath } from 'next/cache'
 import type { DiscountType, ServiceType } from '@/lib/db'
+import { calculateBookingCommission } from '@/lib/commission-context'
+import { canAfford, shortfall } from '@/lib/domain/credits'
+import { formatCredits } from '@/lib/format-credits'
+import type { ServicePricing } from '@/lib/domain/payments'
+import { canonicalAlternates } from '@/lib/seo'
 
-export const metadata: Metadata = { title: 'Checkout' }
+export const metadata: Metadata = {
+  title: 'Checkout',
+  alternates: canonicalAlternates('/checkout'),
+  robots: { index: false, follow: false },
+}
 
 interface Props {
   searchParams: Promise<{ serviceId?: string; packageId?: string }>
-}
-
-function effectivePrice(price: number, type: DiscountType, amount: number | null): number {
-  if (type === 'none' || amount === null) return price
-  if (type === 'amount') return price - amount
-  return price * (1 - amount / 100)
 }
 
 async function createBooking(formData: FormData) {
   'use server'
   const serviceId = formData.get('serviceId') as string
   const packageId = formData.get('packageId') as string
-  const notes = formData.get('notes') as string
+  const notes = (formData.get('notes') as string | null)?.trim() || null
 
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -30,15 +33,15 @@ async function createBooking(formData: FormData) {
 
   const { data: customer } = await supabase
     .from('customers')
-    .select('id')
-    .eq('auth_customer_id', user.id)
+    .select('id, credit_balance')
+    .eq('auth_provider_id', user.id)
     .single()
 
   if (!customer) redirect('/sign-in')
 
   const { data: service } = await supabase
     .from('services')
-    .select('id, provider_id, service_type')
+    .select('id, provider_id, title')
     .eq('id', serviceId)
     .eq('is_published', true)
     .single()
@@ -54,44 +57,58 @@ async function createBooking(formData: FormData) {
 
   if (!pkg) redirect(`/services/${serviceId}`)
 
-  const pricePaid = effectivePrice(
-    Number(pkg.price),
-    pkg.discount_type as DiscountType,
-    pkg.discount_amount,
+  const pricing: ServicePricing = {
+    price: Number(pkg.price),
+    discountType: pkg.discount_type as DiscountType,
+    discountAmount: pkg.discount_amount !== null ? Number(pkg.discount_amount) : null,
+  }
+
+  const commission = await calculateBookingCommission(
+    supabase,
+    service.provider_id,
+    packageId,
+    pricing,
   )
 
+  const spendCredits = Math.round(commission.finalPrice)
+
+  if (!canAfford(customer.credit_balance, spendCredits)) {
+    const gap = shortfall(customer.credit_balance, spendCredits)
+    redirect(`/customer-account/credits?amount=${gap}`)
+  }
+
   const admin = createAdminClient()
+  const { data: bookingId, error } = await admin.rpc('create_booking_with_credit_spend', {
+    p_customer_id: customer.id,
+    p_provider_id: service.provider_id,
+    p_service_id: serviceId,
+    p_package_id: packageId,
+    p_notes: notes,
+    p_final_price: commission.finalPrice,
+    p_commission_amount: commission.commissionAmount,
+    p_provider_payout_amount: commission.providerPayoutAmount,
+    p_spend_credits: spendCredits,
+    p_description: `Booking: ${service.title}`,
+  })
 
-  const { data: booking } = await admin
-    .from('bookings')
-    .insert({
-      service_id: serviceId,
-      provider_id: service.provider_id,
-      customer_id: customer.id,
-      package_id: packageId,
-      price_paid: pricePaid,
-      status: 'requested',
-      payment_status: 'pending',
-      notes: notes || null,
-    })
-    .select('id')
-    .single()
+  if (error || !bookingId) {
+    const gap = shortfall(customer.credit_balance, spendCredits)
+    redirect(`/customer-account/credits?amount=${gap}`)
+  }
 
-  if (!booking) redirect(`/services/${serviceId}`)
-
-  // Create a message thread so provider + customer can communicate
   await admin.from('message_threads').insert({
     provider_id: service.provider_id,
     customer_id: customer.id,
     service_id: serviceId,
-    booking_id: booking.id,
-  }).select().single()
+    booking_id: bookingId,
+  })
 
   revalidatePath('/customer-account')
+  revalidatePath('/customer-account/credits')
   revalidatePath('/provider-dashboard/messages')
   revalidatePath('/provider-dashboard/sales')
 
-  redirect(`/checkout/confirmation?bookingId=${booking.id}`)
+  redirect(`/checkout/confirmation?bookingId=${bookingId}`)
 }
 
 export default async function CheckoutPage({ searchParams }: Props) {
@@ -103,7 +120,12 @@ export default async function CheckoutPage({ searchParams }: Props) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect(`/sign-in?next=/checkout?serviceId=${serviceId}&packageId=${packageId}`)
 
-  const [{ data: service }, { data: pkg }] = await Promise.all([
+  const [{ data: customer }, { data: service }, { data: pkg }] = await Promise.all([
+    supabase
+      .from('customers')
+      .select('id, credit_balance')
+      .eq('auth_provider_id', user.id)
+      .single(),
     supabase
       .from('services')
       .select(`
@@ -121,19 +143,32 @@ export default async function CheckoutPage({ searchParams }: Props) {
       .single(),
   ])
 
-  if (!service || !pkg) notFound()
+  if (!service || !pkg || !customer) notFound()
 
   const provider = Array.isArray(service.provider) ? service.provider[0] : service.provider
   const serviceType = service.service_type as ServiceType
   const ctaVerb = serviceType === 'time_based' ? 'Confirm booking' : 'Place order'
-  const priceFinal = effectivePrice(
-    Number(pkg.price),
-    pkg.discount_type as DiscountType,
-    pkg.discount_amount,
+
+  const pricing: ServicePricing = {
+    price: Number(pkg.price),
+    discountType: pkg.discount_type as DiscountType,
+    discountAmount: pkg.discount_amount !== null ? Number(pkg.discount_amount) : null,
+  }
+
+  const commission = await calculateBookingCommission(
+    supabase,
+    (provider as { id: string }).id,
+    packageId,
+    pricing,
   )
+
+  const priceFinal = Math.round(commission.finalPrice)
+  const balance = customer.credit_balance ?? 0
+  const affordable = canAfford(balance, priceFinal)
+  const gap = shortfall(balance, priceFinal)
   const hasDiscount = pkg.discount_type !== 'none' && pkg.discount_amount !== null
   const offerings = Array.isArray(pkg.offerings) ? pkg.offerings as string[] : []
-  const providerSlug = (provider as { slug?: string | null })?.slug ?? provider.id
+  const providerSlug = (provider as { slug?: string | null })?.slug ?? (provider as { id: string }).id
 
   return (
     <main className="mx-auto max-w-2xl px-4 py-12">
@@ -146,6 +181,35 @@ export default async function CheckoutPage({ searchParams }: Props) {
       </nav>
 
       <h1 className="text-2xl font-bold mb-8">Review your order</h1>
+
+      {/* Wallet balance */}
+      <div className="rounded-xl border bg-card px-5 py-4 mb-6 flex items-center justify-between gap-4">
+        <div>
+          <p className="text-xs text-muted-foreground">Your balance</p>
+          <p className="font-semibold">{formatCredits(balance)}</p>
+        </div>
+        <Link
+          href="/customer-account/credits"
+          className="text-xs text-primary hover:underline"
+        >
+          Buy credits
+        </Link>
+      </div>
+
+      {!affordable && (
+        <div className="rounded-xl border border-amber-200 bg-amber-50 px-5 py-4 mb-6 text-sm text-amber-900">
+          <p className="font-medium">Insufficient credits</p>
+          <p className="mt-1">
+            You need {formatCredits(gap)} more to complete this booking.
+          </p>
+          <Link
+            href={`/customer-account/credits?amount=${gap}`}
+            className="inline-block mt-3 rounded-lg bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground hover:opacity-90"
+          >
+            Top up {formatCredits(gap)}
+          </Link>
+        </div>
+      )}
 
       {/* Order summary card */}
       <div className="rounded-2xl border p-6 mb-8 space-y-4">
@@ -186,17 +250,18 @@ export default async function CheckoutPage({ searchParams }: Props) {
         )}
 
         <div className="border-t pt-4 flex items-center justify-between">
-          <span className="font-medium">Total</span>
+          <span className="font-medium">This booking</span>
           <div className="text-right">
-            <span className="text-xl font-bold">R {priceFinal.toFixed(2)}</span>
+            <span className="text-xl font-bold">{formatCredits(priceFinal)}</span>
             {hasDiscount && (
-              <p className="text-xs line-through text-muted-foreground">R {Number(pkg.price).toFixed(2)}</p>
+              <p className="text-xs line-through text-muted-foreground">
+                {formatCredits(Number(pkg.price))}
+              </p>
             )}
           </div>
         </div>
       </div>
 
-      {/* Booking form */}
       <form action={createBooking} className="space-y-5">
         <input type="hidden" name="serviceId" value={serviceId} />
         <input type="hidden" name="packageId" value={packageId} />
@@ -215,15 +280,16 @@ export default async function CheckoutPage({ searchParams }: Props) {
         </div>
 
         <p className="text-xs text-muted-foreground">
-          Your booking request will be sent to {(provider as { business_name: string }).business_name}.
-          You&apos;ll be able to chat and confirm details in your messages once they accept.
+          Credits will be deducted immediately when you confirm. Your booking request will be sent to{' '}
+          {(provider as { business_name: string }).business_name}.
         </p>
 
         <button
           type="submit"
-          className="w-full inline-flex items-center justify-center rounded-xl bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground hover:opacity-90 transition-opacity"
+          disabled={!affordable}
+          className="w-full inline-flex items-center justify-center rounded-xl bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {ctaVerb}
+          {affordable ? ctaVerb : `Need ${formatCredits(gap)} more`}
         </button>
 
         <Link

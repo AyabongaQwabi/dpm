@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { Avatar } from '@/components/ui/Avatar'
 import { BookingStatusBadge } from '@/components/customer-account/BookingStatusBadge'
 import { getPublishedProviders } from '@/lib/public-data'
+import { formatCredits } from '@/lib/format-credits'
 
 const ACTIVE_STATUSES = ['requested', 'accepted']
 const STALE_REQUEST_HOURS = 24
@@ -12,7 +13,7 @@ export default async function CustomerOverviewPage() {
   const { customer } = await requireCustomerSession()
   const supabase = await createClient()
 
-  const [{ data: rawBookings }, featuredProviders] = await Promise.all([
+  const [{ data: rawBookings }, { data: customerRow }, featuredProviders] = await Promise.all([
     supabase
       .from('bookings')
       .select(`
@@ -25,6 +26,7 @@ export default async function CustomerOverviewPage() {
       .eq('customer_id', customer.id)
       .order('requested_at', { ascending: false })
       .limit(60),
+    supabase.from('customers').select('credit_balance').eq('id', customer.id).single(),
     getPublishedProviders(supabase, { featured: true, limit: 4 }),
   ])
 
@@ -76,6 +78,20 @@ export default async function CustomerOverviewPage() {
           Here&apos;s a summary of your bookings and activity.
         </p>
       </div>
+
+      {/* Wallet summary */}
+      <section className="rounded-2xl border bg-card px-6 py-5 flex items-center justify-between gap-4">
+        <div>
+          <p className="text-xs text-muted-foreground uppercase tracking-wide">Credit wallet</p>
+          <p className="text-2xl font-bold mt-1">{formatCredits(customerRow?.credit_balance ?? 0)}</p>
+        </div>
+        <Link
+          href="/customer-account/credits"
+          className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:opacity-90 transition-opacity"
+        >
+          Buy credits
+        </Link>
+      </section>
 
       {/* Pending actions — surface these prominently */}
       {pendingActions.length > 0 && (

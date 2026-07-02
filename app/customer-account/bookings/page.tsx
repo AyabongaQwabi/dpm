@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { Avatar } from '@/components/ui/Avatar'
 import { BookingStatusBadge } from '@/components/customer-account/BookingStatusBadge'
 import { cancelBooking, confirmCompletion, disputeBooking } from '@/lib/actions/customer'
+import { formatCredits } from '@/lib/format-credits'
 
 interface Props {
   searchParams: Promise<{ filter?: string }>
@@ -155,7 +156,7 @@ export default async function MyBookingsPage({ searchParams }: Props) {
                           Completed {new Date(booking.updated_at).toLocaleDateString('en-ZA', { day: 'numeric', month: 'short', year: 'numeric' })}
                         </span>
                       )}
-                      <span className="font-medium text-foreground">R {Number(booking.final_price).toFixed(2)}</span>
+                      <span className="font-medium text-foreground">{formatCredits(Number(booking.final_price))}</span>
                     </div>
                   </div>
                 </div>

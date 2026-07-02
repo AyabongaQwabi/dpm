@@ -5,6 +5,7 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { requireCustomerSession } from '@/lib/session'
+import { refundBookingCredits } from '@/lib/actions/credits'
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -22,7 +23,7 @@ export async function cancelBooking(formData: FormData) {
   const supabase = await createClient()
   const { data: booking } = await supabase
     .from('bookings')
-    .select('id, status, customer_id')
+    .select('id, status, customer_id, payment_status')
     .eq('id', bookingId)
     .eq('customer_id', customer.id)
     .single()
@@ -44,6 +45,10 @@ export async function cancelBooking(formData: FormData) {
     actor_id: customer.id,
   })
 
+  if (booking.payment_status === 'captured') {
+    await refundBookingCredits(bookingId)
+  }
+
   revalidateAll()
 }
 
@@ -57,13 +62,14 @@ export async function confirmCompletion(formData: FormData) {
   const supabase = await createClient()
   const { data: booking } = await supabase
     .from('bookings')
-    .select('id, status, customer_id, provider_id, final_price, commission_amount, provider_payout_amount')
+    .select('id, status, customer_id, provider_id, final_price, commission_amount, provider_payout_amount, payment_status')
     .eq('id', bookingId)
     .eq('customer_id', customer.id)
     .single()
 
   // Only allow confirming accepted bookings (provider has done the work)
   if (!booking || booking.status !== 'accepted') return
+  if (booking.payment_status !== 'captured') return
 
   const admin = createAdminClient()
   await admin.from('bookings').update({
@@ -78,6 +84,22 @@ export async function confirmCompletion(formData: FormData) {
     actor_type: 'customer',
     actor_id: customer.id,
   })
+
+  const gross = Math.round(Number(booking.final_price))
+  const commission = Math.round(Number(booking.commission_amount))
+  const net = Math.round(Number(booking.provider_payout_amount))
+
+  await admin.from('provider_payouts').upsert(
+    {
+      booking_id: bookingId,
+      provider_id: booking.provider_id,
+      gross_amount: gross,
+      commission_amount: commission,
+      net_payout_amount: net,
+      status: 'pending',
+    },
+    { onConflict: 'booking_id' },
+  )
 
   revalidateAll()
   redirect('/customer-account/reviews')
@@ -113,6 +135,8 @@ export async function disputeBooking(formData: FormData) {
     actor_type: 'customer',
     actor_id: customer.id,
   })
+
+  // No auto-refund on accepted disputes — work may have started; support handles manually.
 
   revalidateAll()
 }

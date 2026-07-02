@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { AccountSidebar } from '@/components/customer-account/AccountSidebar'
+import { PolicyLinks } from '@/components/PolicyLinks'
 
 export default async function CustomerAccountLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient()
@@ -60,6 +61,9 @@ export default async function CustomerAccountLayout({ children }: { children: Re
           {children}
         </main>
       </div>
+      <footer className="border-t bg-background px-4 py-4">
+        <PolicyLinks />
+      </footer>
     </div>
   )
 }

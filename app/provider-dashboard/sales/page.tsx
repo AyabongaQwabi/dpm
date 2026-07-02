@@ -1,6 +1,9 @@
 import { createClient } from '@/lib/supabase/server'
 import { requireProviderSession } from '@/lib/session'
-import type { BookingStatus, PaymentStatus } from '@/lib/db'
+import { loadConfigStore } from '@/lib/config-store'
+import { getConfigNumber, CONFIG_KEYS } from '@/lib/domain/config'
+import type { BookingStatus, PaymentStatus, ProviderPayoutStatus } from '@/lib/db'
+import { formatCredits } from '@/lib/format-credits'
 
 const STATUS_LABELS: Record<BookingStatus, { label: string; className: string }> = {
   requested: { label: 'Requested', className: 'bg-blue-100 text-blue-700' },
@@ -12,14 +15,22 @@ const STATUS_LABELS: Record<BookingStatus, { label: string; className: string }>
 
 const PAYMENT_LABELS: Record<PaymentStatus, string> = {
   pending: 'Payment pending',
-  captured: 'Paid',
+  captured: 'Credits received',
   failed: 'Payment failed',
   refunded: 'Refunded',
+}
+
+const PAYOUT_LABELS: Record<ProviderPayoutStatus, string> = {
+  pending: 'Payout pending',
+  processing: 'Processing',
+  paid: 'Paid',
 }
 
 export default async function SalesPage() {
   const { provider } = await requireProviderSession()
   const supabase = await createClient()
+  const config = await loadConfigStore(supabase)
+  const payoutDays = await getConfigNumber(config, CONFIG_KEYS.PROVIDER_PAYOUT_BUSINESS_DAYS)
 
   const { data: bookings } = await supabase
     .from('bookings')
@@ -27,13 +38,14 @@ export default async function SalesPage() {
       id, status, payment_status, final_price, commission_amount, provider_payout_amount, requested_at,
       service:services(id, title),
       customer:customers(id, name, email),
-      service_packages(id, name)
+      service_packages(id, name),
+      provider_payouts(id, status, net_payout_amount)
     `)
     .eq('provider_id', provider.id)
     .order('requested_at', { ascending: false })
     .limit(100)
 
-  const rows = (bookings ?? []) as {
+  type Row = {
     id: string
     status: BookingStatus
     payment_status: PaymentStatus | null
@@ -44,7 +56,10 @@ export default async function SalesPage() {
     service: { id: string; title: string } | { id: string; title: string }[] | null
     customer: { id: string; name: string; email: string } | { id: string; name: string; email: string }[] | null
     service_packages: { id: string; name: string }[] | null
-  }[]
+    provider_payouts: { id: string; status: ProviderPayoutStatus; net_payout_amount: number } | { id: string; status: ProviderPayoutStatus; net_payout_amount: number }[] | null
+  }
+
+  const rows = (bookings ?? []) as Row[]
 
   const totalEarnings = rows
     .filter((b) => b.status === 'completed' && b.payment_status === 'captured')
@@ -59,11 +74,10 @@ export default async function SalesPage() {
         </p>
       </div>
 
-      {/* Summary */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
         <div className="rounded-xl border bg-card px-5 py-4">
           <p className="text-xs text-muted-foreground uppercase tracking-wide">Total earnings</p>
-          <p className="text-2xl font-bold mt-1">R {totalEarnings.toFixed(2)}</p>
+          <p className="text-2xl font-bold mt-1">{formatCredits(totalEarnings)}</p>
           <p className="text-xs text-muted-foreground mt-0.5">completed & paid</p>
         </div>
         <div className="rounded-xl border bg-card px-5 py-4">
@@ -88,10 +102,14 @@ export default async function SalesPage() {
             const service = Array.isArray(booking.service) ? booking.service[0] : booking.service
             const customer = Array.isArray(booking.customer) ? booking.customer[0] : booking.customer
             const pkg = booking.service_packages?.[0]
+            const payout = Array.isArray(booking.provider_payouts)
+              ? booking.provider_payouts[0]
+              : booking.provider_payouts
             const statusInfo = STATUS_LABELS[booking.status]
             const date = new Date(booking.requested_at).toLocaleDateString('en-ZA', {
               day: 'numeric', month: 'short', year: 'numeric',
             })
+            const netPayout = Number(booking.provider_payout_amount)
 
             return (
               <div
@@ -106,12 +124,20 @@ export default async function SalesPage() {
                   <p className="text-xs text-muted-foreground mt-0.5">
                     {customer?.name ?? 'Customer'} · {date}
                   </p>
+                  {payout?.status === 'pending' && (
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Payout of {formatCredits(payout.net_payout_amount)} (R{payout.net_payout_amount.toLocaleString('en-ZA')}) is being processed — you&apos;ll receive it within {payoutDays} business days
+                    </p>
+                  )}
                 </div>
                 <div className="flex items-center gap-3 flex-shrink-0">
                   <div className="text-right">
-                    <p className="font-semibold text-sm">R {Number(booking.provider_payout_amount).toFixed(2)}</p>
+                    <p className="font-semibold text-sm">{formatCredits(netPayout)}</p>
                     {booking.payment_status && (
                       <p className="text-xs text-muted-foreground">{PAYMENT_LABELS[booking.payment_status]}</p>
+                    )}
+                    {payout && (
+                      <p className="text-xs text-muted-foreground">{PAYOUT_LABELS[payout.status]}</p>
                     )}
                   </div>
                   <span className={[

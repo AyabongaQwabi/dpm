@@ -2,8 +2,14 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import type { Metadata } from 'next'
 import { createClient } from '@/lib/supabase/server'
+import { formatCredits } from '@/lib/format-credits'
+import { canonicalAlternates } from '@/lib/seo'
 
-export const metadata: Metadata = { title: 'Booking confirmed' }
+export const metadata: Metadata = {
+  title: 'Booking confirmed',
+  alternates: canonicalAlternates('/checkout/confirmation'),
+  robots: { index: false, follow: false },
+}
 
 interface Props {
   searchParams: Promise<{ bookingId?: string }>
@@ -17,7 +23,7 @@ export default async function ConfirmationPage({ searchParams }: Props) {
   const { data: booking } = await supabase
     .from('bookings')
     .select(`
-      id, status, price_paid,
+      id, status, final_price,
       service:services(id, title),
       provider:providers(id, business_name, slug)
     `)
@@ -41,10 +47,13 @@ export default async function ConfirmationPage({ searchParams }: Props) {
       <h1 className="text-2xl font-bold mb-2">
         {booking.status === 'requested' ? 'Request sent!' : 'Booking confirmed!'}
       </h1>
-      <p className="text-muted-foreground mb-8">
+      <p className="text-muted-foreground mb-2">
         Your request for <span className="font-medium text-foreground">{service?.title}</span> has been
         sent to <span className="font-medium text-foreground">{(provider as { business_name: string })?.business_name}</span>.
-        They&apos;ll respond shortly — you can chat with them directly in your messages.
+      </p>
+      <p className="text-sm text-muted-foreground mb-8">
+        {formatCredits(Number(booking.final_price))} deducted from your wallet.
+        They&apos;ll respond shortly — you can chat with them in your messages.
       </p>
 
       <div className="flex flex-col gap-3 sm:flex-row sm:justify-center">

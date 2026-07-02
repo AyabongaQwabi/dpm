@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { Icon } from '@/components/ui/Icon'
 import type { RecommendedService } from '@/lib/recommended-services'
 import type { DiscountType } from '@/lib/db'
+import { formatCredits } from '@/lib/format-credits'
 
 function effectivePrice(price: number, discountType: DiscountType | null, discountAmount: number | null): number {
   if (!discountType || discountType === 'none' || discountAmount === null) return price
@@ -66,10 +67,10 @@ function ServiceCard({ service }: { service: RecommendedService }) {
           <div>
             {finalPrice !== null ? (
               <>
-                <span className="font-semibold">R {finalPrice.toFixed(2)}</span>
+                <span className="font-semibold">{formatCredits(finalPrice)}</span>
                 {service.defaultDiscountType !== 'none' && service.defaultPrice !== null && (
                   <span className="ml-1.5 text-xs line-through text-muted-foreground">
-                    R {service.defaultPrice.toFixed(2)}
+                    {formatCredits(service.defaultPrice)}
                   </span>
                 )}
                 {service.defaultPackageName && (

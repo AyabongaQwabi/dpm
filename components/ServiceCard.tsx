@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { Avatar } from '@/components/ui/Avatar'
 import { StarRating } from '@/components/ui/StarRating'
 import type { DiscountType } from '@/lib/db'
+import { formatCredits } from '@/lib/format-credits'
 
 export interface ServiceCardData {
   id: string
@@ -73,9 +74,9 @@ export function ServiceCard({ service, bookHref, ctaLabel = 'Get this service', 
         <h3 className="mb-1 font-semibold">{service.title}</h3>
         <p className="mb-3 line-clamp-2 text-sm text-muted-foreground">{service.description}</p>
         <div className="mb-3 mt-auto flex items-center gap-2">
-          <span className="font-bold">R {finalPrice.toFixed(2)}</span>
+          <span className="font-bold">{formatCredits(finalPrice)}</span>
           {hasDiscount && (
-            <span className="text-sm text-muted-foreground line-through">R {price.toFixed(2)}</span>
+            <span className="text-sm text-muted-foreground line-through">{formatCredits(price)}</span>
           )}
           {service.discount_type === 'percent' && discountAmt !== null && (
             <span className="text-xs font-medium text-primary-accent">{discountAmt}% off</span>
