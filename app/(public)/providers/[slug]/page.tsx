@@ -23,6 +23,12 @@ import type { DiscountType } from '@/lib/db'
 import { createClient } from '@/lib/supabase/server'
 import { getRecommendedServices } from '@/lib/recommended-services'
 import { InMemoryConfigStore } from '@/lib/domain/config'
+import { formatCredits } from '@/lib/format-credits'
+import {
+  canonicalAlternates,
+  localBusinessJsonLd,
+} from '@/lib/seo'
+import { JsonLd } from '@/components/seo/JsonLd'
 
 const RECOMMENDATION_DEFAULTS: Record<string, number> = {
   min_reviews_for_recommendation: 5,
@@ -36,6 +42,8 @@ const RECOMMENDATION_DEFAULTS: Record<string, number> = {
 interface ProfilePageProps {
   params: Promise<{ slug: string }>
 }
+
+export const revalidate = 1800
 
 function first<T>(value: T | T[] | null | undefined): T | null {
   if (!value) return null
@@ -88,9 +96,11 @@ export async function generateMetadata({ params }: ProfilePageProps): Promise<Me
   if (!provider) return {}
 
   const title = `${provider.business_name}${provider.location_city ? ` in ${provider.location_city}` : ''}`
+  const profilePath = provider.slug ?? provider.id
   return {
     title,
     description: provider.bio?.slice(0, 160) ?? `View services, reviews, posts, and contact details for ${provider.business_name}.`,
+    alternates: canonicalAlternates(`/providers/${profilePath}`),
     openGraph: provider.profile_image ? { images: [provider.profile_image] } : undefined,
   }
 }
@@ -119,6 +129,7 @@ export default async function ProviderProfilePage({ params }: ProfilePageProps) 
   })
   const recommendedServices = await getRecommendedServices({ config, providerId: provider.id, limit: 6 })
 
+  const profilePath = provider.slug ?? provider.id
   const providerType = first(provider.provider_types)
   const category = first(providerType?.provider_categories)
   const tags = (provider.provider_tags ?? [])
@@ -198,7 +209,6 @@ export default async function ProviderProfilePage({ params }: ProfilePageProps) 
     ? reviews.reduce((sum, review) => sum + review.rating, 0) / reviews.length
     : null
   const location = [provider.location_city, provider.location_state].filter(Boolean).join(', ')
-  const profilePath = provider.slug ?? provider.id
 
   const tabs = [
     ['overview', 'Overview'],
@@ -221,6 +231,21 @@ export default async function ProviderProfilePage({ params }: ProfilePageProps) 
 
   return (
     <main>
+      <JsonLd
+        data={localBusinessJsonLd({
+          business_name: provider.business_name,
+          bio: provider.bio,
+          profile_image: provider.profile_image,
+          slug: provider.slug,
+          id: provider.id,
+          location_city: provider.location_city,
+          location_state: provider.location_state,
+          location_country: provider.location_country,
+          avgRating,
+          reviewCount: reviews.length,
+          categoryName: category?.name ?? null,
+        })}
+      />
       {/* ── Hero / Header ──────────────────────────────────────────────── */}
       <section className="relative border-b bg-muted/30 overflow-hidden">
         {/* Craft pattern accent bar */}
@@ -514,7 +539,7 @@ export default async function ProviderProfilePage({ params }: ProfilePageProps) 
                       <div className="mt-4 pt-4 border-t border-border flex items-center justify-between gap-3">
                         {defaultPkg && (
                           <div>
-                            <span className="font-bold text-foreground">from R {Number(defaultPkg.price).toFixed(2)}</span>
+                            <span className="font-bold text-foreground">from {formatCredits(Number(defaultPkg.price))}</span>
                             {defaultPkg.delivery_time && (
                               <p className="text-xs text-muted-foreground mt-0.5">{defaultPkg.delivery_time}</p>
                             )}

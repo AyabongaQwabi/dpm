@@ -5,16 +5,30 @@ import { HeroSection } from '@/components/home/HeroSection'
 import { RegionalBrowse } from '@/components/home/RegionalBrowse'
 import { TrustSection } from '@/components/home/TrustSection'
 import { RecommendedServices } from '@/components/home/RecommendedServices'
+import { JsonLd } from '@/components/seo/JsonLd'
 import { getCategories, getLocations, getPublishedProviders } from '@/lib/public-data'
 import { getRecommendedServices } from '@/lib/recommended-services'
 import { createClient } from '@/lib/supabase/server'
+import { canonicalAlternates, defaultOpenGraph, defaultTwitter, providerListJsonLd } from '@/lib/seo'
 import { getTenantContext } from '@/lib/tenant'
 import { InMemoryConfigStore } from '@/lib/domain/config'
+
+export const revalidate = 3600
 
 export const metadata: Metadata = {
   title: 'Find trusted local providers in South Africa',
   description:
     'Search and compare verified South African providers — events, cleaning, security, legal and more — from Cape Town to Joburg, township to suburb.',
+  alternates: canonicalAlternates('/'),
+  openGraph: defaultOpenGraph(
+    'Find trusted local providers in South Africa',
+    'Search and compare verified South African providers — events, cleaning, security, legal and more — from Cape Town to Joburg.',
+    '/',
+  ),
+  twitter: defaultTwitter(
+    'Find trusted local providers in South Africa',
+    'Search and compare verified South African providers — events, cleaning, security, legal and more.',
+  ),
 }
 
 const RECOMMENDATION_DEFAULTS: Record<string, number> = {
@@ -58,6 +72,12 @@ export default async function LandingPage() {
 
   return (
     <main>
+      <JsonLd
+        data={providerListJsonLd(
+          'Featured South African service providers',
+          providers.map((p) => ({ slug: p.slug, id: p.id, business_name: p.business_name })),
+        )}
+      />
       <HeroSection
         heading={heading}
         subheading={subheading}

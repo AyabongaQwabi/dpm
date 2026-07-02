@@ -1,19 +1,37 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { ProviderCard } from '@/components/ProviderCard'
-import { getLocations, getPublishedProviders, titleFromSlug } from '@/lib/public-data'
+import { JsonLd } from '@/components/seo/JsonLd'
+import { getCategories, getLocations, getPublishedProviders, titleFromSlug } from '@/lib/public-data'
 import { createClient } from '@/lib/supabase/server'
+import { createStaticClient } from '@/lib/supabase/static'
+import { canonicalAlternates, defaultOpenGraph, defaultTwitter, providerListJsonLd } from '@/lib/seo'
 
 interface PageProps {
   params: Promise<{ slug: string }>
 }
 
+export const dynamicParams = true
+export const revalidate = 3600
+
+export async function generateStaticParams() {
+  const supabase = createStaticClient()
+  const categories = await getCategories(supabase)
+  return categories.map((category) => ({ slug: category.slug }))
+}
+
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { slug } = await params
   const category = titleFromSlug(slug)
+  const title = `${category} providers in South Africa`
+  const description = `Find and compare ${category.toLowerCase()} providers by services, reviews, location, and recent work on ServicePros.`
+  const path = `/providers/category/${slug}`
   return {
-    title: `${category} Providers`,
-    description: `Find and compare ${category.toLowerCase()} providers by services, reviews, location, and recent work.`,
+    title,
+    description,
+    alternates: canonicalAlternates(path),
+    openGraph: defaultOpenGraph(title, description, path),
+    twitter: defaultTwitter(title, description),
   }
 }
 
@@ -28,6 +46,12 @@ export default async function ProvidersByCategoryPage({ params }: PageProps) {
 
   return (
     <main className="mx-auto max-w-7xl px-4 py-12">
+      <JsonLd
+        data={providerListJsonLd(
+          `${category} providers`,
+          providers.map((p) => ({ slug: p.slug, id: p.id, business_name: p.business_name })),
+        )}
+      />
       <section className="max-w-3xl">
         <p className="text-sm font-semibold uppercase tracking-wide text-primary-accent">Category</p>
         <h1 className="mt-2 text-4xl font-bold tracking-tight">{category} providers</h1>

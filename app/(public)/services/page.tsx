@@ -4,10 +4,22 @@ import { ServicesFilters } from '@/components/ServicesFilters'
 import { ServiceListingCard } from '@/components/ServiceListingCard'
 import { getCategories, getServices, getLocations } from '@/lib/public-data'
 import { createClient } from '@/lib/supabase/server'
+import { canonicalAlternates, defaultOpenGraph, defaultTwitter } from '@/lib/seo'
 
 export const metadata: Metadata = {
-  title: 'Browse Services',
-  description: 'Browse services offered by local providers across categories and locations.',
+  title: 'Browse services from South African providers',
+  description:
+    'Browse services offered by verified local providers across categories and cities. Compare pricing, reviews, and book on ServicePros.',
+  alternates: canonicalAlternates('/services'),
+  openGraph: defaultOpenGraph(
+    'Browse services from South African providers',
+    'Browse services offered by verified local providers across categories and cities on ServicePros.',
+    '/services',
+  ),
+  twitter: defaultTwitter(
+    'Browse services from South African providers',
+    'Browse services offered by verified local providers across categories and cities on ServicePros.',
+  ),
 }
 
 interface Props {

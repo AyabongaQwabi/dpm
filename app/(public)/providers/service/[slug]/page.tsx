@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import { getServices, titleFromSlug } from '@/lib/public-data'
 import { createClient } from '@/lib/supabase/server'
+import { canonicalAlternates, defaultOpenGraph, defaultTwitter } from '@/lib/seo'
 
 interface PageProps {
   params: Promise<{ slug: string }>
@@ -10,9 +11,15 @@ interface PageProps {
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { slug } = await params
   const service = titleFromSlug(slug)
+  const title = `${service} services in South Africa`
+  const description = `Find providers offering ${service.toLowerCase()} services. Compare profiles, locations, and pricing on ServicePros.`
+  const path = `/providers/service/${slug}`
   return {
-    title: `${service} Services`,
-    description: `Find providers offering ${service.toLowerCase()} services and compare profiles, locations, and pricing.`,
+    title,
+    description,
+    alternates: canonicalAlternates(path),
+    openGraph: defaultOpenGraph(title, description, path),
+    twitter: defaultTwitter(title, description),
   }
 }
 

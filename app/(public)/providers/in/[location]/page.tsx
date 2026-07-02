@@ -1,19 +1,37 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { ProviderCard } from '@/components/ProviderCard'
-import { getCategories, getPublishedProviders, titleFromSlug } from '@/lib/public-data'
+import { JsonLd } from '@/components/seo/JsonLd'
+import { getCategories, getLocations, getPublishedProviders, titleFromSlug } from '@/lib/public-data'
 import { createClient } from '@/lib/supabase/server'
+import { createStaticClient } from '@/lib/supabase/static'
+import { canonicalAlternates, defaultOpenGraph, defaultTwitter, providerListJsonLd } from '@/lib/seo'
 
 interface PageProps {
   params: Promise<{ location: string }>
 }
 
+export const dynamicParams = true
+export const revalidate = 3600
+
+export async function generateStaticParams() {
+  const supabase = createStaticClient()
+  const locations = await getLocations(supabase, 200)
+  return locations.map((location) => ({ location: location.slug }))
+}
+
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { location } = await params
   const city = titleFromSlug(location)
+  const title = `Providers in ${city}, South Africa`
+  const description = `Find trusted providers in ${city}. Compare services, reviews, profiles, and recent provider posts on ServicePros.`
+  const path = `/providers/in/${location}`
   return {
-    title: `Providers in ${city}`,
-    description: `Find trusted providers in ${city}. Compare services, reviews, profiles, and recent provider posts.`,
+    title,
+    description,
+    alternates: canonicalAlternates(path),
+    openGraph: defaultOpenGraph(title, description, path),
+    twitter: defaultTwitter(title, description),
   }
 }
 
@@ -28,6 +46,12 @@ export default async function ProvidersInLocationPage({ params }: PageProps) {
 
   return (
     <main className="mx-auto max-w-7xl px-4 py-12">
+      <JsonLd
+        data={providerListJsonLd(
+          `Providers in ${city}`,
+          providers.map((p) => ({ slug: p.slug, id: p.id, business_name: p.business_name })),
+        )}
+      />
       <section className="max-w-3xl">
         <p className="text-sm font-semibold uppercase tracking-wide text-primary-accent">Local providers</p>
         <h1 className="mt-2 text-4xl font-bold tracking-tight">Providers in {city}</h1>

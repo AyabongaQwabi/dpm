@@ -7,6 +7,7 @@ import { Avatar } from '@/components/ui/Avatar'
 import { StarRating } from '@/components/ui/StarRating'
 import { PackageSelector } from '@/components/PackageSelector'
 import type { DiscountType, ServiceType } from '@/lib/db'
+import { canonicalAlternates } from '@/lib/seo'
 
 interface Props {
   params: Promise<{ id: string }>
@@ -25,6 +26,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   return {
     title: service.title,
     description: service.description?.slice(0, 160),
+    alternates: canonicalAlternates(`/services/${id}`),
     openGraph: service.image ? { images: [service.image] } : undefined,
   }
 }

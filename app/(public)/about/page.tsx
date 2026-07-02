@@ -1,8 +1,20 @@
 import type { Metadata } from 'next'
+import { canonicalAlternates, defaultOpenGraph, defaultTwitter } from '@/lib/seo'
 
 export const metadata: Metadata = {
-  title: 'About',
-  description: 'About ServicePros and the provider marketplace experience.',
+  title: 'About ServicePros — South African provider marketplace',
+  description:
+    'ServicePros helps South Africans discover trusted local providers through searchable profiles, services, reviews, galleries, and useful content.',
+  alternates: canonicalAlternates('/about'),
+  openGraph: defaultOpenGraph(
+    'About ServicePros — South African provider marketplace',
+    'ServicePros helps South Africans discover trusted local providers through searchable profiles, services, reviews, and content.',
+    '/about',
+  ),
+  twitter: defaultTwitter(
+    'About ServicePros — South African provider marketplace',
+    'ServicePros helps South Africans discover trusted local providers through searchable profiles, services, reviews, and content.',
+  ),
 }
 
 export default function AboutPage() {

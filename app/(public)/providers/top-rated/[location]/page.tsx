@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { ProviderCard } from '@/components/ProviderCard'
 import { getPublishedProviders, titleFromSlug } from '@/lib/public-data'
 import { createClient } from '@/lib/supabase/server'
+import { canonicalAlternates, defaultOpenGraph, defaultTwitter } from '@/lib/seo'
 
 interface PageProps {
   params: Promise<{ location: string }>
@@ -10,9 +11,15 @@ interface PageProps {
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { location } = await params
   const city = titleFromSlug(location)
+  const title = `Top-rated providers in ${city}, South Africa`
+  const description = `Browse top-rated local providers in ${city} by reviews and service profile quality on ServicePros.`
+  const path = `/providers/top-rated/${location}`
   return {
-    title: `Top-rated Providers in ${city}`,
-    description: `Browse top-rated local providers in ${city} by reviews and service profile quality.`,
+    title,
+    description,
+    alternates: canonicalAlternates(path),
+    openGraph: defaultOpenGraph(title, description, path),
+    twitter: defaultTwitter(title, description),
   }
 }
 

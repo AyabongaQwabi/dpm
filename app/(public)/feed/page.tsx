@@ -2,10 +2,27 @@
 // Reverse-chronological. Scoped to tenant category; all categories on home marketplace.
 // No moderation logic in v1 — PRD Section 17 explicitly defers this.
 
+import type { Metadata } from 'next'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { getTenantContext } from '@/lib/tenant'
 import { Avatar } from '@/components/ui/Avatar'
+import { canonicalAlternates, defaultOpenGraph, defaultTwitter } from '@/lib/seo'
+
+export async function generateMetadata(): Promise<Metadata> {
+  const tenant = await getTenantContext()
+  const siteName = tenant.branding?.siteName ?? 'ServicePros'
+  const title = `${siteName} provider content feed`
+  const description =
+    'Browse tips, updates, and promos from verified South African service providers. Discover local expertise before you book.'
+  return {
+    title,
+    description,
+    alternates: canonicalAlternates('/feed'),
+    openGraph: defaultOpenGraph(title, description, '/feed'),
+    twitter: defaultTwitter(title, description),
+  }
+}
 
 export default async function FeedPage() {
   const supabase = await createClient()

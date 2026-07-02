@@ -2,15 +2,59 @@
 // Server-rendered for SEO. Filtering by type, tags, and free text.
 // Ranking via lib/search.ts → lib/domain/ranking.ts.
 
+import type { Metadata } from 'next'
 import { createClient } from '@/lib/supabase/server'
 import { getTenantContext } from '@/lib/tenant'
 import { searchProviders } from '@/lib/search'
 import { InMemoryConfigStore } from '@/lib/domain/config'
 import { ProviderCardCompact } from '@/components/ProviderCard'
 import { SearchFilters } from '@/components/SearchFilters'
+import { JsonLd } from '@/components/seo/JsonLd'
+import {
+  canonicalAlternates,
+  defaultOpenGraph,
+  defaultTwitter,
+  providerListJsonLd,
+} from '@/lib/seo'
 
 interface SearchPageProps {
   searchParams: Promise<{ q?: string; type?: string; tags?: string }>
+}
+
+export async function generateMetadata({ searchParams }: SearchPageProps): Promise<Metadata> {
+  const params = await searchParams
+  const query = params.q?.trim() ?? ''
+  const typeSlug = params.type ?? ''
+  const tagFilter = params.tags ? params.tags.split(',').filter(Boolean) : []
+
+  const pathParts = ['/search']
+  const urlParams = new URLSearchParams()
+  if (query) urlParams.set('q', query)
+  if (typeSlug) urlParams.set('type', typeSlug)
+  if (tagFilter.length) urlParams.set('tags', tagFilter.join(','))
+  const qs = urlParams.toString()
+  const path = qs ? `${pathParts[0]}?${qs}` : pathParts[0]
+
+  let title = 'Search South African service providers'
+  let description =
+    'Search verified South African service providers by name, category, or tag. Compare profiles, reviews, and services in one place.'
+
+  if (query) {
+    title = `Providers matching "${query}" in South Africa`
+    description = `Find trusted South African providers matching "${query}". Filter by type and tags, compare reviews, and book services.`
+  } else if (typeSlug) {
+    const label = typeSlug.split('-').map((p) => p.charAt(0).toUpperCase() + p.slice(1)).join(' ')
+    title = `${label} providers in South Africa`
+    description = `Browse ${label.toLowerCase()} providers across South Africa. Compare services, ratings, and locations on ServicePros.`
+  }
+
+  return {
+    title,
+    description,
+    alternates: canonicalAlternates(path),
+    openGraph: defaultOpenGraph(title, description, path),
+    twitter: defaultTwitter(title, description),
+  }
 }
 
 export default async function SearchPage({ searchParams }: SearchPageProps) {
@@ -78,6 +122,12 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
 
   return (
     <main className="mx-auto max-w-7xl px-4 py-10">
+      <JsonLd
+        data={providerListJsonLd(
+          query ? `Search results for "${query}"` : 'South African service providers',
+          cards.map((p) => ({ slug: p.slug, id: p.id, business_name: p.business_name })),
+        )}
+      />
       <h1 className="text-3xl font-bold tracking-tight mb-3">
         {tenant.branding?.siteName ? `${tenant.branding.siteName} providers` : 'Find a provider'}
       </h1>
