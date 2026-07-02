@@ -144,7 +144,7 @@ export function PackageFormClient({
         </div>
         <div className="space-y-1.5">
           <label className="block text-sm font-medium">
-            Price (R) <span className="text-destructive">*</span>
+            Price (credits) <span className="text-destructive">*</span>
           </label>
           <input
             name="price"
@@ -153,7 +153,7 @@ export function PackageFormClient({
             min="0"
             step="0.01"
             defaultValue={defaults?.price}
-            placeholder="0.00"
+            placeholder="e.g. 500"
             className="w-full rounded-[var(--radius)] border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
           />
         </div>

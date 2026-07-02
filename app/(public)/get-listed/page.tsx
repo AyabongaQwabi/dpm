@@ -1,12 +1,25 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
+import { Suspense } from 'react'
 import { Icon } from '@/components/ui/Icon'
 import { VerifiedBadge, TIER_META, type VerificationTier } from '@/components/ui/VerifiedBadge'
+import { GetListedTabs } from '@/components/get-listed/GetListedTabs'
+import { canonicalAlternates, defaultOpenGraph, defaultTwitter } from '@/lib/seo'
 
 export const metadata: Metadata = {
-  title: 'Get listed as a provider',
+  title: 'Get listed as a South African service provider',
   description:
-    'Win real customer bookings and payments, get found on Google and AI assistants, manage everything from a provider dashboard, and grow with verified badges and a partners marketplace.',
+    'List your business on ServicePros to win bookings, get paid securely, appear on Google and AI assistants, and manage everything from one provider dashboard.',
+  alternates: canonicalAlternates('/get-listed'),
+  openGraph: defaultOpenGraph(
+    'Get listed as a South African service provider',
+    'List your business on ServicePros to win bookings, get paid securely, and get found on Google and AI assistants.',
+    '/get-listed',
+  ),
+  twitter: defaultTwitter(
+    'Get listed as a South African service provider',
+    'List your business on ServicePros to win bookings, get paid securely, and get found on Google and AI assistants.',
+  ),
 }
 
 const benefits = [
@@ -57,9 +70,9 @@ const tierRequirements: Record<VerificationTier, string> = {
   fica: 'Submit FICA documents — ID and proof of address.',
 }
 
-export default function GetListedPage() {
+function GetListedOverview() {
   return (
-    <main>
+    <>
       {/* Hero */}
       <section className="border-b bg-muted/30">
         <div className="mx-auto max-w-7xl px-4 py-16 lg:py-24">
@@ -85,6 +98,12 @@ export default function GetListedPage() {
                 className="inline-flex items-center gap-2 rounded-xl border bg-card px-5 py-3 text-sm font-semibold hover:bg-muted"
               >
                 Provider login
+              </Link>
+              <Link
+                href="/get-listed?tab=pricing"
+                className="inline-flex items-center gap-2 rounded-xl border border-primary-accent/30 bg-primary-accent/5 px-5 py-3 text-sm font-semibold text-primary-accent hover:bg-primary-accent/10"
+              >
+                Provider pricing
               </Link>
             </div>
           </div>
@@ -175,6 +194,16 @@ export default function GetListedPage() {
           </Link>
         </div>
       </section>
+    </>
+  )
+}
+
+export default function GetListedPage() {
+  return (
+    <main>
+      <Suspense fallback={<div className="mx-auto max-w-7xl px-4 py-8 text-sm text-muted-foreground">Loading…</div>}>
+        <GetListedTabs overview={<GetListedOverview />} />
+      </Suspense>
     </main>
   )
 }

@@ -7,6 +7,7 @@ import {
   findBracket,
   effectiveRate,
 } from '@/lib/pricing-config'
+import { formatCredits } from '@/lib/format-credits'
 
 // Build the selector options for the ceiling-package dropdown from the
 // canonical PACKAGES config — no hardcoding here.
@@ -24,8 +25,8 @@ function round2(n: number) {
   return Math.round(n * 100) / 100
 }
 
-function fmt(n: number) {
-  return 'R ' + n.toLocaleString('en-ZA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+function fmtCredits(n: number) {
+  return formatCredits(n)
 }
 
 function pct(n: number) {
@@ -53,18 +54,17 @@ export function CommissionCalculator() {
       {/* Input row */}
       <div className="px-6 pt-6 pb-5 border-b bg-muted/30">
         <label className="block text-sm font-semibold text-foreground mb-2">
-          Service sale price
+          Service sale price (credits)
         </label>
         <div className="flex items-center gap-3">
           <div className="relative flex-1 max-w-xs">
-            <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-sm font-medium text-muted-foreground select-none">R</span>
             <input
               type="text"
               inputMode="decimal"
               value={rawValue}
               onChange={e => setRawValue(e.target.value)}
-              className="w-full rounded-xl border border-input bg-background pl-8 pr-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-              placeholder="0"
+              className="w-full rounded-xl border border-input bg-background px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+              placeholder="e.g. 5000"
             />
           </div>
           <div className="flex-1">
@@ -91,7 +91,7 @@ export function CommissionCalculator() {
 
         <div className="rounded-xl bg-primary/8 px-4 py-3.5">
           <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Platform fee</p>
-          <p className="mt-1 text-xl font-bold text-foreground">{fmt(commission)}</p>
+          <p className="mt-1 text-xl font-bold text-foreground">{fmtCredits(commission)}</p>
           <p className="mt-0.5 text-xs text-muted-foreground">
             {pct(rate)} effective rate
             {option.rate !== null && rate < standardRate && (
@@ -102,7 +102,7 @@ export function CommissionCalculator() {
 
         <div className="rounded-xl bg-primary/12 px-4 py-3.5">
           <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">You receive</p>
-          <p className="mt-1 text-xl font-bold text-primary">{fmt(payout)}</p>
+          <p className="mt-1 text-xl font-bold text-primary">{fmtCredits(payout)}</p>
           <p className="mt-0.5 text-xs text-muted-foreground">After commission</p>
         </div>
       </div>
@@ -135,7 +135,7 @@ export function CommissionCalculator() {
       ) : (
         <div className="px-6 pb-5">
           <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-3">
-            Package comparison at {price > 0 ? fmt(price) : 'this price'}
+            Package comparison at {price > 0 ? fmtCredits(price) : 'this price'}
           </p>
           <div className="space-y-1.5">
             {CEILING_OPTIONS.map((o, i) => {
@@ -154,9 +154,9 @@ export function CommissionCalculator() {
                 >
                   <span className="truncate mr-2">{o.label}</span>
                   <span className="shrink-0">
-                    {fmt(comm)}
+                    {fmtCredits(comm)}
                     {saving > 0 && !isSelected && (
-                      <span className="ml-1.5 text-xs opacity-70">save {fmt(saving)}</span>
+                      <span className="ml-1.5 text-xs opacity-70">save {fmtCredits(saving)}</span>
                     )}
                   </span>
                 </div>

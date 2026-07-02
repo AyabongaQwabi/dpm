@@ -125,4 +125,11 @@ export const CONFIG_KEYS = {
   TEMP_REDUCTION_PKG_3_MONTHS: "temp_reduction_pkg_3_months", // 3
   TEMP_REDUCTION_PKG_4_MONTHS: "temp_reduction_pkg_4_months", // 3
   TEMP_REDUCTION_PKG_5_MONTHS: "temp_reduction_pkg_5_months", // 6
+
+  // Credit wallet
+  CREDIT_PACK_DENOMINATIONS: "credit_pack_denominations",
+  CREDIT_PURCHASE_MIN: "credit_purchase_min",
+  CREDIT_PURCHASE_MAX: "credit_purchase_max",
+  PROVIDER_PAYOUT_BUSINESS_DAYS: "provider_payout_business_days",
+  SUPPORT_EMAIL: "support_email",
 } as const;

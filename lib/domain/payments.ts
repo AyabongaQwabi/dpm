@@ -341,7 +341,11 @@ export async function calculateCommission(
   return result;
 }
 
-// ---------- Payout eligibility (unchanged) ----------
+// ---------- Payout eligibility ----------
+//
+// Credit model: payment_status='captured' means credits were spent at booking
+// confirmation (not a separate PSP capture). Payout releases when the customer
+// confirms completion and a provider_payouts pending row is created.
 
 export interface PayoutEligibilityInput {
   bookingStatus: string;

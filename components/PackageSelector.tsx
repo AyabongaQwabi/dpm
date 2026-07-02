@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import type { DiscountType } from '@/lib/db'
+import { formatCredits } from '@/lib/format-credits'
 
 interface Package {
   id: string
@@ -36,7 +37,7 @@ function effectivePrice(price: number, type: DiscountType, amount: number | null
 function discountLabel(type: DiscountType, amount: number | null): string | null {
   if (type === 'none' || amount === null) return null
   if (type === 'percent') return `${amount}% off`
-  return `R ${Number(amount).toFixed(2)} off`
+  return `${formatCredits(Number(amount))} off`
 }
 
 export function PackageSelector({ packages, serviceId, serviceName, ctaVerb, isSignedIn, signInUrl, providerSlug }: Props) {
@@ -90,7 +91,7 @@ export function PackageSelector({ packages, serviceId, serviceName, ctaVerb, isS
                 >
                   <span className="block truncate">{pkg.name}</span>
                   <span className={`block text-xs mt-0.5 tabular-nums ${selected === pkg.id ? 'opacity-80' : ''}`}>
-                    R&nbsp;{eff.toFixed(0)}
+                    {formatCredits(eff)}
                   </span>
                   {pkg.is_default && selected !== pkg.id && (
                     <span className="absolute -top-1 -right-1 h-2 w-2 rounded-full bg-primary-accent border border-card" />
@@ -108,12 +109,12 @@ export function PackageSelector({ packages, serviceId, serviceName, ctaVerb, isS
             <div className="flex items-end justify-between gap-3">
               <div>
                 <p className="text-3xl font-bold tabular-nums">
-                  R&nbsp;{finalPrice?.toFixed(2)}
+                  {finalPrice !== null ? formatCredits(finalPrice) : '—'}
                 </p>
                 {hasDiscount && (
                   <div className="flex items-center gap-2 mt-1">
                     <p className="text-sm text-muted-foreground line-through tabular-nums">
-                      R&nbsp;{selectedPkg.price.toFixed(2)}
+                      {formatCredits(selectedPkg.price)}
                     </p>
                     {label && (
                       <span className="rounded-full bg-green-100 text-green-700 border border-green-200 px-2 py-0.5 text-xs font-semibold">

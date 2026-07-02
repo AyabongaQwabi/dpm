@@ -327,6 +327,13 @@ export const PLATFORM_CONFIG_SEED: Record<string, string> = {
   // Booking auto-expiry
   booking_auto_expiry_hours: '24',
 
+  // Credit wallet (1 credit = R1)
+  credit_pack_denominations: '[100,250,500,1000]',
+  credit_purchase_min: '50',
+  credit_purchase_max: '5000',
+  provider_payout_business_days: '5',
+  support_email: 'support@servicepros.co.za',
+
   // Ranking weights (defaults — tunable in DB without a deploy)
   ranking_weight_text_match: '1.0',
   ranking_weight_location: '0.8',
