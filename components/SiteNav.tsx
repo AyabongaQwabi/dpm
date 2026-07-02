@@ -1,6 +1,8 @@
 import Link from 'next/link'
 import { Icon } from '@/components/ui/Icon'
 import { ThemeToggle } from '@/components/ThemeToggle'
+import { SiteNavUserMenu } from '@/components/SiteNavUserMenu'
+import { getNavAuthUser } from '@/lib/nav-auth'
 
 interface SiteNavProps {
   siteName?: string
@@ -8,7 +10,9 @@ interface SiteNavProps {
   location?: { city: string; slug: string } | null
 }
 
-export function SiteNav({ siteName = 'Service Pros', logoUrl, location }: SiteNavProps) {
+export async function SiteNav({ siteName = 'Service Pros', logoUrl, location }: SiteNavProps) {
+  const authUser = await getNavAuthUser()
+
   return (
     <header className="sticky top-0 z-50 border-b bg-background/90 backdrop-blur">
       <div className="craft-rule" aria-hidden="true" />
@@ -46,19 +50,44 @@ export function SiteNav({ siteName = 'Service Pros', logoUrl, location }: SiteNa
             <Icon.search className="h-[18px] w-[18px]" />
           </Link>
           <ThemeToggle />
-          <Link
-            href="/sign-in"
-            className="hidden rounded-xl border px-3 py-2 text-sm hover:bg-muted sm:inline-flex"
-          >
-            Sign in
-          </Link>
-          <Link
-            href="/sign-up"
-            className="inline-flex items-center gap-1.5 rounded-xl bg-primary-accent px-3.5 py-2 text-sm font-semibold text-primary-accent-foreground transition-opacity hover:opacity-90"
-          >
-            Join
-            <Icon.arrowRight className="h-4 w-4" weight="bold" />
-          </Link>
+          {authUser ? (
+            <>
+              <Link
+                href={authUser.creditsHref}
+                className="inline-flex items-center gap-1.5 rounded-xl bg-primary-accent px-3 py-2 text-sm font-semibold text-primary-accent-foreground transition-opacity hover:opacity-90 sm:px-3.5"
+              >
+                <span className="sm:hidden">Credits</span>
+                <span className="hidden sm:inline">Buy credits</span>
+                <Icon.arrowRight className="hidden h-4 w-4 sm:block" weight="bold" />
+              </Link>
+              <Link
+                href={authUser.dashboardHref}
+                className="inline-flex rounded-xl border px-2.5 py-2 text-xs font-medium hover:bg-muted sm:px-3 sm:text-sm"
+              >
+                Dashboard
+              </Link>
+              <SiteNavUserMenu
+                initial={authUser.initial}
+                email={authUser.email}
+              />
+            </>
+          ) : (
+            <>
+              <Link
+                href="/sign-in"
+                className="hidden rounded-xl border px-3 py-2 text-sm hover:bg-muted sm:inline-flex"
+              >
+                Sign in
+              </Link>
+              <Link
+                href="/sign-up"
+                className="inline-flex items-center gap-1.5 rounded-xl bg-primary-accent px-3.5 py-2 text-sm font-semibold text-primary-accent-foreground transition-opacity hover:opacity-90"
+              >
+                Join
+                <Icon.arrowRight className="h-4 w-4" weight="bold" />
+              </Link>
+            </>
+          )}
         </div>
       </div>
     </header>
