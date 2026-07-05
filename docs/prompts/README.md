@@ -4,6 +4,7 @@ Dated prompts for Claude Code / agent implementation passes. Read the linked pro
 
 | Date | Prompt | Scope |
 |------|--------|-------|
+| 2026-07-05 | [scraping-claims-billing](2026-07-05-scraping-claims-billing-prompt.md) | Google Places scraper, claimable profiles, base subscriptions, billing dashboard, expiry cron |
 | 2026-07-02 | [seo-prerendering-sitemap](2026-07-02-seo-prerendering-sitemap-prompt.md) | Metadata, ISR, sitemap/robots, JSON-LD, manifest, next.config security/images |
 | 2026-07-02 | [credit-system-policy-pages](2026-07-02-credit-system-policy-pages-prompt.md) | Credit wallet, Paystack purchases, booking spend/refund, provider payout queue, credits display, policy pages |
 | 2026-07-02 | [pricing-restructure-credit-promotions](2026-07-02-pricing-restructure-credit-promotions-prompt.md) | Provider pricing → Get Listed tab, customer `/pricing` credits page, JSON promotion bonuses |
