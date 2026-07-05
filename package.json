@@ -11,7 +11,8 @@
     "prebuild": "npm test",
     "seed:public": "node scripts/seed-public-iteration.mjs",
     "seed:public:destroy": "node scripts/destroy-public-iteration-seed.mjs",
-    "seed:services": "node scripts/seed-services.mjs"
+    "seed:services": "node scripts/seed-services.mjs",
+    "scrape:businesses": "node scripts/scrape-businesses.mjs"
   },
   "dependencies": {
     "@phosphor-icons/react": "^2.1.10",
@@ -34,6 +35,7 @@
     "next": "16.2.9",
     "react": "19.2.4",
     "react-dom": "19.2.4",
+    "resend": "^4.0.0",
     "tailwind-merge": "^3.6.0"
   },
   "devDependencies": {
