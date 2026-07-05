@@ -6,6 +6,7 @@ import { loadConfigStore, getConfigJsonArray } from '@/lib/config-store'
 import { getConfigNumber, CONFIG_KEYS } from '@/lib/domain/config'
 import { getActivePromotion, getPromotionById } from '@/lib/credit-promotions'
 import { formatCredits } from '@/lib/format-credits'
+import { verifyAndApplyCredits } from '@/lib/payments/verify-credits'
 import { CreditPurchaseClient } from '@/components/customer-account/CreditPurchaseClient'
 import type { CreditTransactionType } from '@/lib/db'
 
@@ -15,7 +16,7 @@ export const metadata: Metadata = {
 }
 
 interface Props {
-  searchParams: Promise<{ amount?: string; status?: string }>
+  searchParams: Promise<{ amount?: string; status?: string; reference?: string; trxref?: string }>
 }
 
 function formatPurchaseLine(tx: {
@@ -52,7 +53,8 @@ function formatTransactionAmount(
 
 export default async function CreditsPage({ searchParams }: Props) {
   const { customer } = await requireCustomerSession()
-  const { amount: amountParam, status } = await searchParams
+  const { amount: amountParam, status, reference, trxref } = await searchParams
+  const paystackReference = reference ?? trxref
   const supabase = await createClient()
 
   const config = await loadConfigStore(supabase)
@@ -64,6 +66,11 @@ export default async function CreditsPage({ searchParams }: Props) {
 
   const activePromotion = getActivePromotion()
 
+  let verifyResult: Awaited<ReturnType<typeof verifyAndApplyCredits>> | null = null
+  if (status === 'success' && paystackReference) {
+    verifyResult = await verifyAndApplyCredits(paystackReference, customer.id)
+  }
+
   const [{ data: customerRow }, { data: transactions }] = await Promise.all([
     supabase.from('customers').select('credit_balance').eq('id', customer.id).single(),
     supabase
@@ -74,32 +81,25 @@ export default async function CreditsPage({ searchParams }: Props) {
       .limit(50),
   ])
 
-  const balance = customerRow?.credit_balance ?? 0
+  const balance = verifyResult?.balance ?? customerRow?.credit_balance ?? 0
   const initialAmount = amountParam ? Math.round(Number(amountParam)) : undefined
-
-  const latestPurchase = status === 'success'
-    ? transactions?.find((tx) => tx.type === 'purchase')
-    : null
 
   const successMessage = (() => {
     if (status !== 'success') return null
-    if (latestPurchase) {
-      const base = latestPurchase.amount
-      const bonus = latestPurchase.bonus_credits ?? 0
-      const total = base + bonus
-      if (bonus > 0) {
-        const promoName = latestPurchase.promotion_id
-          ? getPromotionById(latestPurchase.promotion_id)?.name
-          : activePromotion?.name
-        const promoSuffix = promoName ? ` (${promoName} bonus)` : ' bonus'
-        return `Payment received — ${formatCredits(total)} will be added (${base.toLocaleString('en-ZA')} + ${bonus.toLocaleString('en-ZA')}${promoSuffix}).`
+
+    if (paystackReference && verifyResult) {
+      if (verifyResult.verified) {
+        if (verifyResult.alreadyApplied) {
+          return 'Payment confirmed — your wallet has already been updated.'
+        }
+        if (verifyResult.credited && verifyResult.totalCredits) {
+          return `Payment confirmed — ${formatCredits(verifyResult.totalCredits)} have been added to your wallet.`
+        }
       }
-      return `Payment received — ${formatCredits(base)} will be added to your wallet.`
+      return 'We couldn\'t confirm this payment yet. Your balance will update automatically once Paystack confirms. If this doesn\'t resolve in a few minutes, contact support.'
     }
-    if (activePromotion) {
-      return 'Payment received — your wallet balance will update shortly once Paystack confirms the transaction. Any active promotion bonus will be applied automatically.'
-    }
-    return 'Payment received — your wallet balance will update shortly once Paystack confirms the transaction.'
+
+    return 'We couldn\'t confirm this payment yet. Your balance will update automatically once Paystack confirms. If this doesn\'t resolve in a few minutes, contact support.'
   })()
 
   return (

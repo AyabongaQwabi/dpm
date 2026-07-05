@@ -1,5 +1,11 @@
 import { describe, it, expect } from 'vitest'
-import { canAfford, shortfall, assertPositiveCredits } from '../credits'
+import {
+  canAfford,
+  shortfall,
+  assertPositiveCredits,
+  parseCreditPurchaseMetadata,
+  isValidCreditPurchaseVerification,
+} from '../credits'
 
 describe('canAfford', () => {
   it('returns true when balance covers rounded price', () => {
@@ -39,5 +45,46 @@ describe('assertPositiveCredits', () => {
   it('rejects non-finite values', () => {
     expect(() => assertPositiveCredits(NaN)).toThrow(RangeError)
     expect(() => assertPositiveCredits(Infinity)).toThrow(RangeError)
+  })
+})
+
+describe('parseCreditPurchaseMetadata', () => {
+  it('parses base and bonus credits from metadata', () => {
+    expect(parseCreditPurchaseMetadata({
+      credit_amount: 500,
+      bonus_credits: 50,
+    })).toEqual({ baseCredits: 500, bonusCredits: 50, totalCredits: 550 })
+  })
+
+  it('defaults missing bonus to zero', () => {
+    expect(parseCreditPurchaseMetadata({ credit_amount: '250' })).toEqual({
+      baseCredits: 250,
+      bonusCredits: 0,
+      totalCredits: 250,
+    })
+  })
+})
+
+describe('isValidCreditPurchaseVerification', () => {
+  const customerId = 'cust_123'
+
+  it('accepts successful credit purchase for matching customer', () => {
+    expect(isValidCreditPurchaseVerification('success', {
+      type: 'credit_purchase',
+      customer_id: customerId,
+      credit_amount: 100,
+    }, customerId)).toBe(true)
+  })
+
+  it('rejects wrong status, type, or customer', () => {
+    const metadata = {
+      type: 'credit_purchase',
+      customer_id: customerId,
+      credit_amount: 100,
+    }
+    expect(isValidCreditPurchaseVerification('failed', metadata, customerId)).toBe(false)
+    expect(isValidCreditPurchaseVerification('success', { ...metadata, type: 'other' }, customerId)).toBe(false)
+    expect(isValidCreditPurchaseVerification('success', metadata, 'other')).toBe(false)
+    expect(isValidCreditPurchaseVerification('success', { ...metadata, credit_amount: 0 }, customerId)).toBe(false)
   })
 })
