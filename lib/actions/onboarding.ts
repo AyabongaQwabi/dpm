@@ -9,6 +9,8 @@ import {
   evaluateStepCompletion,
   evaluatePublishEligibility,
 } from '@/lib/domain/onboarding'
+import { generateProviderSlug } from '@/lib/domain/slug'
+import { ensureBaseSubscription } from '@/lib/actions/subscriptions'
 
 async function getAuthUserId(): Promise<string> {
   const supabase = await createClient()
@@ -71,6 +73,9 @@ export async function saveOnboardingStep(formData: FormData) {
       business_name,
       bio,
       profile_image,
+      slug,
+      location_city,
+      claim_status,
       provider_types!inner(id, category_id)
     `)
     .eq('auth_provider_id', authUserId)
@@ -165,6 +170,16 @@ export async function saveOnboardingStep(formData: FormData) {
   if (businessName !== null) providerColumnUpdate.business_name = businessName
   if (bio !== null) providerColumnUpdate.bio = bio
   if (profileImage !== null && profileImage !== '') providerColumnUpdate.profile_image = profileImage
+
+  if (businessName?.trim() && !provider.slug) {
+    const { data: slugRows } = await admin.from('providers').select('slug').not('slug', 'is', null)
+    const existingSlugs = (slugRows ?? []).map((r) => r.slug).filter((s): s is string => Boolean(s))
+    providerColumnUpdate.slug = generateProviderSlug({
+      businessName: businessName.trim(),
+      city: provider.location_city,
+      existingSlugs,
+    })
+  }
 
   const socialLinks = parseJsonArray(socialLinksRaw)
   if (socialLinks !== null) providerColumnUpdate.social_links = socialLinks
@@ -315,15 +330,13 @@ export async function saveOnboardingStep(formData: FormData) {
     .update({ is_published: publishCheck.shouldPublish })
     .eq('id', provider.id)
 
-  // Advance to the next step.
-  // On the last step, always redirect to the dashboard — the provider is done
-  // regardless of whether all required fields passed (they can complete later).
-  // Client components (PortfolioStep, LanguagesStep, SocialLinksStep) await
-  // this action and use router.push for navigation — they catch the NEXT_REDIRECT
-  // throw from non-last-step redirects below.
   const isLastStep = stepPosition === resolvedSteps[resolvedSteps.length - 1]?.position
   if (isLastStep) {
-    redirect('/provider-dashboard')
+    await ensureBaseSubscription(provider.id)
+    if (provider.claim_status !== 'claimed') {
+      await admin.from('providers').update({ claim_status: 'claimed' }).eq('id', provider.id)
+    }
+    redirect('/provider-dashboard/onboarding/complete')
   }
   redirect(`/provider-dashboard/onboarding?step=${stepPosition + 1}`)
 }

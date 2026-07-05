@@ -2,6 +2,7 @@ import { createHmac, timingSafeEqual } from 'crypto'
 import { NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { getPromotionById } from '@/lib/credit-promotions'
+import { renewProviderSubscription } from '@/lib/actions/subscriptions'
 
 function verifyPaystackSignature(rawBody: string, signature: string | null, secret: string): boolean {
   if (!signature) return false
@@ -36,6 +37,8 @@ export async function POST(request: Request) {
         credit_amount?: number | string
         bonus_credits?: number | string
         promotion_id?: string | null
+        provider_id?: string
+        subscription_id?: string
       }
     }
   }
@@ -51,12 +54,23 @@ export async function POST(request: Request) {
   }
 
   const metadata = event.data?.metadata
+  const paystackRef = event.data?.reference
+
+  if (metadata?.type === 'provider_subscription_renewal') {
+    const providerId = metadata.provider_id
+    const subscriptionId = metadata.subscription_id
+    if (!providerId || !subscriptionId || !paystackRef) {
+      return NextResponse.json({ error: 'Missing subscription metadata' }, { status: 400 })
+    }
+    await renewProviderSubscription(providerId, subscriptionId, paystackRef)
+    return NextResponse.json({ received: true })
+  }
+
   if (metadata?.type !== 'credit_purchase') {
     return NextResponse.json({ received: true })
   }
 
   const customerId = metadata.customer_id
-  const paystackRef = event.data?.reference
   const amount = Math.round(Number(metadata.credit_amount))
   const bonusCredits = Math.round(Number(metadata.bonus_credits ?? 0))
   const promotionId = metadata.promotion_id ?? null

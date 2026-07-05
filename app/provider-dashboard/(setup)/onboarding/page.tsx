@@ -34,7 +34,7 @@ import { SocialLinksField } from '@/components/provider-dashboard/SocialLinksFie
 import { Icon } from '@/components/ui/Icon'
 
 interface OnboardingPageProps {
-  searchParams: Promise<{ step?: string; error?: string }>
+  searchParams: Promise<{ step?: string; error?: string; claimed?: string }>
 }
 
 // ── Mode A: type selection ─────────────────────────────────────────────────────
@@ -144,6 +144,7 @@ export default async function OnboardingPage({ searchParams }: OnboardingPagePro
       provider_type_id,
       onboarding_step,
       is_published,
+      is_scraped,
       business_name,
       bio,
       profile_image,
@@ -258,6 +259,7 @@ export default async function OnboardingPage({ searchParams }: OnboardingPagePro
     : 0
 
   const isLastStep = currentStep.position === resolvedSteps.length
+  const showClaimedBanner = params.claimed === '1' || provider.is_scraped
 
   return (
     <div className="min-h-screen bg-background">
@@ -298,6 +300,15 @@ export default async function OnboardingPage({ searchParams }: OnboardingPagePro
           </div>
         </div>
       </header>
+
+      {showClaimedBanner && (
+        <div className="border-b border-primary/20 bg-primary/5">
+          <div className="max-w-5xl mx-auto px-4 py-3 text-sm text-foreground">
+            <strong>Welcome</strong> — your profile has been pre-filled from public information.
+            Please review and update your details before publishing.
+          </div>
+        </div>
+      )}
 
       <div className="max-w-5xl mx-auto px-4 py-8 sm:py-10">
         <div className="flex gap-8">
