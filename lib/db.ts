@@ -11,6 +11,9 @@ export type ServiceType = 'time_based' | 'fixed_deliverable'
 export type MessageActor = 'provider' | 'customer'
 export type CreditTransactionType = 'purchase' | 'spend' | 'refund'
 export type ProviderPayoutStatus = 'pending' | 'processing' | 'paid'
+export type ClaimStatus = 'unclaimed' | 'claim_pending' | 'claimed'
+export type ProfileClaimStatus = 'pending' | 'verified' | 'expired' | 'rejected'
+export type ProviderSubscriptionStatus = 'active' | 'expired' | 'cancelled'
 export type InputType =
   | 'short_text'
   | 'rich_text'
@@ -83,6 +86,12 @@ export interface Provider {
   location_city: string | null
   location_state: string | null
   location_country: string | null
+  phone: string | null
+  website: string | null
+  address: string | null
+  claim_status: ClaimStatus
+  is_scraped: boolean
+  scraped_at: string | null
   is_featured: boolean
   is_seed: boolean
   social_links: { platform: string; url: string }[]
@@ -99,6 +108,31 @@ export interface ProviderFieldValue {
   field_id: string
   value: unknown
   updated_at: string
+}
+
+export interface ProfileClaim {
+  id: string
+  provider_id: string
+  claimant_email: string
+  verification_code: string
+  code_expires_at: string
+  status: ProfileClaimStatus
+  claimed_auth_id: string | null
+  created_at: string
+  verified_at: string | null
+}
+
+export interface ProviderSubscription {
+  id: string
+  provider_id: string
+  package_number: number
+  monthly_fee: number
+  billing_start: string
+  billing_end: string
+  status: ProviderSubscriptionStatus
+  last_reminder_sent_at: string | null
+  last_renewal_paystack_ref: string | null
+  created_at: string
 }
 
 export interface Service {
