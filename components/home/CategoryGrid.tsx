@@ -14,8 +14,8 @@ export function CategoryGrid({ categories }: { categories: CategoryView[] }) {
             Every vertical runs on the same trusted listing — pick a trade and compare real options fast.
           </p>
         </div>
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {categories.slice(0, 8).map((category, index) => {
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+          {categories.map((category, index) => {
             const Glyph = categoryIcon(category.slug)
             return (
               <Link

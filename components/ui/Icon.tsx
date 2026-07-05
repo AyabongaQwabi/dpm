@@ -27,6 +27,15 @@ import {
   HandHeart,
   Storefront,
   Quotes,
+  Wrench,
+  Car,
+  Calculator,
+  Stethoscope,
+  PawPrint,
+  Truck,
+  Buildings,
+  GraduationCap,
+  Camera,
 } from "@phosphor-icons/react/ssr";
 import type { IconProps, Icon as PhosphorIcon } from "@phosphor-icons/react";
 
@@ -62,21 +71,54 @@ export const Icon = {
   close: make(X),
   confetti: make(Confetti),
   heart: make(HandHeart),
+  beauty: make(Sparkle),
   store: make(Storefront),
   quote: make(Quotes),
+  home: make(Wrench),
+  automotive: make(Car),
+  finance: make(Calculator),
+  health: make(Stethoscope),
+  pets: make(PawPrint),
+  transport: make(Truck),
+  property: make(Buildings),
+  tech: make(Desktop),
+  education: make(GraduationCap),
+  media: make(Camera),
 };
 
 // Resolve a brand icon for a provider category by slug (falls back gracefully).
 export function categoryIcon(slug?: string | null) {
   switch (slug) {
-    case "events":
-      return Icon.events;
     case "cleaning":
       return Icon.cleaning;
+    case "events":
+      return Icon.events;
     case "security":
       return Icon.shield;
+    case "home":
+      return Icon.home;
+    case "automotive":
+      return Icon.automotive;
+    case "beauty":
+      return Icon.beauty;
     case "legal":
       return Icon.legal;
+    case "finance":
+      return Icon.finance;
+    case "health":
+      return Icon.health;
+    case "education":
+      return Icon.education;
+    case "pets":
+      return Icon.pets;
+    case "transport":
+      return Icon.transport;
+    case "property":
+      return Icon.property;
+    case "tech":
+      return Icon.tech;
+    case "media":
+      return Icon.media;
     default:
       return Icon.store;
   }
