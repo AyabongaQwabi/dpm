@@ -29,6 +29,7 @@ import {
   localBusinessJsonLd,
 } from '@/lib/seo'
 import { JsonLd } from '@/components/seo/JsonLd'
+import { UnclaimedProfileBanner } from '@/components/providers/UnclaimedProfileBanner'
 
 const RECOMMENDATION_DEFAULTS: Record<string, number> = {
   min_reviews_for_recommendation: 5,
@@ -69,6 +70,11 @@ async function getProvider(slug: string) {
       location_city,
       location_state,
       location_country,
+      phone,
+      website,
+      address,
+      claim_status,
+      is_scraped,
       provider_types!inner(name, slug, provider_categories(name, slug)),
       provider_tags(tag:tags(name)),
       services(id, title, description, image, is_published, service_type,
@@ -130,6 +136,8 @@ export default async function ProviderProfilePage({ params }: ProfilePageProps) 
   const recommendedServices = await getRecommendedServices({ config, providerId: provider.id, limit: 6 })
 
   const profilePath = provider.slug ?? provider.id
+  const claimStatus = (provider.claim_status as string | undefined) ?? 'claimed'
+  const isClaimable = claimStatus !== 'claimed'
   const providerType = first(provider.provider_types)
   const category = first(providerType?.provider_categories)
   const tags = (provider.provider_tags ?? [])
@@ -205,7 +213,13 @@ export default async function ProviderProfilePage({ params }: ProfilePageProps) 
     created_at: string
   }[]
 
-  const avgRating = reviews.length
+  const fieldPhone = fieldValues.find((fv) => first(fv.field)?.key === 'phone')?.value
+  const fieldWebsite = fieldValues.find((fv) => first(fv.field)?.key === 'website')?.value
+  const contactPhone = (provider.phone as string | null) ?? (typeof fieldPhone === 'string' ? fieldPhone : null)
+  const contactWebsite = (provider.website as string | null) ?? (typeof fieldWebsite === 'string' ? fieldWebsite : null)
+  const contactAddress = provider.address as string | null
+
+  const avgRating = reviews.length && !isClaimable
     ? reviews.reduce((sum, review) => sum + review.rating, 0) / reviews.length
     : null
   const location = [provider.location_city, provider.location_state].filter(Boolean).join(', ')
@@ -218,7 +232,7 @@ export default async function ProviderProfilePage({ params }: ProfilePageProps) 
     gallery.length ? ['gallery', 'Gallery'] : null,
     reviews.length ? ['reviews', 'Reviews'] : null,
     contentPosts.length ? ['posts', 'Posts'] : null,
-    ['contact', 'Request'],
+    !isClaimable ? ['contact', 'Request'] : null,
   ].filter(Boolean) as string[][]
 
   const ratingDistribution = reviews.length
@@ -252,6 +266,14 @@ export default async function ProviderProfilePage({ params }: ProfilePageProps) 
         <div className="craft-rule w-full" aria-hidden="true" />
 
         <div className="mx-auto max-w-7xl px-4 py-10">
+          {isClaimable && (
+            <div className="mb-6">
+              <UnclaimedProfileBanner
+                slug={profilePath}
+                status={claimStatus === 'claim_pending' ? 'claim_pending' : 'unclaimed'}
+              />
+            </div>
+          )}
           <div className="grid gap-8 lg:grid-cols-[1fr_340px]">
             {/* Left: Identity */}
             <div className="flex flex-col gap-6 sm:flex-row reveal">
@@ -274,6 +296,11 @@ export default async function ProviderProfilePage({ params }: ProfilePageProps) 
                 <h1 className="font-display text-3xl sm:text-4xl font-bold tracking-tight text-foreground leading-tight">
                   {provider.business_name}
                 </h1>
+                {isClaimable && (
+                  <span className="mt-2 inline-flex items-center rounded-full border border-amber-500/40 bg-amber-500/10 px-2.5 py-0.5 text-xs font-semibold text-amber-800 dark:text-amber-200">
+                    Unverified listing
+                  </span>
+                )}
                 <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-muted-foreground">
                   {providerType?.name && (
                     <span className="inline-flex items-center gap-1.5">
@@ -362,13 +389,19 @@ export default async function ProviderProfilePage({ params }: ProfilePageProps) 
                   </li>
                 ))}
               </ol>
-              <Link
-                href={services.length ? '#services' : `/sign-in?next=/providers/${profilePath}`}
-                className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-[var(--radius)] bg-primary-accent px-4 py-3 text-sm font-semibold text-primary-accent-foreground hover:opacity-90 transition-opacity cursor-pointer focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-              >
-                <CalendarDays className="h-4 w-4" />
-                Request a service
-              </Link>
+              {!isClaimable ? (
+                <Link
+                  href={services.length ? '#services' : `/sign-in?next=/providers/${profilePath}`}
+                  className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-[var(--radius)] bg-primary-accent px-4 py-3 text-sm font-semibold text-primary-accent-foreground hover:opacity-90 transition-opacity cursor-pointer focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                >
+                  <CalendarDays className="h-4 w-4" />
+                  Request a service
+                </Link>
+              ) : (
+                <p className="mt-5 text-sm text-muted-foreground">
+                  Bookings are unavailable until the business owner claims this profile.
+                </p>
+              )}
             </aside>
           </div>
         </div>
@@ -444,6 +477,28 @@ export default async function ProviderProfilePage({ params }: ProfilePageProps) 
                   <div className="flex justify-between gap-4 items-start">
                     <dt className="text-muted-foreground flex-shrink-0">Location</dt>
                     <dd className="font-medium text-right">{location}</dd>
+                  </div>
+                )}
+                {contactAddress && (
+                  <div className="flex justify-between gap-4 items-start">
+                    <dt className="text-muted-foreground flex-shrink-0">Address</dt>
+                    <dd className="font-medium text-right">{contactAddress}</dd>
+                  </div>
+                )}
+                {contactPhone && (
+                  <div className="flex justify-between gap-4 items-start">
+                    <dt className="text-muted-foreground flex-shrink-0">Phone</dt>
+                    <dd className="font-medium text-right">{contactPhone}</dd>
+                  </div>
+                )}
+                {contactWebsite && (
+                  <div className="flex justify-between gap-4 items-start">
+                    <dt className="text-muted-foreground flex-shrink-0">Website</dt>
+                    <dd className="font-medium text-right">
+                      <a href={contactWebsite} target="_blank" rel="noreferrer noopener" className="text-primary-accent hover:underline">
+                        {contactWebsite.replace(/^https?:\/\//, '')}
+                      </a>
+                    </dd>
                   </div>
                 )}
                 {provider.location_country && (
@@ -545,12 +600,14 @@ export default async function ProviderProfilePage({ params }: ProfilePageProps) 
                             )}
                           </div>
                         )}
-                        <Link
-                          href={`/sign-in?next=/providers/${profilePath}`}
-                          className="inline-flex items-center gap-1.5 rounded-[var(--radius)] bg-primary-accent px-4 py-2 text-sm font-semibold text-primary-accent-foreground hover:opacity-90 transition-opacity cursor-pointer flex-shrink-0"
-                        >
-                          {ctaLabel}
-                        </Link>
+                        {!isClaimable && (
+                          <Link
+                            href={`/sign-in?next=/providers/${profilePath}`}
+                            className="inline-flex items-center gap-1.5 rounded-[var(--radius)] bg-primary-accent px-4 py-2 text-sm font-semibold text-primary-accent-foreground hover:opacity-90 transition-opacity cursor-pointer flex-shrink-0"
+                          >
+                            {ctaLabel}
+                          </Link>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -752,6 +809,7 @@ export default async function ProviderProfilePage({ params }: ProfilePageProps) 
         )}
 
         {/* ── Contact / CTA ────────────────────────────────────────────── */}
+        {!isClaimable && (
         <section id="contact" className="relative overflow-hidden rounded-2xl border border-border bg-card">
           <div className="craft-pattern absolute inset-0 opacity-40" aria-hidden="true" />
           <div className="relative p-8">
@@ -804,6 +862,7 @@ export default async function ProviderProfilePage({ params }: ProfilePageProps) 
             </div>
           </div>
         </section>
+        )}
 
       </div>
     </main>
