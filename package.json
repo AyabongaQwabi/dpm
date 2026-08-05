@@ -11,8 +11,17 @@
     "prebuild": "npm test",
     "seed:public": "node scripts/seed-public-iteration.mjs",
     "seed:public:destroy": "node scripts/destroy-public-iteration-seed.mjs",
+    "seed:new-categories": "node scripts/seed-new-categories.mjs",
+    "seed:new-categories:destroy": "node scripts/destroy-new-categories-seed.mjs",
     "seed:services": "node scripts/seed-services.mjs",
-    "scrape:businesses": "node scripts/scrape-businesses.mjs"
+    "seed:scraped-places:destroy": "node scripts/destroy-scraped-places-seed.mjs",
+    "scrape:businesses": "node scripts/scrape-businesses.mjs",
+    "scrape:import": "node scripts/import-scraped-businesses.mjs",
+    "scrape:import:dry-run": "node scripts/import-scraped-businesses.mjs --dry-run",
+    "images:fetch": "node scripts/fetch-provider-images.mjs",
+    "images:fetch:dry-run": "node scripts/fetch-provider-images.mjs --dry-run",
+    "profile:fetch": "node scripts/fetch-provider-profile-data.mjs",
+    "profile:fetch:dry-run": "node scripts/fetch-provider-profile-data.mjs --dry-run"
   },
   "dependencies": {
     "@phosphor-icons/react": "^2.1.10",
