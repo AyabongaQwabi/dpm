@@ -1,17 +1,20 @@
 import type { Metadata } from 'next'
 import { ProviderCard } from '@/components/ProviderCard'
 import { Pagination } from '@/components/Pagination'
+import { JsonLd } from '@/components/seo/JsonLd'
 import { getPublishedProvidersPage, titleFromSlug } from '@/lib/public-data'
 import { createClient } from '@/lib/supabase/server'
-import { canonicalAlternates, defaultOpenGraph, defaultTwitter } from '@/lib/seo'
+import { breadcrumbJsonLd, canonicalAlternates, defaultOpenGraph, defaultTwitter, providerListJsonLd } from '@/lib/seo'
 
 interface PageProps {
   params: Promise<{ location: string }>
   searchParams: Promise<{ page?: string }>
 }
 
-export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+export async function generateMetadata({ params, searchParams }: PageProps): Promise<Metadata> {
   const { location } = await params
+  const { page: pageParam } = await searchParams
+  const page = Math.max(1, Number(pageParam) || 1)
   const city = titleFromSlug(location)
   const title = `Top-rated providers in ${city}, South Africa`
   const description = `Browse top-rated local providers in ${city} by reviews and service profile quality on ServicePros.`
@@ -22,6 +25,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     alternates: canonicalAlternates(path),
     openGraph: defaultOpenGraph(title, description, path),
     twitter: defaultTwitter(title, description),
+    robots: page > 1 ? { index: false, follow: true } : undefined,
   }
 }
 
@@ -40,6 +44,19 @@ export default async function TopRatedProvidersPage({ params, searchParams }: Pa
 
   return (
     <main className="mx-auto max-w-7xl px-4 py-12">
+      <JsonLd
+        data={[
+          breadcrumbJsonLd([
+            { name: 'Home', path: '/' },
+            { name: 'Providers', path: '/search' },
+            { name: `Top-rated providers in ${city}`, path: `/providers/top-rated/${location}` },
+          ]),
+          providerListJsonLd(
+            `Top-rated providers in ${city}`,
+            providers.map((p) => ({ slug: p.slug, id: p.id, business_name: p.business_name })),
+          ),
+        ]}
+      />
       <section className="max-w-3xl">
         <p className="text-sm font-semibold uppercase tracking-wide text-primary-accent">Top rated</p>
         <h1 className="mt-2 text-4xl font-bold tracking-tight">Top-rated providers in {city}</h1>

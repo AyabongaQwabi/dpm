@@ -1,8 +1,9 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
+import { JsonLd } from '@/components/seo/JsonLd'
 import { getServices, titleFromSlug } from '@/lib/public-data'
 import { createClient } from '@/lib/supabase/server'
-import { canonicalAlternates, defaultOpenGraph, defaultTwitter } from '@/lib/seo'
+import { breadcrumbJsonLd, canonicalAlternates, defaultOpenGraph, defaultTwitter, providerListJsonLd } from '@/lib/seo'
 
 interface PageProps {
   params: Promise<{ slug: string }>
@@ -30,9 +31,30 @@ export default async function ProvidersByServicePage({ params }: PageProps) {
   const services = (await getServices(supabase, 120)).filter((service) =>
     service.title.toLowerCase().includes(serviceName.toLowerCase()),
   )
+  const providersBySlug = new Map<string, { slug: string | null; id: string; business_name: string }>()
+  for (const service of services) {
+    const key = service.providerSlug ?? service.provider_id
+    if (!providersBySlug.has(key)) {
+      providersBySlug.set(key, {
+        slug: service.providerSlug,
+        id: service.provider_id,
+        business_name: service.providerName,
+      })
+    }
+  }
 
   return (
     <main className="mx-auto max-w-7xl px-4 py-12">
+      <JsonLd
+        data={[
+          breadcrumbJsonLd([
+            { name: 'Home', path: '/' },
+            { name: 'Services', path: '/services' },
+            { name: `${serviceName} services`, path: `/providers/service/${slug}` },
+          ]),
+          providerListJsonLd(`${serviceName} providers`, [...providersBySlug.values()]),
+        ]}
+      />
       <section className="max-w-3xl">
         <p className="text-sm font-semibold uppercase tracking-wide text-primary-accent">Service</p>
         <h1 className="mt-2 text-4xl font-bold tracking-tight">{serviceName} providers</h1>

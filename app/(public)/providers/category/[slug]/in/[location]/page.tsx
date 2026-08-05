@@ -16,8 +16,10 @@ interface PageProps {
 export const dynamicParams = true
 export const revalidate = 3600
 
-export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+export async function generateMetadata({ params, searchParams }: PageProps): Promise<Metadata> {
   const { slug, location } = await params
+  const { page: pageParam } = await searchParams
+  const page = Math.max(1, Number(pageParam) || 1)
   const category = titleFromSlug(slug)
   const city = titleFromSlug(location)
   const title = `${category} providers in ${city}, South Africa`
@@ -29,6 +31,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     alternates: canonicalAlternates(path),
     openGraph: defaultOpenGraph(title, description, path),
     twitter: defaultTwitter(title, description),
+    robots: page > 1 ? { index: false, follow: true } : undefined,
   }
 }
 

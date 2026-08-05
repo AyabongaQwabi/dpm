@@ -6,8 +6,9 @@ import { tiptapToHtml } from '@/lib/tiptap-to-html'
 import { Avatar } from '@/components/ui/Avatar'
 import { StarRating } from '@/components/ui/StarRating'
 import { PackageSelector } from '@/components/PackageSelector'
+import { JsonLd } from '@/components/seo/JsonLd'
 import type { DiscountType, ServiceType } from '@/lib/db'
-import { canonicalAlternates } from '@/lib/seo'
+import { breadcrumbJsonLd, canonicalAlternates, serviceJsonLd } from '@/lib/seo'
 
 interface Props {
   params: Promise<{ id: string }>
@@ -125,9 +126,40 @@ export default async function ServiceDetailPage({ params }: Props) {
   const lowestPrice = packages.length
     ? Math.min(...packages.map((p) => effectivePrice(Number(p.price), p.discount_type, p.discount_amount)))
     : null
+  const servicePath = `/services/${id}`
 
   return (
     <main className="mx-auto max-w-6xl px-4 py-10">
+      <JsonLd
+        data={[
+          breadcrumbJsonLd([
+            { name: 'Home', path: '/' },
+            { name: 'Services', path: '/services' },
+            { name: provider.business_name, path: `/providers/${providerSlug}` },
+            { name: service.title, path: servicePath },
+          ]),
+          serviceJsonLd({
+            title: service.title,
+            description: service.description,
+            path: servicePath,
+            image: service.image,
+            category: category?.name ?? providerType?.name ?? null,
+            provider: {
+              name: provider.business_name,
+              path: `/providers/${providerSlug}`,
+              city: provider.location_city,
+              region: provider.location_state,
+              country: 'ZA',
+            },
+            packages: packages.map((pkg) => ({
+              name: pkg.name,
+              description: pkg.description,
+              price: effectivePrice(Number(pkg.price), pkg.discount_type, pkg.discount_amount),
+            })),
+            rating: avgRating !== null ? { value: avgRating, count: reviews.length } : null,
+          }),
+        ]}
+      />
 
       {/* Breadcrumb */}
       <nav className="mb-8 flex items-center gap-1.5 text-sm text-muted-foreground flex-wrap">

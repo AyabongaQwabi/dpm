@@ -6,22 +6,6 @@ import { getCategories, getServices, getLocations } from '@/lib/public-data'
 import { createClient } from '@/lib/supabase/server'
 import { canonicalAlternates, defaultOpenGraph, defaultTwitter } from '@/lib/seo'
 
-export const metadata: Metadata = {
-  title: 'Browse services from South African providers',
-  description:
-    'Browse services offered by verified local providers across categories and cities. Compare pricing, reviews, and book on ServicePros.',
-  alternates: canonicalAlternates('/services'),
-  openGraph: defaultOpenGraph(
-    'Browse services from South African providers',
-    'Browse services offered by verified local providers across categories and cities on ServicePros.',
-    '/services',
-  ),
-  twitter: defaultTwitter(
-    'Browse services from South African providers',
-    'Browse services offered by verified local providers across categories and cities on ServicePros.',
-  ),
-}
-
 interface Props {
   searchParams: Promise<{
     category?: string
@@ -30,6 +14,30 @@ interface Props {
     min?: string
     max?: string
   }>
+}
+
+export async function generateMetadata({ searchParams }: Props): Promise<Metadata> {
+  const { category, q, city, min, max } = await searchParams
+  const hasFilters = Boolean(category || q || city || min || max)
+  const title = 'Browse services from South African providers'
+  const description =
+    'Browse services offered by verified local providers across categories and cities. Compare pricing, reviews, and book on ServicePros.'
+
+  return {
+    title,
+    description,
+    alternates: canonicalAlternates('/services'),
+    openGraph: defaultOpenGraph(
+      title,
+      'Browse services offered by verified local providers across categories and cities on ServicePros.',
+      '/services',
+    ),
+    twitter: defaultTwitter(
+      title,
+      'Browse services offered by verified local providers across categories and cities on ServicePros.',
+    ),
+    robots: hasFilters ? { index: false, follow: true } : undefined,
+  }
 }
 
 export default async function ServicesPage({ searchParams }: Props) {

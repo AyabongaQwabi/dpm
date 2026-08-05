@@ -22,8 +22,10 @@ export async function generateStaticParams() {
   return categories.map((category) => ({ slug: category.slug }))
 }
 
-export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+export async function generateMetadata({ params, searchParams }: PageProps): Promise<Metadata> {
   const { slug } = await params
+  const { page: pageParam } = await searchParams
+  const page = Math.max(1, Number(pageParam) || 1)
   const category = titleFromSlug(slug)
   const title = `${category} providers in South Africa`
   const description = `Find and compare ${category.toLowerCase()} providers by services, reviews, location, and recent work on ServicePros.`
@@ -34,6 +36,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     alternates: canonicalAlternates(path),
     openGraph: defaultOpenGraph(title, description, path),
     twitter: defaultTwitter(title, description),
+    robots: page > 1 ? { index: false, follow: true } : undefined,
   }
 }
 

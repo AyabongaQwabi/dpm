@@ -7,7 +7,8 @@ import { getActivePromotion } from '@/lib/credit-promotions'
 import { CreditPackCards } from '@/components/credits/CreditPackCards'
 import { CreditPricingCalculator } from '@/components/credits/CreditPricingCalculator'
 import { Icon } from '@/components/ui/Icon'
-import { canonicalAlternates, defaultOpenGraph, defaultTwitter } from '@/lib/seo'
+import { JsonLd } from '@/components/seo/JsonLd'
+import { canonicalAlternates, defaultOpenGraph, defaultTwitter, offerCatalogJsonLd } from '@/lib/seo'
 
 export const metadata: Metadata = {
   title: 'Credits and pricing for ServicePros bookings',
@@ -78,6 +79,19 @@ export default async function CustomerPricingPage() {
 
   return (
     <main>
+      <JsonLd
+        data={offerCatalogJsonLd({
+          name: 'ServicePros credit packs',
+          path: '/pricing',
+          offers: packs.map((pack) => ({
+            name: `${Number(pack).toLocaleString('en-ZA')} ServicePros credits`,
+            description: `Credits used to pay for bookings on ServicePros. 1 credit equals R1.`,
+            price: Number(pack),
+            priceCurrency: 'ZAR',
+            url: '/pricing',
+          })),
+        })}
+      />
       <section className="border-b bg-muted/30">
         <div className="mx-auto max-w-7xl px-4 py-16 lg:py-20">
           <div className="max-w-3xl">

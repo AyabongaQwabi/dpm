@@ -28,6 +28,8 @@ export async function generateMetadata({ searchParams }: SearchPageProps): Promi
   const query = params.q?.trim() ?? ''
   const typeSlug = params.type ?? ''
   const tagFilter = params.tags ? params.tags.split(',').filter(Boolean) : []
+  const page = Math.max(1, Number(params.page) || 1)
+  const hasFilters = Boolean(query || typeSlug || tagFilter.length)
 
   const pathParts = ['/search']
   const urlParams = new URLSearchParams()
@@ -36,6 +38,7 @@ export async function generateMetadata({ searchParams }: SearchPageProps): Promi
   if (tagFilter.length) urlParams.set('tags', tagFilter.join(','))
   const qs = urlParams.toString()
   const path = qs ? `${pathParts[0]}?${qs}` : pathParts[0]
+  const isIndexable = !hasFilters && page === 1
 
   let title = 'Search South African service providers'
   let description =
@@ -53,9 +56,10 @@ export async function generateMetadata({ searchParams }: SearchPageProps): Promi
   return {
     title,
     description,
-    alternates: canonicalAlternates(path),
+    alternates: canonicalAlternates(isIndexable ? path : '/search'),
     openGraph: defaultOpenGraph(title, description, path),
     twitter: defaultTwitter(title, description),
+    robots: isIndexable ? undefined : { index: false, follow: true },
   }
 }
 

@@ -69,6 +69,146 @@ export function providerListJsonLd(
   }
 }
 
+export function webSiteJsonLd() {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'WebSite',
+    '@id': `${SITE_URL}/#website`,
+    name: SITE_NAME,
+    url: SITE_URL,
+    potentialAction: {
+      '@type': 'SearchAction',
+      target: `${SITE_URL}/search?q={search_term_string}`,
+      'query-input': 'required name=search_term_string',
+    },
+  }
+}
+
+export function breadcrumbJsonLd(items: Array<{ name: string; path: string }>) {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: items.map((item, index) => ({
+      '@type': 'ListItem',
+      position: index + 1,
+      name: item.name,
+      item: canonicalUrl(item.path),
+    })),
+  }
+}
+
+export function imageObjectJsonLd(image: {
+  url: string
+  width?: number
+  height?: number
+  caption?: string
+}) {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'ImageObject',
+    url: canonicalUrl(image.url),
+    ...(image.width ? { width: image.width } : {}),
+    ...(image.height ? { height: image.height } : {}),
+    ...(image.caption ? { caption: image.caption } : {}),
+  }
+}
+
+export function offerCatalogJsonLd(catalog: {
+  name: string
+  path: string
+  offers: Array<{
+    name: string
+    description?: string | null
+    price?: number | null
+    priceCurrency?: string
+    url?: string
+  }>
+}) {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'OfferCatalog',
+    name: catalog.name,
+    url: canonicalUrl(catalog.path),
+    itemListElement: catalog.offers.map((offer) => ({
+      '@type': 'Offer',
+      name: offer.name,
+      ...(offer.description ? { description: offer.description } : {}),
+      ...(offer.price !== undefined && offer.price !== null ? { price: offer.price } : {}),
+      priceCurrency: offer.priceCurrency ?? 'ZAR',
+      ...(offer.url ? { url: canonicalUrl(offer.url) } : { url: canonicalUrl(catalog.path) }),
+    })),
+  }
+}
+
+export function serviceJsonLd(service: {
+  title: string
+  description: string
+  path: string
+  image?: string | null
+  category?: string | null
+  provider: {
+    name: string
+    path: string
+    city?: string | null
+    region?: string | null
+    country?: string | null
+  }
+  packages: Array<{
+    name: string
+    description?: string | null
+    price: number
+  }>
+  rating?: { value: number; count: number } | null
+}) {
+  const serviceUrl = canonicalUrl(service.path)
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'Service',
+    '@id': `${serviceUrl}#service`,
+    name: service.title,
+    description: service.description,
+    url: serviceUrl,
+    ...(service.image ? { image: canonicalUrl(service.image) } : {}),
+    ...(service.category ? { category: service.category } : {}),
+    areaServed: { '@type': 'Country', name: 'South Africa' },
+    provider: {
+      '@type': 'LocalBusiness',
+      name: service.provider.name,
+      url: canonicalUrl(service.provider.path),
+      ...(service.provider.city || service.provider.region || service.provider.country
+        ? {
+            address: {
+              '@type': 'PostalAddress',
+              addressLocality: service.provider.city ?? undefined,
+              addressRegion: service.provider.region ?? undefined,
+              addressCountry: service.provider.country ?? 'ZA',
+            },
+          }
+        : {}),
+    },
+    ...(service.rating && service.rating.count > 0
+      ? {
+          aggregateRating: {
+            '@type': 'AggregateRating',
+            ratingValue: Number(service.rating.value.toFixed(1)),
+            reviewCount: service.rating.count,
+            bestRating: 5,
+            worstRating: 1,
+          },
+        }
+      : {}),
+    offers: service.packages.map((pkg) => ({
+      '@type': 'Offer',
+      name: pkg.name,
+      ...(pkg.description ? { description: pkg.description } : {}),
+      price: pkg.price,
+      priceCurrency: 'ZAR',
+      availability: 'https://schema.org/InStock',
+      url: serviceUrl,
+    })),
+  }
+}
+
 export function organizationJsonLd(contactPoints: Array<{
   contactType: string
   email?: string

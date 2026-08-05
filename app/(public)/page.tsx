@@ -9,7 +9,7 @@ import { JsonLd } from '@/components/seo/JsonLd'
 import { getCategories, getFeaturedProviders, getLocations, getPublishedProviders } from '@/lib/public-data'
 import { getRecommendedServices } from '@/lib/recommended-services'
 import { createClient } from '@/lib/supabase/server'
-import { canonicalAlternates, defaultOpenGraph, defaultTwitter, providerListJsonLd } from '@/lib/seo'
+import { canonicalAlternates, defaultOpenGraph, defaultTwitter, providerListJsonLd, webSiteJsonLd } from '@/lib/seo'
 import { getTenantContext } from '@/lib/tenant'
 import { InMemoryConfigStore } from '@/lib/domain/config'
 
@@ -93,10 +93,13 @@ export default async function LandingPage() {
   return (
     <main>
       <JsonLd
-        data={providerListJsonLd(
-          'Featured South African service providers',
-          providers.map((p) => ({ slug: p.slug, id: p.id, business_name: p.business_name })),
-        )}
+        data={[
+          webSiteJsonLd(),
+          providerListJsonLd(
+            'Featured South African service providers',
+            providers.map((p) => ({ slug: p.slug, id: p.id, business_name: p.business_name })),
+          ),
+        ]}
       />
       <HeroSection
         heading={heading}

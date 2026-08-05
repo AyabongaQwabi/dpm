@@ -22,8 +22,10 @@ export async function generateStaticParams() {
   return locations.map((location) => ({ location: location.slug }))
 }
 
-export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+export async function generateMetadata({ params, searchParams }: PageProps): Promise<Metadata> {
   const { location } = await params
+  const { page: pageParam } = await searchParams
+  const page = Math.max(1, Number(pageParam) || 1)
   const city = titleFromSlug(location)
   const title = `Providers in ${city}, South Africa`
   const description = `Find trusted providers in ${city}. Compare services, reviews, profiles, and recent provider posts on ServicePros.`
@@ -34,6 +36,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     alternates: canonicalAlternates(path),
     openGraph: defaultOpenGraph(title, description, path),
     twitter: defaultTwitter(title, description),
+    robots: page > 1 ? { index: false, follow: true } : undefined,
   }
 }
 
