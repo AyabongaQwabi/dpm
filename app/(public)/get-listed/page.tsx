@@ -62,9 +62,12 @@ const businessTypes = [
   { label: 'Non-profit', body: 'NPOs and community organisations' },
 ]
 
-const tiers: VerificationTier[] = ['contact', 'cipc', 'fica']
+// Google verification isn't provider-actionable — it's imported automatically
+// from Google Places, not something to "purchase" or apply for — so it's
+// deliberately left out of this section. See /verification for the full set.
+const tiers: Exclude<VerificationTier, 'google'>[] = ['contact', 'cipc', 'fica']
 
-const tierRequirements: Record<VerificationTier, string> = {
+const tierRequirements: Record<Exclude<VerificationTier, 'google'>, string> = {
   contact: 'Confirm your cell number and email address.',
   cipc: 'Verify your registered CIPC business details.',
   fica: 'Submit FICA documents — ID and proof of address.',

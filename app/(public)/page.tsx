@@ -6,7 +6,7 @@ import { RegionalBrowse } from '@/components/home/RegionalBrowse'
 import { TrustSection } from '@/components/home/TrustSection'
 import { RecommendedServices } from '@/components/home/RecommendedServices'
 import { JsonLd } from '@/components/seo/JsonLd'
-import { getCategories, getLocations, getPublishedProviders } from '@/lib/public-data'
+import { getCategories, getFeaturedProviders, getLocations, getPublishedProviders } from '@/lib/public-data'
 import { getRecommendedServices } from '@/lib/recommended-services'
 import { createClient } from '@/lib/supabase/server'
 import { canonicalAlternates, defaultOpenGraph, defaultTwitter, providerListJsonLd } from '@/lib/seo'
@@ -50,19 +50,35 @@ export default async function LandingPage() {
     ...Object.fromEntries((configRows ?? []).map((r) => [r.key, r.value])),
   })
 
-  const [featured, withCompleteProfile, recent, categories, locations, recommendedServices] = await Promise.all([
-    getPublishedProviders(supabase, { featured: true, limit: 6, categorySlug: tenant.categorySlug ?? undefined }),
-    getPublishedProviders(supabase, { withCompleteProfile: true, limit: 6, categorySlug: tenant.categorySlug ?? undefined }),
-    getPublishedProviders(supabase, { limit: 6, categorySlug: tenant.categorySlug ?? undefined }),
+  const [categories, locations, recommendedServices] = await Promise.all([
     getCategories(supabase),
     getLocations(supabase),
     getRecommendedServices({ config, categorySlug: tenant.categorySlug, limit: 6 }),
   ])
 
+  const [{ providers: featured, verifiedPoolSize }, withCompleteProfile, recent] = await Promise.all([
+    getFeaturedProviders(supabase, categories, { limit: 6, categorySlug: tenant.categorySlug ?? undefined }),
+    getPublishedProviders(supabase, { withCompleteProfile: true, limit: 6, categorySlug: tenant.categorySlug ?? undefined }),
+    getPublishedProviders(supabase, { limit: 6, categorySlug: tenant.categorySlug ?? undefined }),
+  ])
+
+  if (verifiedPoolSize < 6) {
+    // Data gap, not a code problem: too few verified providers exist to fill
+    // the featured strip. Flag it loudly rather than silently backfilling
+    // with unverified listings under a "Featured" label.
+    console.warn(
+      `[home] Featured strip: only ${verifiedPoolSize} verified providers available` +
+        (tenant.categorySlug ? ` in category "${tenant.categorySlug}"` : '') +
+        ` — strip may be under six providers or fall back to unverified listings.`,
+    )
+  }
+
   const siteName = tenant.branding?.siteName ?? 'Service Pros'
-  // Manually-flagged featured providers win; otherwise prefer providers with
-  // a real photo + bio over an arbitrary recent scrape so the section never
-  // shows an incomplete-looking listing (see lib/public-data.ts withCompleteProfile).
+  // Verified providers spread across categories win; otherwise prefer
+  // providers with a real photo + bio over an arbitrary recent scrape so the
+  // section never shows an incomplete-looking listing (see
+  // lib/public-data.ts withCompleteProfile). The unverified fallbacks below
+  // are a stopgap for a thin verified pool, not the intended steady state.
   const providers = featured.length ? featured : withCompleteProfile.length ? withCompleteProfile : recent
   const totalProviders = categories.reduce((sum, c) => sum + c.providerCount, 0)
   const cityCount = locations.length

@@ -233,4 +233,16 @@
   @media (prefers-reduced-motion: reduce) {
     .reveal { animation: none; }
   }
+
+  @keyframes dpm-arrow-draw {
+    from { stroke-dasharray: 1; stroke-dashoffset: 1; }
+    to   { stroke-dasharray: 1; stroke-dashoffset: 0; }
+  }
+  .dpm-arrow-draw {
+    animation: dpm-arrow-draw 0.5s 0.15s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .dpm-arrow-draw { animation: none; }
+  }
 }

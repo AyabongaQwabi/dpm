@@ -113,7 +113,14 @@ async function main() {
       const result = await placeDetails(provider.google_place_id)
 
       if (result.business_status === 'CLOSED_PERMANENTLY') {
-        log.warn(`${label}: Google marks this business as permanently closed — not updating rating, flag for manual review`)
+        log.warn(`${label}: Google marks this business as permanently closed — clearing verified_google, flag for manual review`)
+        if (!DRY_RUN) {
+          const { error: closedError } = await supabase
+            .from('providers')
+            .update({ verified_google: false })
+            .eq('id', provider.id)
+          if (closedError) log.error(`  failed to clear verified_google: ${closedError.message}`)
+        }
         unchanged++
         await sleep(DELAY_MS)
         continue

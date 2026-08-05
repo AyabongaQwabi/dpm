@@ -22,6 +22,11 @@ export default async function ProviderSignupPage({ searchParams }: ProviderSignu
     const email = formData.get('email') as string
     const password = formData.get('password') as string
     const businessType = formData.get('businessType') as string
+    const agreedToProviderTerms = formData.get('agreedToProviderTerms')
+
+    if (!agreedToProviderTerms) {
+      redirect('/provider-signup?error=' + encodeURIComponent('You must agree to the Provider Terms to continue.'))
+    }
 
     const { error: authError } = await supabase.auth.signUp({
       email,
@@ -216,6 +221,27 @@ export default async function ProviderSignupPage({ searchParams }: ProviderSignu
                 ))}
               </div>
             </fieldset>
+
+            {/* Consent */}
+            <label className="flex items-start gap-2.5 text-sm text-muted-foreground">
+              <input
+                type="checkbox"
+                name="agreedToProviderTerms"
+                required
+                className="mt-0.5 h-4 w-4 shrink-0 rounded border-border text-primary-accent focus:ring-ring"
+              />
+              <span>
+                I agree to the{' '}
+                <Link href="/provider-terms" target="_blank" className="text-primary hover:underline">
+                  Provider Terms
+                </Link>{' '}
+                and{' '}
+                <Link href="/privacy" target="_blank" className="text-primary hover:underline">
+                  Privacy Policy
+                </Link>
+                .
+              </span>
+            </label>
 
             {/* Submit */}
             <button

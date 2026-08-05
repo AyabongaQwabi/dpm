@@ -1,7 +1,11 @@
+import Link from 'next/link'
 import { Icon } from '@/components/ui/Icon'
 
-// Three independent verification tiers. A provider can hold any combination.
-export type VerificationTier = 'contact' | 'cipc' | 'fica'
+// Four independent verification tiers. A provider can hold any combination.
+// "google" is distinct from the other three: it reflects that Google Places
+// has confirmed the business is real and listed, not something ServicePros
+// checked directly — see supabase/migrations/20260805100000_google_verification.sql.
+export type VerificationTier = 'contact' | 'google' | 'cipc' | 'fica'
 
 // Mirrors the business_type enum in
 // supabase/migrations/20260620000003_verification_business_type.sql.
@@ -9,6 +13,7 @@ export type BusinessType = 'entrepreneur' | 'co_op' | 'company' | 'non_profit' |
 
 export interface VerificationState {
   contact?: boolean | null
+  google?: boolean | null
   cipc?: boolean | null
   fica?: boolean | null
 }
@@ -23,6 +28,13 @@ const TIER_META: Record<
     description: 'Cell number and email address confirmed.',
     icon: Icon.chat,
     className: 'bg-primary/10 text-primary',
+  },
+  google: {
+    label: 'Google verified',
+    short: 'Google',
+    description: 'Confirmed as a real, listed business on Google.',
+    icon: Icon.pin,
+    className: 'bg-sky-500/10 text-sky-600 dark:text-sky-400',
   },
   cipc: {
     label: 'CIPC verified',
@@ -43,17 +55,21 @@ const TIER_META: Record<
 export function tiersFromState(state: VerificationState): VerificationTier[] {
   const tiers: VerificationTier[] = []
   if (state.contact) tiers.push('contact')
+  if (state.google) tiers.push('google')
   if (state.cipc) tiers.push('cipc')
   if (state.fica) tiers.push('fica')
   return tiers
 }
 
 // The single "latest" (strongest) tier a provider holds. Verification is
-// layered: contact → CIPC → FICA, so FICA is the most recent/credible state.
-// Provider cards show only this one badge, not the whole stack.
+// layered: contact → Google → CIPC → FICA. Google sits above contact because
+// it's an external, real-world confirmation, but below CIPC/FICA because
+// ServicePros didn't perform the check itself. Provider cards show only this
+// one badge, not the whole stack.
 export function latestTier(state: VerificationState): VerificationTier | null {
   if (state.fica) return 'fica'
   if (state.cipc) return 'cipc'
+  if (state.google) return 'google'
   if (state.contact) return 'contact'
   return null
 }
@@ -73,6 +89,11 @@ const CARD_BADGE: Record<
     icon: Icon.chat,
     className: 'bg-primary/10 text-primary',
     tooltip: 'Contact verified — we confirmed this provider’s cell number and email address before listing them.',
+  },
+  google: {
+    icon: Icon.pin,
+    className: 'bg-sky-500/10 text-sky-600 dark:text-sky-400',
+    tooltip: 'Google verified — Google Places confirms this is a real, listed business. Imported from Google, not checked by ServicePros directly.',
   },
   cipc: {
     icon: Icon.shield,
@@ -136,7 +157,10 @@ export function ProviderVerificationBadge({
 
   const meta = CARD_BADGE[tier]
   const Glyph = meta.icon
-  const label = `Verified ${isBusinessEntity(businessType) ? 'business' : 'vendor'}`
+  // Google verification confirms the business exists on Google, not that
+  // ServicePros vetted it directly — keep that distinction in the label
+  // rather than folding it into "Verified business/vendor".
+  const label = tier === 'google' ? 'Google verified' : `Verified ${isBusinessEntity(businessType) ? 'business' : 'vendor'}`
 
   return (
     <BadgeTooltip text={meta.tooltip}>
@@ -160,15 +184,16 @@ export function VerifiedBadge({
   const meta = TIER_META[tier]
   const Glyph = meta.icon
   return (
-    <span
+    <Link
+      href="/verification"
       title={meta.description}
-      className={`inline-flex items-center gap-1 rounded-full font-semibold ${meta.className} ${
+      className={`inline-flex items-center gap-1 rounded-full font-semibold transition-opacity hover:opacity-80 ${meta.className} ${
         size === 'md' ? 'px-3 py-1 text-sm' : 'px-2 py-0.5 text-xs'
       }`}
     >
       <Glyph className={size === 'md' ? 'h-4 w-4' : 'h-3.5 w-3.5'} weight="fill" />
       {showLabel ? meta.label : meta.short}
-    </span>
+    </Link>
   )
 }
 

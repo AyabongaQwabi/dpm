@@ -74,6 +74,7 @@ type ProviderRow = {
   is_featured?: boolean | null
   business_type?: BusinessType
   verified_contact?: boolean | null
+  verified_google?: boolean | null
   verified_cipc?: boolean | null
   verified_fica?: boolean | null
   provider_types?: {
@@ -122,6 +123,7 @@ export function toProviderCard(row: ProviderRow): ProviderCardView {
     businessType: row.business_type ?? null,
     verification: {
       contact: Boolean(row.verified_contact),
+      google: Boolean(row.verified_google),
       cipc: Boolean(row.verified_cipc),
       fica: Boolean(row.verified_fica),
     },
@@ -141,6 +143,7 @@ export function providerSelect() {
     is_featured,
     business_type,
     verified_contact,
+    verified_google,
     verified_cipc,
     verified_fica,
     provider_types!inner(
@@ -164,6 +167,8 @@ export async function getPublishedProviders(
      *  "featured" fallback when no provider is manually flagged, so the
      *  section doesn't surface an incomplete scraped listing. */
     withCompleteProfile?: boolean
+    /** Holds at least one of contact/Google/CIPC/FICA verification. */
+    verifiedOnly?: boolean
     orderByRating?: boolean
   } = {},
 ) {
@@ -185,6 +190,11 @@ export async function getPublishedProviders(
   if (options.withCompleteProfile) {
     query = query.not('profile_image', 'is', null).not('bio', 'is', null)
   }
+  if (options.verifiedOnly) {
+    query = query.or(
+      'verified_contact.eq.true,verified_google.eq.true,verified_cipc.eq.true,verified_fica.eq.true',
+    )
+  }
 
   query = query.order('created_at', { ascending: false })
 
@@ -193,6 +203,67 @@ export async function getPublishedProviders(
   return options.orderByRating
     ? providers.sort((a, b) => (b.avgRating ?? 0) - (a.avgRating ?? 0))
     : providers
+}
+
+/**
+ * Featured-strip selection: verified providers only, spread across
+ * categories rather than clustered in one. On a vertical tenant (a single
+ * category already scoped by the domain) this collapses to a normal
+ * verified-only fetch within that category — there's nothing to spread across.
+ *
+ * Strategy: pull verified providers per top-level category (round-robin,
+ * most recent first within each), then interleave so no single category can
+ * fill the whole strip. Falls back to non-verified providers with a complete
+ * profile only if the verified pool can't fill the strip — callers should
+ * treat an under-filled strip as a data gap, not silently show unverified
+ * listings as "featured".
+ */
+export async function getFeaturedProviders(
+  supabase: SupabaseClient,
+  categories: CategoryView[],
+  options: { limit?: number; categorySlug?: string } = {},
+): Promise<{ providers: ProviderCardView[]; verifiedPoolSize: number }> {
+  const limit = options.limit ?? 6
+
+  if (options.categorySlug) {
+    const providers = await getPublishedProviders(supabase, {
+      categorySlug: options.categorySlug,
+      verifiedOnly: true,
+      limit,
+    })
+    return { providers, verifiedPoolSize: providers.length }
+  }
+
+  const perCategory = await Promise.all(
+    categories.map((category) =>
+      getPublishedProviders(supabase, {
+        categorySlug: category.slug,
+        verifiedOnly: true,
+        limit,
+      }),
+    ),
+  )
+
+  const verifiedPoolSize = perCategory.reduce((sum, list) => sum + list.length, 0)
+
+  // Round-robin interleave across categories so the strip can't be filled by
+  // one category's verified providers alone.
+  const interleaved: ProviderCardView[] = []
+  let round = 0
+  while (interleaved.length < limit) {
+    let addedInRound = false
+    for (const list of perCategory) {
+      if (list[round]) {
+        interleaved.push(list[round])
+        addedInRound = true
+        if (interleaved.length >= limit) break
+      }
+    }
+    if (!addedInRound) break
+    round += 1
+  }
+
+  return { providers: interleaved, verifiedPoolSize }
 }
 
 export interface ProviderPage {

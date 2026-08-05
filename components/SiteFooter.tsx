@@ -23,6 +23,9 @@ export function SiteFooter() {
             <li><Link href="/search" className="hover:text-primary-foreground">All providers</Link></li>
             <li><Link href="/services" className="hover:text-primary-foreground">Services</Link></li>
             <li><Link href="/feed" className="hover:text-primary-foreground">Provider stories</Link></li>
+            <li><Link href="/how-it-works" className="hover:text-primary-foreground">How it works</Link></li>
+            <li><Link href="/verification" className="hover:text-primary-foreground">Verification</Link></li>
+            <li><Link href="/help" className="hover:text-primary-foreground">Help centre</Link></li>
           </ul>
         </div>
         <div>
@@ -31,12 +34,18 @@ export function SiteFooter() {
             <li><Link href="/provider-signup" className="hover:text-primary-foreground">List your business</Link></li>
             <li><Link href="/provider-login" className="hover:text-primary-foreground">Provider login</Link></li>
             <li><Link href="/providers/top-rated/cape-town" className="hover:text-primary-foreground">Top rated</Link></li>
+            <li><Link href="/why-servicepros" className="hover:text-primary-foreground">Why ServicePros</Link></li>
+            <li><Link href="/referral-agents" className="hover:text-primary-foreground">Referral agents</Link></li>
+            <li><Link href="/platform-partners" className="hover:text-primary-foreground">Platform partners</Link></li>
+            <li><Link href="/provider-terms" className="hover:text-primary-foreground">Provider Terms</Link></li>
           </ul>
         </div>
         <div>
           <h3 className="font-semibold">Company</h3>
           <ul className="mt-3 space-y-2 text-sm text-primary-foreground/75">
             <li><Link href="/about" className="hover:text-primary-foreground">About</Link></li>
+            <li><Link href="/dpm" className="hover:text-primary-foreground">What is a DPM?</Link></li>
+            <li><Link href="/contact" className="hover:text-primary-foreground">Contact</Link></li>
             <li><Link href="/terms" className="hover:text-primary-foreground">Terms of Service</Link></li>
             <li><Link href="/privacy" className="hover:text-primary-foreground">Privacy Policy</Link></li>
             <li><Link href="/refund" className="hover:text-primary-foreground">Refund Policy</Link></li>

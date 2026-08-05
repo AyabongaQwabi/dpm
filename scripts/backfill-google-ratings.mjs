@@ -1,7 +1,12 @@
 /**
- * Backfills providers.google_rating / google_rating_count / google_place_id
- * from scripts/output/scraped-businesses.json — the Google Places data the
- * scraper already fetched but never imported into the DB.
+ * Backfills providers.google_rating / google_rating_count / google_place_id /
+ * verified_google from scripts/output/scraped-businesses.json — the Google
+ * Places data the scraper already fetched but never imported into the DB.
+ *
+ * verified_google is set whenever a row has a place_id — Google Places has
+ * confirmed the business is real and listed, distinct from and weaker than
+ * the platform's own contact/CIPC/FICA verification (see
+ * supabase/migrations/20260805100000_google_verification.sql).
  *
  * Matches rows by slug. Does not touch the `reviews` table — Google ratings
  * are a display-only summary, deliberately kept separate from booking-linked
@@ -110,6 +115,11 @@ async function main() {
     google_rating: r.rating,
     google_rating_count: r.user_ratings_total ?? 0,
     google_rating_fetched_at: now,
+    // verified_google mirrors google_place_id — kept as a real column
+    // (rather than derived at query time) for indexing and consistency with
+    // the other verified_* columns. See
+    // supabase/migrations/20260805100000_google_verification.sql.
+    verified_google: Boolean(r.place_id),
   }))
 
   // Each row updates a different provider by id — not an insert, so this
@@ -130,6 +140,7 @@ async function main() {
             google_rating: row.google_rating,
             google_rating_count: row.google_rating_count,
             google_rating_fetched_at: row.google_rating_fetched_at,
+            verified_google: row.verified_google,
           })
           .eq('id', row.id),
       ),

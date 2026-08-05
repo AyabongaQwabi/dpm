@@ -69,6 +69,68 @@ export function providerListJsonLd(
   }
 }
 
+export function organizationJsonLd(contactPoints: Array<{
+  contactType: string
+  email?: string
+  telephone?: string
+  areaServed?: string
+}>) {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'Organization',
+    name: PUBLISHER,
+    url: SITE_URL,
+    sameAs: [] as string[],
+    contactPoint: contactPoints.map((point) => ({
+      '@type': 'ContactPoint',
+      contactType: point.contactType,
+      ...(point.email ? { email: point.email } : {}),
+      ...(point.telephone ? { telephone: point.telephone } : {}),
+      areaServed: point.areaServed ?? 'ZA',
+    })),
+  }
+}
+
+export function contactPageJsonLd(path: string) {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'ContactPage',
+    name: `Contact ${SITE_NAME}`,
+    url: canonicalUrl(path),
+  }
+}
+
+export function definedTermJsonLd(params: {
+  path: string
+  termName: string
+  description: string
+  inDefinedTermSetPath: string
+}) {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'DefinedTerm',
+    name: params.termName,
+    description: params.description,
+    url: canonicalUrl(params.path),
+    inDefinedTermSet: canonicalUrl(params.inDefinedTermSetPath),
+  }
+}
+
+export function faqPageJsonLd(items: Array<{ question: string; answer: string }>) {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
+    mainEntity: items.map((item) => ({
+      '@type': 'Question',
+      name: item.question,
+      acceptedAnswer: {
+        '@type': 'Answer',
+        text: item.answer,
+      },
+    })),
+  }
+}
+
 export function localBusinessJsonLd(provider: {
   business_name: string
   bio: string | null

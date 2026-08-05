@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
-import { getSupportEmail, POLICY_LAST_UPDATED } from '@/lib/policy-content'
+import Link from 'next/link'
+import { getSupportEmail, POLICY_LAST_UPDATED, POLICY_VERSION } from '@/lib/policy-content'
 import { canonicalAlternates } from '@/lib/seo'
 
 export const metadata: Metadata = {
@@ -16,12 +17,19 @@ export default async function TermsPage() {
     <main className="mx-auto max-w-4xl px-4 py-16">
       <p className="text-sm font-semibold uppercase tracking-wide text-primary-accent">Terms</p>
       <h1 className="mt-2 text-4xl font-bold tracking-tight">Terms of service</h1>
-      <p className="mt-2 text-sm text-muted-foreground">Last updated: {POLICY_LAST_UPDATED}</p>
+      <p className="mt-2 text-sm text-muted-foreground">
+        Last updated: {POLICY_LAST_UPDATED} · Version {POLICY_VERSION}
+      </p>
 
       <div className="mt-8 space-y-6 leading-8 text-muted-foreground">
         <p>
           These Terms of Service (&quot;Terms&quot;) govern your use of the Service Pros platform operated
-          by Namoota Technology. By creating an account or using the platform, you agree to these Terms.
+          by Namoota Technology, as a <strong className="text-foreground">customer</strong> booking
+          services on the marketplace. If you are a service provider listing your business on
+          ServicePros, your account is also governed by our{' '}
+          <Link href="/provider-terms" className="text-primary hover:underline">Provider Terms</Link>,
+          which cover subscription billing, commission, and listing standards. By creating an account or
+          using the platform, you agree to these Terms.
         </p>
 
         <section>
@@ -76,6 +84,9 @@ export default async function TermsPage() {
             Providers must provide accurate listings, honour stated delivery timelines, comply with applicable
             laws and licences, and respond to booking requests in a timely manner. Providers receive payout
             from Namoota Technology after customer confirmation of completion, minus platform commission.
+            Full provider obligations — subscription billing, commission brackets, ceiling packages, and
+            listing standards — are set out in our{' '}
+            <Link href="/provider-terms" className="text-primary hover:underline">Provider Terms</Link>.
           </p>
         </section>
 
