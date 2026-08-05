@@ -138,7 +138,7 @@ export function providerSelect() {
     provider_types!inner(
       name,
       slug,
-      provider_categories(name, slug)
+      provider_categories!inner(name, slug)
     ),
     provider_tags(tag:tags(name)),
     reviews(rating)
