@@ -793,7 +793,7 @@ describe("applyStackingFloor", () => {
 //
 // Package 5 (7.5% ceiling) + discount-unlock bonus (−4.5pt → 3.0%) +
 // 6-month temporary reduction (−3.5pt) = raw rate of −0.5%.
-// Without the floor this would make DPM owe money on every sale.
+// Without the floor this would make the platform owe money on every sale.
 // With the 4% floor it must clamp to exactly 4%.
 
 describe("REGRESSION: Package 5 worst-case stacking — floor prevents negative rate", () => {
