@@ -6,7 +6,7 @@ import { JsonLd } from '@/components/seo/JsonLd'
 import { getCategories, getLocations, getPublishedProvidersPage, titleFromSlug } from '@/lib/public-data'
 import { createClient } from '@/lib/supabase/server'
 import { createStaticClient } from '@/lib/supabase/static'
-import { canonicalAlternates, defaultOpenGraph, defaultTwitter, providerListJsonLd } from '@/lib/seo'
+import { breadcrumbJsonLd, canonicalAlternates, defaultOpenGraph, defaultTwitter, providerListJsonLd } from '@/lib/seo'
 
 interface PageProps {
   params: Promise<{ slug: string }>
@@ -54,10 +54,17 @@ export default async function ProvidersByCategoryPage({ params, searchParams }: 
   return (
     <main className="mx-auto max-w-7xl px-4 py-12">
       <JsonLd
-        data={providerListJsonLd(
-          `${category} providers`,
-          providers.map((p) => ({ slug: p.slug, id: p.id, business_name: p.business_name })),
-        )}
+        data={[
+          breadcrumbJsonLd([
+            { name: 'Home', path: '/' },
+            { name: 'Providers', path: '/search' },
+            { name: `${category} providers`, path: `/providers/category/${slug}` },
+          ]),
+          providerListJsonLd(
+            `${category} providers`,
+            providers.map((p) => ({ slug: p.slug, id: p.id, business_name: p.business_name })),
+          ),
+        ]}
       />
       <section className="max-w-3xl">
         <p className="text-sm font-semibold uppercase tracking-wide text-primary-accent">Category</p>

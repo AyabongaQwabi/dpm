@@ -1,6 +1,8 @@
 import type { Metadata } from 'next'
+import { JsonLd } from '@/components/seo/JsonLd'
 import { getSupportEmail } from '@/lib/policy-content'
 import {
+  breadcrumbJsonLd,
   canonicalAlternates,
   contactPageJsonLd,
   defaultOpenGraph,
@@ -60,8 +62,16 @@ export default async function ContactPage() {
 
   return (
     <main className="mx-auto max-w-4xl px-4 py-16">
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(contactPageLd) }} />
+      <JsonLd
+        data={[
+          breadcrumbJsonLd([
+            { name: 'Home', path: '/' },
+            { name: 'Contact', path: '/contact' },
+          ]),
+          jsonLd,
+          contactPageLd,
+        ]}
+      />
 
       <p className="text-sm font-semibold uppercase tracking-wide text-primary-accent">Contact</p>
       <h1 className="mt-2 text-4xl font-bold tracking-tight">Contact us</h1>

@@ -1,8 +1,9 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
+import { JsonLd } from '@/components/seo/JsonLd'
 import { Icon } from '@/components/ui/Icon'
 import { getSupportEmail } from '@/lib/policy-content'
-import { canonicalAlternates, defaultOpenGraph, defaultTwitter } from '@/lib/seo'
+import { breadcrumbJsonLd, canonicalAlternates, defaultOpenGraph, defaultTwitter } from '@/lib/seo'
 
 export const metadata: Metadata = {
   title: 'Referral agent programme',
@@ -44,6 +45,12 @@ export default async function ReferralAgentsPage() {
 
   return (
     <main>
+      <JsonLd
+        data={breadcrumbJsonLd([
+          { name: 'Home', path: '/' },
+          { name: 'Referral agents', path: '/referral-agents' },
+        ])}
+      />
       {/* Hero */}
       <section className="border-b bg-muted/30">
         <div className="mx-auto max-w-7xl px-4 py-16 lg:py-24">

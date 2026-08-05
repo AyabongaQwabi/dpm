@@ -27,6 +27,7 @@ import { getRecommendedServices } from '@/lib/recommended-services'
 import { InMemoryConfigStore } from '@/lib/domain/config'
 import { formatCredits } from '@/lib/format-credits'
 import {
+  breadcrumbJsonLd,
   canonicalAlternates,
   localBusinessJsonLd,
 } from '@/lib/seo'
@@ -251,19 +252,29 @@ export default async function ProviderProfilePage({ params }: ProfilePageProps) 
   return (
     <main>
       <JsonLd
-        data={localBusinessJsonLd({
-          business_name: provider.business_name,
-          bio: provider.bio,
-          profile_image: provider.profile_image,
-          slug: provider.slug,
-          id: provider.id,
-          location_city: provider.location_city,
-          location_state: provider.location_state,
-          location_country: provider.location_country,
-          avgRating,
-          reviewCount: reviews.length,
-          categoryName: category?.name ?? null,
-        })}
+        data={[
+          breadcrumbJsonLd([
+            { name: 'Home', path: '/' },
+            { name: 'Providers', path: '/search' },
+            ...(category?.name && category?.slug
+              ? [{ name: `${category.name} providers`, path: `/providers/category/${category.slug}` }]
+              : []),
+            { name: provider.business_name, path: `/providers/${profilePath}` },
+          ]),
+          localBusinessJsonLd({
+            business_name: provider.business_name,
+            bio: provider.bio,
+            profile_image: provider.profile_image,
+            slug: provider.slug,
+            id: provider.id,
+            location_city: provider.location_city,
+            location_state: provider.location_state,
+            location_country: provider.location_country,
+            avgRating,
+            reviewCount: reviews.length,
+            categoryName: category?.name ?? null,
+          }),
+        ]}
       />
       {/* ── Hero / Header ──────────────────────────────────────────────── */}
       <section className="relative border-b bg-muted/30 overflow-hidden">

@@ -2,9 +2,10 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import { ServicesFilters } from '@/components/ServicesFilters'
 import { ServiceListingCard } from '@/components/ServiceListingCard'
+import { JsonLd } from '@/components/seo/JsonLd'
 import { getCategories, getServices, getLocations } from '@/lib/public-data'
 import { createClient } from '@/lib/supabase/server'
-import { canonicalAlternates, defaultOpenGraph, defaultTwitter } from '@/lib/seo'
+import { breadcrumbJsonLd, canonicalAlternates, defaultOpenGraph, defaultTwitter } from '@/lib/seo'
 
 interface Props {
   searchParams: Promise<{
@@ -57,6 +58,12 @@ export default async function ServicesPage({ searchParams }: Props) {
 
   return (
     <main className="mx-auto max-w-7xl px-4 py-12">
+      <JsonLd
+        data={breadcrumbJsonLd([
+          { name: 'Home', path: '/' },
+          { name: 'Services', path: '/services' },
+        ])}
+      />
       <section className="max-w-3xl">
         <p className="text-sm font-semibold uppercase tracking-wide text-primary-accent">Services</p>
         <h1 className="mt-2 text-4xl font-bold tracking-tight">Browse bookable services</h1>

@@ -3,7 +3,7 @@ import Link from 'next/link'
 import { JsonLd } from '@/components/seo/JsonLd'
 import { HelpAccordion } from '@/components/help/HelpAccordion'
 import { HELP_SECTIONS } from '@/lib/help-content'
-import { canonicalAlternates, defaultOpenGraph, defaultTwitter, faqPageJsonLd } from '@/lib/seo'
+import { breadcrumbJsonLd, canonicalAlternates, defaultOpenGraph, defaultTwitter, faqPageJsonLd } from '@/lib/seo'
 
 export const metadata: Metadata = {
   title: 'Help centre',
@@ -28,7 +28,15 @@ export default function HelpPage() {
 
   return (
     <main className="mx-auto max-w-4xl px-4 py-16">
-      <JsonLd data={faqPageJsonLd(allQuestions)} />
+      <JsonLd
+        data={[
+          breadcrumbJsonLd([
+            { name: 'Home', path: '/' },
+            { name: 'Help', path: '/help' },
+          ]),
+          faqPageJsonLd(allQuestions),
+        ]}
+      />
 
       <p className="text-sm font-semibold uppercase tracking-wide text-primary-accent">Help</p>
       <h1 className="mt-2 text-4xl font-bold tracking-tight">Help centre</h1>

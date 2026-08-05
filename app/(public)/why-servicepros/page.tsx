@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
+import { JsonLd } from '@/components/seo/JsonLd'
 import { Icon } from '@/components/ui/Icon'
 import {
   COMMISSION_BRACKETS,
@@ -9,7 +10,7 @@ import {
   formatFee,
   formatRate,
 } from '@/lib/pricing-config'
-import { canonicalAlternates, defaultOpenGraph, defaultTwitter } from '@/lib/seo'
+import { breadcrumbJsonLd, canonicalAlternates, defaultOpenGraph, defaultTwitter } from '@/lib/seo'
 
 export const metadata: Metadata = {
   title: 'Why ServicePros',
@@ -44,6 +45,12 @@ const exampleEnquiries = 10
 export default function WhyServiceProsPage() {
   return (
     <main>
+      <JsonLd
+        data={breadcrumbJsonLd([
+          { name: 'Home', path: '/' },
+          { name: 'Why ServicePros', path: '/why-servicepros' },
+        ])}
+      />
       <section className="border-b bg-slate-950 text-white">
         <div className="mx-auto max-w-7xl px-4 py-20 lg:py-24">
           <div className="max-w-3xl">

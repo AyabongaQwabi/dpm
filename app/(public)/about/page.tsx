@@ -7,7 +7,7 @@ import { MoneyFlowDiagram } from '@/components/about/MoneyFlowDiagram'
 import { StatsBand } from '@/components/about/StatsBand'
 import { getCategories, getLocations } from '@/lib/public-data'
 import { createClient } from '@/lib/supabase/server'
-import { canonicalAlternates, canonicalUrl, defaultOpenGraph, defaultTwitter, SITE_NAME, SITE_URL } from '@/lib/seo'
+import { breadcrumbJsonLd, canonicalAlternates, canonicalUrl, defaultOpenGraph, defaultTwitter, SITE_NAME, SITE_URL } from '@/lib/seo'
 import { isFeaturePaused, getFeaturePauseMessage } from '@/lib/feature-pauses'
 
 export const revalidate = 3600
@@ -44,6 +44,10 @@ export default async function AboutPage() {
     <main>
       <JsonLd
         data={[
+          breadcrumbJsonLd([
+            { name: 'Home', path: '/' },
+            { name: 'About', path: '/about' },
+          ]),
           {
             '@context': 'https://schema.org',
             '@type': 'AboutPage',

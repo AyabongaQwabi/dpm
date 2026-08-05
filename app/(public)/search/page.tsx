@@ -13,6 +13,7 @@ import { SearchFilters } from '@/components/SearchFilters'
 import { Pagination } from '@/components/Pagination'
 import { JsonLd } from '@/components/seo/JsonLd'
 import {
+  breadcrumbJsonLd,
   canonicalAlternates,
   defaultOpenGraph,
   defaultTwitter,
@@ -135,10 +136,16 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
   return (
     <main className="mx-auto max-w-7xl px-4 py-10">
       <JsonLd
-        data={providerListJsonLd(
-          query ? `Search results for "${query}"` : 'South African service providers',
-          cards.map((p) => ({ slug: p.slug, id: p.id, business_name: p.business_name })),
-        )}
+        data={[
+          breadcrumbJsonLd([
+            { name: 'Home', path: '/' },
+            { name: 'Providers', path: '/search' },
+          ]),
+          providerListJsonLd(
+            query ? `Search results for "${query}"` : 'South African service providers',
+            cards.map((p) => ({ slug: p.slug, id: p.id, business_name: p.business_name })),
+          ),
+        ]}
       />
       <h1 className="text-3xl font-bold tracking-tight mb-3">
         {tenant.branding?.siteName ? `${tenant.branding.siteName} providers` : 'Find a provider'}
