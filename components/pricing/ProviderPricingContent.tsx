@@ -954,6 +954,12 @@ export function ProviderPricingContent() {
               </li>
             </ul>
           </div>
+
+          <p className="mt-4 text-xs text-muted-foreground">
+            Search rankings and AI citations are not guaranteed. They depend on search engine and AI
+            system choices, query context, profile quality, competition, and crawl/index eligibility.
+            ServicePros structures your listing for discovery — it cannot promise placement.
+          </p>
         </div>
       </section>
 

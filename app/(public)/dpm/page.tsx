@@ -5,7 +5,8 @@ import { Icon } from '@/components/ui/Icon'
 import { StatsBand } from '@/components/about/StatsBand'
 import { getCategories, getLocations } from '@/lib/public-data'
 import { createClient } from '@/lib/supabase/server'
-import { breadcrumbJsonLd, canonicalAlternates, canonicalUrl, definedTermJsonLd, defaultOpenGraph, defaultTwitter, SITE_NAME, SITE_URL } from '@/lib/seo'
+import { GUIDE_LAST_REVIEWED } from '@/lib/policy-content'
+import { breadcrumbJsonLd, canonicalAlternates, canonicalUrl, definedTermJsonLd, defaultOpenGraph, defaultTwitter, imageObjectJsonLd, PAGE_OG_IMAGES, SITE_NAME, SITE_URL } from '@/lib/seo'
 
 export const revalidate = 3600
 
@@ -21,8 +22,8 @@ export const metadata: Metadata = {
   title: 'What is a DPM? Directory and Provider Marketplace, defined',
   description: DPM_DEFINITION,
   alternates: canonicalAlternates('/dpm'),
-  openGraph: defaultOpenGraph('What is a DPM?', DPM_DEFINITION, '/dpm'),
-  twitter: defaultTwitter('What is a DPM?', DPM_DEFINITION),
+  openGraph: defaultOpenGraph('What is a DPM?', DPM_DEFINITION, '/dpm', PAGE_OG_IMAGES.dpm),
+  twitter: defaultTwitter('What is a DPM?', DPM_DEFINITION, PAGE_OG_IMAGES.dpm),
 }
 
 function EngineFanOutGraphic() {
@@ -100,6 +101,7 @@ export default async function DpmPage() {
               url: SITE_URL,
             },
           },
+          imageObjectJsonLd(PAGE_OG_IMAGES.dpm),
         ]}
       />
 
@@ -226,6 +228,9 @@ export default async function DpmPage() {
         </div>
         <p className="mt-6 text-sm text-muted-foreground">
           See <Link href="/about" className="text-primary hover:underline">how ServicePros applies the model</Link>.
+        </p>
+        <p className="mt-8 text-xs text-muted-foreground">
+          Reviewed by the ServicePros marketplace team. Last updated: {GUIDE_LAST_REVIEWED}.
         </p>
       </section>
     </main>

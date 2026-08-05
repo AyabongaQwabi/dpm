@@ -117,6 +117,7 @@ export default function WhyServiceProsPage() {
               { icon: Icon.verified, title: 'Verification path', body: 'Progress from Unverified through contact, CIPC and FICA verification.' },
               { icon: Icon.chat, title: 'Dashboard control', body: 'Manage services, messages, bookings and verification from one place.' },
               { icon: Icon.search, title: 'Discovery', body: 'Appear in category and city search when customers are actively looking.' },
+              { icon: Icon.sparkle, title: 'Search and AI discovery', body: 'Your profile is structured as a public provider page, connected to category, city, and service pages so customers and search tools can understand where you work and what you offer.' },
               { icon: Icon.shield, title: 'Commission only on completed work', body: 'You don’t pay unless the job is finished and paid.' },
             ].map((item) => (
               <div key={item.title} className="rounded-3xl border border-slate-200/10 bg-white p-6 shadow-sm">
@@ -128,6 +129,10 @@ export default function WhyServiceProsPage() {
               </div>
             ))}
           </div>
+          <p className="mt-6 max-w-2xl text-xs text-muted-foreground">
+            Search rankings and AI citations are not guaranteed. They depend on search engine and AI
+            system choices, query context, profile quality, competition, and crawl/index eligibility.
+          </p>
         </div>
       </section>
 

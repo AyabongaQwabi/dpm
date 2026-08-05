@@ -5,21 +5,23 @@ import { JsonLd } from '@/components/seo/JsonLd'
 import { Icon } from '@/components/ui/Icon'
 import { VerifiedBadge, TIER_META, type VerificationTier } from '@/components/ui/VerifiedBadge'
 import { GetListedTabs } from '@/components/get-listed/GetListedTabs'
-import { breadcrumbJsonLd, canonicalAlternates, defaultOpenGraph, defaultTwitter } from '@/lib/seo'
+import { breadcrumbJsonLd, canonicalAlternates, defaultOpenGraph, defaultTwitter, imageObjectJsonLd, PAGE_OG_IMAGES } from '@/lib/seo'
 
 export const metadata: Metadata = {
   title: 'Get listed as a South African service provider',
   description:
-    'List your business on ServicePros to win bookings, get paid securely, appear on Google and AI assistants, and manage everything from one provider dashboard.',
+    'List your business on ServicePros to win bookings, get paid securely, build a search-friendly profile, and manage everything from one provider dashboard.',
   alternates: canonicalAlternates('/get-listed'),
   openGraph: defaultOpenGraph(
     'Get listed as a South African service provider',
-    'List your business on ServicePros to win bookings, get paid securely, and get found on Google and AI assistants.',
+    'List your business on ServicePros to win bookings, get paid securely, and build a search-friendly public profile.',
     '/get-listed',
+    PAGE_OG_IMAGES.getListed,
   ),
   twitter: defaultTwitter(
     'Get listed as a South African service provider',
-    'List your business on ServicePros to win bookings, get paid securely, and get found on Google and AI assistants.',
+    'List your business on ServicePros to win bookings, get paid securely, and build a search-friendly public profile.',
+    PAGE_OG_IMAGES.getListed,
   ),
 }
 
@@ -41,8 +43,8 @@ const benefits = [
   },
   {
     icon: Icon.sparkle,
-    title: 'Cited by AI assistants',
-    body: 'Structured listings help AI tools like ChatGPT and Gemini recommend and cite your business.',
+    title: 'Search and AI discovery readiness',
+    body: 'Your services, location, verification, and pricing are structured so search engines and AI-powered search tools have a clearer public source to understand what your business offers.',
   },
   {
     icon: Icon.star,
@@ -78,10 +80,13 @@ function GetListedOverview() {
   return (
     <>
       <JsonLd
-        data={breadcrumbJsonLd([
-          { name: 'Home', path: '/' },
-          { name: 'Get listed', path: '/get-listed' },
-        ])}
+        data={[
+          breadcrumbJsonLd([
+            { name: 'Home', path: '/' },
+            { name: 'Get listed', path: '/get-listed' },
+          ]),
+          imageObjectJsonLd(PAGE_OG_IMAGES.getListed),
+        ]}
       />
       {/* Hero */}
       <section className="border-b bg-muted/30">
@@ -147,6 +152,25 @@ function GetListedOverview() {
               <p className="mt-2 text-sm leading-6 text-muted-foreground">{benefit.body}</p>
             </div>
           ))}
+        </div>
+        <p className="mt-6 max-w-2xl text-xs text-muted-foreground">
+          We cannot promise rankings or AI citations, but a complete profile gives your business a stronger
+          public footprint than a social post, flyer, or private quote thread.
+        </p>
+      </section>
+
+      {/* Provider profile badge */}
+      <section className="mx-auto max-w-7xl px-4 pb-16">
+        <div className="rounded-2xl border bg-card p-6">
+          <h2 className="text-lg font-semibold tracking-tight">Link to your ServicePros profile</h2>
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
+            Once listed, add a link to your ServicePros profile from your own website or social pages.
+            It gives customers another way to find your services, reviews, and verification status, and
+            it&apos;s a legitimate citation search engines can follow.
+          </p>
+          <pre className="mt-4 overflow-x-auto rounded-lg border bg-muted/40 p-4 text-xs leading-6 text-muted-foreground">
+{'<a href="https://servicepros.co.za/providers/your-profile-slug">View our ServicePros profile</a>'}
+          </pre>
         </div>
       </section>
 

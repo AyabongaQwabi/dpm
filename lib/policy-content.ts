@@ -7,6 +7,9 @@ export const POLICY_VERSION = '1.0'
 export const PROVIDER_TERMS_LAST_UPDATED = '5 August 2026'
 export const PROVIDER_TERMS_VERSION = '1.0'
 
+/** Editorial ownership line for non-legal guide/explainer pages (DPM, how-it-works, verification, pricing). */
+export const GUIDE_LAST_REVIEWED = '5 August 2026'
+
 export async function getSupportEmail(): Promise<string> {
   const supabase = await createClient()
   const config = await loadConfigStore(supabase)

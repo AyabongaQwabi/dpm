@@ -5,6 +5,7 @@ import { Icon } from '@/components/ui/Icon'
 import creditPromotions from '@/config/credit-promotions.json'
 import { calculatePurchaseCredits, getActivePromotion, type CreditPromotion } from '@/lib/domain/credit-promotions'
 import { PLATFORM_CONFIG_SEED } from '@/lib/pricing-config'
+import { GUIDE_LAST_REVIEWED } from '@/lib/policy-content'
 import { breadcrumbJsonLd, canonicalAlternates, defaultOpenGraph, defaultTwitter } from '@/lib/seo'
 
 export const metadata: Metadata = {
@@ -198,6 +199,10 @@ export default function HowItWorksPage() {
           </Link>
         </div>
       </section>
+
+      <p className="mx-auto max-w-7xl px-4 py-6 text-xs text-muted-foreground">
+        Reviewed by the ServicePros marketplace team. Last updated: {GUIDE_LAST_REVIEWED}.
+      </p>
     </main>
   )
 }

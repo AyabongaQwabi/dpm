@@ -3,7 +3,7 @@ import Link from 'next/link'
 import { JsonLd } from '@/components/seo/JsonLd'
 import { Icon } from '@/components/ui/Icon'
 import { getSupportEmail } from '@/lib/policy-content'
-import { breadcrumbJsonLd, canonicalAlternates, defaultOpenGraph, defaultTwitter } from '@/lib/seo'
+import { breadcrumbJsonLd, canonicalAlternates, defaultOpenGraph, defaultTwitter, imageObjectJsonLd, PAGE_OG_IMAGES } from '@/lib/seo'
 
 export const metadata: Metadata = {
   title: 'Platform partners',
@@ -14,10 +14,12 @@ export const metadata: Metadata = {
     'Platform partners',
     'Sell business services to ServicePros providers through the closed, in-dashboard marketplace.',
     '/platform-partners',
+    PAGE_OG_IMAGES.platformPartners,
   ),
   twitter: defaultTwitter(
     'Platform partners',
     'Sell business services to ServicePros providers through the closed, in-dashboard marketplace.',
+    PAGE_OG_IMAGES.platformPartners,
   ),
 }
 
@@ -46,10 +48,13 @@ export default async function PlatformPartnersPage() {
   return (
     <main>
       <JsonLd
-        data={breadcrumbJsonLd([
-          { name: 'Home', path: '/' },
-          { name: 'Platform partners', path: '/platform-partners' },
-        ])}
+        data={[
+          breadcrumbJsonLd([
+            { name: 'Home', path: '/' },
+            { name: 'Platform partners', path: '/platform-partners' },
+          ]),
+          imageObjectJsonLd(PAGE_OG_IMAGES.platformPartners),
+        ]}
       />
       {/* Hero */}
       <section className="border-b bg-muted/30">
@@ -119,6 +124,17 @@ export default async function PlatformPartnersPage() {
             ServicePros — providers browse it the same way they&apos;d browse any other in-dashboard tool.
           </p>
         </div>
+      </section>
+
+      {/* AI discovery selling point */}
+      <section className="mx-auto max-w-7xl px-4 py-16">
+        <h2 className="text-2xl font-bold tracking-tight">Help providers get found</h2>
+        <p className="mt-3 max-w-2xl leading-7 text-muted-foreground">
+          Partners can help providers improve the completeness and clarity of their ServicePros profiles,
+          including service descriptions, images, portfolios, and other public content that supports search
+          and AI discovery. We cannot promise rankings or AI citations, but a more complete profile gives
+          providers a stronger public footprint.
+        </p>
       </section>
 
       {/* The constraint */}

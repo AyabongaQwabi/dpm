@@ -57,6 +57,16 @@ export default async function ContactPage() {
       contactType: route.reason,
       email: supportEmail,
     })),
+    {
+      legalName: 'Namoota Technology (Pty) Ltd',
+      telephone: '+27603116777',
+      address: {
+        streetAddress: '152 Company Street, Muckleneuk',
+        addressLocality: 'Pretoria',
+        addressRegion: 'Gauteng',
+        postalCode: '0002',
+      },
+    },
   )
   const contactPageLd = contactPageJsonLd('/contact')
 

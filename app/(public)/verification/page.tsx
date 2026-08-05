@@ -3,7 +3,8 @@ import Link from 'next/link'
 import { JsonLd } from '@/components/seo/JsonLd'
 import { Icon } from '@/components/ui/Icon'
 import { TIER_META, type VerificationTier } from '@/components/ui/VerifiedBadge'
-import { breadcrumbJsonLd, canonicalAlternates, defaultOpenGraph, defaultTwitter } from '@/lib/seo'
+import { GUIDE_LAST_REVIEWED } from '@/lib/policy-content'
+import { breadcrumbJsonLd, canonicalAlternates, defaultOpenGraph, defaultTwitter, imageObjectJsonLd, PAGE_OG_IMAGES } from '@/lib/seo'
 
 export const metadata: Metadata = {
   title: 'How verification works',
@@ -14,10 +15,12 @@ export const metadata: Metadata = {
     'How verification works',
     'Contact, Google, CIPC, and FICA verification on ServicePros — what each badge means and how to get one.',
     '/verification',
+    PAGE_OG_IMAGES.verification,
   ),
   twitter: defaultTwitter(
     'How verification works',
     'Contact, Google, CIPC, and FICA verification on ServicePros — what each badge means and how to get one.',
+    PAGE_OG_IMAGES.verification,
   ),
 }
 
@@ -51,10 +54,13 @@ export default function VerificationPage() {
   return (
     <main className="mx-auto max-w-5xl px-4 py-16">
       <JsonLd
-        data={breadcrumbJsonLd([
-          { name: 'Home', path: '/' },
-          { name: 'Verification', path: '/verification' },
-        ])}
+        data={[
+          breadcrumbJsonLd([
+            { name: 'Home', path: '/' },
+            { name: 'Verification', path: '/verification' },
+          ]),
+          imageObjectJsonLd(PAGE_OG_IMAGES.verification),
+        ]}
       />
       <div className="rounded-[2rem] border border-slate-200/10 bg-slate-950 p-10 text-white shadow-2xl shadow-slate-950/20">
         <p className="text-sm font-semibold uppercase tracking-[0.28em] text-primary-accent">Trust</p>
@@ -148,6 +154,10 @@ export default function VerificationPage() {
           and refer to our <Link href="/refund" className="text-primary hover:underline">refund policy</Link>.
         </p>
       </section>
+
+      <p className="mt-8 text-xs text-muted-foreground">
+        Reviewed by the ServicePros marketplace team. Last updated: {GUIDE_LAST_REVIEWED}.
+      </p>
     </main>
   )
 }

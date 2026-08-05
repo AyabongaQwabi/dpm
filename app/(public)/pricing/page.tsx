@@ -8,7 +8,8 @@ import { CreditPackCards } from '@/components/credits/CreditPackCards'
 import { CreditPricingCalculator } from '@/components/credits/CreditPricingCalculator'
 import { Icon } from '@/components/ui/Icon'
 import { JsonLd } from '@/components/seo/JsonLd'
-import { breadcrumbJsonLd, canonicalAlternates, defaultOpenGraph, defaultTwitter, offerCatalogJsonLd } from '@/lib/seo'
+import { GUIDE_LAST_REVIEWED } from '@/lib/policy-content'
+import { breadcrumbJsonLd, canonicalAlternates, defaultOpenGraph, defaultTwitter, imageObjectJsonLd, offerCatalogJsonLd, PAGE_OG_IMAGES } from '@/lib/seo'
 
 export const metadata: Metadata = {
   title: 'Credits and pricing for ServicePros bookings',
@@ -19,10 +20,12 @@ export const metadata: Metadata = {
     'Credits and pricing for ServicePros bookings',
     'Buy credits to pay for services on ServicePros. 1 credit equals R1. No subscription — top up anytime.',
     '/pricing',
+    PAGE_OG_IMAGES.pricing,
   ),
   twitter: defaultTwitter(
     'Credits and pricing for ServicePros bookings',
     'Buy credits to pay for services on ServicePros. 1 credit equals R1. No subscription — top up anytime.',
+    PAGE_OG_IMAGES.pricing,
   ),
 }
 
@@ -96,6 +99,7 @@ export default async function CustomerPricingPage() {
               url: '/pricing',
             })),
           }),
+          imageObjectJsonLd(PAGE_OG_IMAGES.pricing),
         ]}
       />
       <section className="border-b bg-muted/30">
@@ -207,6 +211,10 @@ export default async function CustomerPricingPage() {
           </Link>
         </div>
       </section>
+
+      <p className="mx-auto max-w-7xl px-4 py-6 text-xs text-muted-foreground">
+        Reviewed by the ServicePros marketplace team. Last updated: {GUIDE_LAST_REVIEWED}.
+      </p>
     </main>
   )
 }
