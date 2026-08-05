@@ -44,22 +44,20 @@ const exampleEnquiries = 10
 export default function WhyServiceProsPage() {
   return (
     <main>
-      {/* Hero — the golden rule */}
-      <section className="border-b bg-muted/30">
-        <div className="mx-auto max-w-7xl px-4 py-16 lg:py-24">
+      <section className="border-b bg-slate-950 text-white">
+        <div className="mx-auto max-w-7xl px-4 py-20 lg:py-24">
           <div className="max-w-3xl">
-            <p className="text-sm font-semibold uppercase tracking-wide text-primary-accent">For providers</p>
-            <h1 className="mt-3 text-4xl font-bold tracking-tight text-balance lg:text-5xl">
-              You never pay to compete for a lead
+            <p className="text-sm font-semibold uppercase tracking-[0.28em] text-primary-accent">For providers</p>
+            <h1 className="mt-4 text-5xl font-display font-semibold tracking-tight leading-tight">
+              You never pay to compete for a lead.
             </h1>
-            <p className="mt-5 text-lg leading-8 text-muted-foreground text-pretty">
-              Commission is charged only on completed, paid work — never on an enquiry, a quote, or a
-              message. Every enquiry that doesn&apos;t turn into a booking costs you nothing.
+            <p className="mt-6 text-xl leading-9 text-slate-300">
+              ServicePros only charges commission on completed, paid work. Every enquiry that doesn&apos;t turn into a booking costs you nothing.
             </p>
-            <div className="mt-8 flex flex-wrap gap-3">
+            <div className="mt-10 flex flex-wrap gap-3">
               <Link
                 href="/get-listed"
-                className="inline-flex items-center gap-2 rounded-xl bg-primary-accent px-5 py-3 text-sm font-semibold text-primary-accent-foreground hover:opacity-90"
+                className="inline-flex items-center gap-2 rounded-xl bg-primary-accent px-6 py-3 text-sm font-semibold text-primary-accent-foreground transition-opacity hover:opacity-90"
               >
                 Get listed
                 <Icon.arrowRight className="h-4 w-4" weight="bold" />
@@ -69,156 +67,138 @@ export default function WhyServiceProsPage() {
         </div>
       </section>
 
-      {/* Worked example */}
-      <section className="mx-auto max-w-7xl px-4 py-16">
-        <h2 className="text-2xl font-bold tracking-tight">What that means in Rands</h2>
-        <p className="mt-2 max-w-2xl text-muted-foreground">
-          Say you get {exampleEnquiries} enquiries in a month and win {exampleJobsWon} of them, each worth
-          about {formatFee(EXAMPLE_JOB_VALUE)}.
-        </p>
-        <div className="mt-8 grid gap-5 md:grid-cols-2">
-          <div className="rounded-2xl border p-6">
-            <h3 className="font-display text-lg font-semibold">On a lead-bidding platform</h3>
-            <p className="mt-2 text-sm leading-6 text-muted-foreground">
-              You pay for enquiries whether or not you win the job — {exampleEnquiries} enquiries means{' '}
-              {exampleEnquiries} charges, regardless of outcome.
+      <section className="mx-auto max-w-7xl px-4 py-20">
+        <div className="grid gap-14 lg:grid-cols-[1.2fr_0.8fr] lg:items-start">
+          <div className="space-y-6">
+            <p className="text-sm font-semibold uppercase tracking-[0.28em] text-primary-accent">What this means</p>
+            <h2 className="text-4xl font-display font-semibold tracking-tight">A clearer, fairer model for providers and customers.</h2>
+            <p className="max-w-2xl leading-8 text-muted-foreground">
+              Unlike pay-per-lead platforms, ServicePros aligns fees with completed work. Providers build real profiles, customers book actual services, and both sides know what to expect from the beginning.
             </p>
           </div>
-          <div className="rounded-2xl border border-primary-accent/40 bg-primary-accent/5 p-6">
-            <h3 className="font-display text-lg font-semibold">On ServicePros</h3>
-            <p className="mt-2 text-sm leading-6 text-muted-foreground">
-              You pay {formatFee(basePackage.monthlyFee)} for the month, plus {formatRate(exampleRate)}{' '}
-              commission (the {exampleBracket.label} bracket rate) on each of the {exampleJobsWon} jobs you
-              actually complete — {formatFee(exampleCommissionPerJob)} per job,{' '}
-              {formatFee(exampleTotalCommission)} total.
-            </p>
-            <p className="mt-3 text-sm font-semibold text-foreground">
-              Total for the month: {formatFee(exampleTotalCost)}
-            </p>
+          <div className="rounded-[2rem] border border-slate-200/10 bg-slate-50/80 p-8 shadow-xl shadow-slate-900/5">
+            <p className="text-sm uppercase tracking-[0.24em] text-primary-accent">Example scenario</p>
+            <div className="mt-4 space-y-4">
+              <p className="text-sm leading-7 text-muted-foreground">
+                If you receive {exampleEnquiries} enquiries and win {exampleJobsWon} jobs at about {formatFee(EXAMPLE_JOB_VALUE)} each, you only pay commission on the jobs you complete.
+              </p>
+              <div className="rounded-3xl bg-white p-6 shadow-sm">
+                <p className="text-sm uppercase tracking-[0.24em] text-slate-500">ServicePros total cost</p>
+                <p className="mt-4 text-3xl font-semibold text-foreground">{formatFee(exampleTotalCost)}</p>
+                <p className="mt-3 text-sm leading-6 text-muted-foreground">
+                  Includes {formatFee(basePackage.monthlyFee)} monthly fee plus {formatRate(exampleRate)} commission on each of the {exampleJobsWon} completed jobs.
+                </p>
+              </div>
+              <p className="text-xs uppercase tracking-[0.24em] text-slate-500">
+                The other {exampleEnquiries - exampleJobsWon} enquiries that don&apos;t convert cost you nothing.
+              </p>
+            </div>
           </div>
         </div>
-        <p className="mt-4 text-xs text-muted-foreground">
-          The other {exampleEnquiries - exampleJobsWon} enquiries you didn&apos;t win cost you nothing.
-        </p>
       </section>
 
-      {/* What R99 buys */}
       <section className="border-y bg-muted/30">
-        <div className="mx-auto max-w-7xl px-4 py-16">
-          <h2 className="text-2xl font-bold tracking-tight">What {formatFee(basePackage.monthlyFee)} a month buys</h2>
-          <p className="mt-2 max-w-2xl text-muted-foreground">{basePackage.planDetail}</p>
-          <div className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="mx-auto max-w-7xl px-4 py-20">
+          <h2 className="text-3xl font-semibold tracking-tight">What {formatFee(basePackage.monthlyFee)} a month gets you</h2>
+          <p className="mt-3 max-w-2xl text-muted-foreground">
+            Your base plan gives you a full provider presence on ServicePros — from a branded profile to verification and booking controls.
+          </p>
+          <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {[
-              { icon: Icon.store, title: 'A real profile', body: 'Your business, your services, your gallery — not a shared listing.' },
-              { icon: Icon.confetti, title: 'Provider stories', body: 'Share updates and completed work to build trust over time.' },
-              { icon: Icon.verified, title: 'A verification path', body: 'Move from Unverified through contact, CIPC, and FICA verification.' },
-              { icon: Icon.chat, title: 'Your dashboard', body: 'Manage services, bookings, and customer messages in one place.' },
-              { icon: Icon.search, title: 'Discovery', body: 'Appear across category and city pages where customers are searching.' },
-              { icon: Icon.shield, title: 'Commission only on completed work', body: 'No fee until a customer pays and confirms the job is done.' },
+              { icon: Icon.store, title: 'A real profile', body: 'Your business, services, gallery and reviews all live on a branded page.' },
+              { icon: Icon.confetti, title: 'Provider stories', body: 'Share work samples and business updates to build long-term trust.' },
+              { icon: Icon.verified, title: 'Verification path', body: 'Progress from Unverified through contact, CIPC and FICA verification.' },
+              { icon: Icon.chat, title: 'Dashboard control', body: 'Manage services, messages, bookings and verification from one place.' },
+              { icon: Icon.search, title: 'Discovery', body: 'Appear in category and city search when customers are actively looking.' },
+              { icon: Icon.shield, title: 'Commission only on completed work', body: 'You don’t pay unless the job is finished and paid.' },
             ].map((item) => (
-              <div key={item.title} className="rounded-2xl border bg-card p-6">
-                <span className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-primary/10 text-primary">
+              <div key={item.title} className="rounded-3xl border border-slate-200/10 bg-white p-6 shadow-sm">
+                <span className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">
                   <item.icon className="h-6 w-6" weight="duotone" />
                 </span>
-                <h3 className="mt-4 font-display text-lg font-semibold">{item.title}</h3>
-                <p className="mt-2 text-sm leading-6 text-muted-foreground">{item.body}</p>
+                <h3 className="mt-5 font-display text-lg font-semibold text-foreground">{item.title}</h3>
+                <p className="mt-3 text-sm leading-6 text-muted-foreground">{item.body}</p>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* Commission brackets + ceiling packages */}
-      <section className="mx-auto max-w-7xl px-4 py-16">
-        <h2 className="text-2xl font-bold tracking-tight">Commission brackets and ceiling packages</h2>
-        <p className="mt-2 max-w-2xl text-muted-foreground">
-          Commission scales with the size of each sale. A ceiling package caps that rate on your bigger
-          jobs — the higher the ceiling package, the lower the cap.
-        </p>
-        <div className="mt-8 grid gap-8 lg:grid-cols-2">
-          <div className="overflow-x-auto rounded-xl border">
-            <table className="w-full text-left text-sm">
-              <thead className="bg-muted/50 text-foreground">
-                <tr>
-                  <th className="px-4 py-2 font-medium">Sale value</th>
-                  <th className="px-4 py-2 font-medium">Standard rate</th>
-                </tr>
-              </thead>
-              <tbody>
-                {COMMISSION_BRACKETS.map((bracket) => (
-                  <tr key={bracket.label} className="border-t">
-                    <td className="px-4 py-2">{bracket.label}</td>
-                    <td className="px-4 py-2">{formatRate(bracket.rate)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+      <section className="mx-auto max-w-7xl px-4 py-20">
+        <div className="rounded-[2rem] border border-slate-200/10 bg-slate-50/80 p-10 shadow-xl shadow-slate-900/5">
+          <div className="grid gap-10 lg:grid-cols-2">
+            <div className="space-y-4">
+              <p className="text-sm font-semibold uppercase tracking-[0.28em] text-primary-accent">Commission brackets</p>
+              <p className="text-lg leading-8 text-muted-foreground">
+                Commission scales with the size of each sale. Ceiling packages lower the effective amount you pay on bigger jobs.
+              </p>
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="rounded-3xl bg-white p-6 shadow-sm">
+                <h3 className="font-semibold text-foreground">Sale value brackets</h3>
+                <div className="mt-4 space-y-3 text-sm text-muted-foreground">
+                  {COMMISSION_BRACKETS.map((bracket) => (
+                    <div key={bracket.label} className="flex items-center justify-between border-t border-slate-200/70 py-2 first:border-t-0">
+                      <span>{bracket.label}</span>
+                      <span>{formatRate(bracket.rate)}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div className="rounded-3xl bg-white p-6 shadow-sm">
+                <h3 className="font-semibold text-foreground">Ceiling packages</h3>
+                <div className="mt-4 space-y-3 text-sm text-muted-foreground">
+                  {ceilingPackages.map((pkg) => (
+                    <div key={pkg.id} className="flex items-center justify-between border-t border-slate-200/70 py-2 first:border-t-0">
+                      <span>{pkg.name}</span>
+                      <span>{formatRate(pkg.ceilingRate as number)}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
           </div>
-          <div className="overflow-x-auto rounded-xl border">
-            <table className="w-full text-left text-sm">
-              <thead className="bg-muted/50 text-foreground">
-                <tr>
-                  <th className="px-4 py-2 font-medium">Package</th>
-                  <th className="px-4 py-2 font-medium">Monthly fee</th>
-                  <th className="px-4 py-2 font-medium">Ceiling</th>
-                </tr>
-              </thead>
-              <tbody>
-                {ceilingPackages.map((pkg) => (
-                  <tr key={pkg.id} className="border-t">
-                    <td className="px-4 py-2">{pkg.name}</td>
-                    <td className="px-4 py-2">{formatFee(pkg.monthlyFee)}</td>
-                    <td className="px-4 py-2">{formatRate(pkg.ceilingRate as number)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <p className="mt-8 max-w-2xl text-sm leading-6 text-muted-foreground">
+            A ceiling package begins saving you money once the commission it caps on bigger jobs offsets the extra monthly fee. If you close higher-value work, the cap helps your margins.
+          </p>
+          <p className="mt-3 text-sm text-muted-foreground">
+            See the full breakdown and calculator on our{' '}
+            <Link href="/pricing" className="text-primary hover:underline">pricing page</Link>.
+          </p>
         </div>
-        <p className="mt-6 max-w-2xl text-sm leading-6 text-muted-foreground">
-          A ceiling package starts paying for itself once the commission it saves you on your bigger jobs
-          exceeds the extra monthly fee over the base plan — the more high-value jobs you close, the
-          sooner that happens. See the full breakdown and a calculator on our{' '}
-          <Link href="/pricing" className="text-primary hover:underline">pricing page</Link>.
-        </p>
       </section>
 
-      {/* Comparison against lead-bidding model */}
       <section className="border-t bg-muted/30">
-        <div className="mx-auto max-w-7xl px-4 py-16">
-          <h2 className="text-2xl font-bold tracking-tight">A different model, not just a different price</h2>
-          <div className="mt-8 grid gap-5 md:grid-cols-2">
-            <div className="rounded-2xl border bg-card p-6">
+        <div className="mx-auto max-w-7xl px-4 py-20">
+          <h2 className="text-3xl font-semibold tracking-tight">A different model, not just a different price</h2>
+          <div className="mt-10 grid gap-6 md:grid-cols-2">
+            <div className="rounded-3xl border bg-white p-8 shadow-sm">
               <h3 className="font-display text-lg font-semibold">Pay-per-lead platforms</h3>
-              <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                Providers bid against each other or pay to unlock the same enquiry. The platform earns
-                from the enquiry itself — whether or not any provider wins the job, and whether or not the
-                customer ever books.
+              <p className="mt-4 text-sm leading-6 text-muted-foreground">
+                Providers bid against each other or pay to unlock the same enquiry. The platform earns from the enquiry itself, whether or not any provider wins the job.
               </p>
             </div>
-            <div className="rounded-2xl border border-primary-accent/40 bg-primary-accent/5 p-6">
+            <div className="rounded-3xl border border-primary-accent/30 bg-primary-accent/10 p-8 shadow-sm">
               <h3 className="font-display text-lg font-semibold">ServicePros</h3>
-              <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                We earn a subscription fee for your listing, and commission only when a job is completed
-                and paid. If you don&apos;t win the work, we don&apos;t earn from that enquiry either.
+              <p className="mt-4 text-sm leading-6 text-muted-foreground">
+                We earn from a provider subscription and a small commission only when a job is completed and paid. If you don&apos;t win the work, we don&apos;t earn from that enquiry.
               </p>
             </div>
           </div>
         </div>
       </section>
 
-      {/* CTA */}
       <section className="border-t bg-primary text-primary-foreground">
-        <div className="mx-auto flex max-w-7xl flex-col items-start gap-6 px-4 py-14 md:flex-row md:items-center md:justify-between">
+        <div className="mx-auto flex max-w-7xl flex-col gap-6 px-4 py-16 md:flex-row md:items-center md:justify-between">
           <div>
-            <h2 className="text-2xl font-bold tracking-tight">Ready to get listed?</h2>
-            <p className="mt-2 max-w-xl text-primary-foreground/80">
-              Create your provider profile and start appearing in category and city search.
+            <h2 className="text-3xl font-semibold tracking-tight">Ready to get listed?</h2>
+            <p className="mt-3 max-w-xl text-primary-foreground/80">
+              Create your provider profile and start appearing in search results across categories and cities.
             </p>
           </div>
           <Link
             href="/get-listed"
-            className="inline-flex shrink-0 items-center gap-2 rounded-xl bg-primary-accent px-6 py-3 text-sm font-semibold text-primary-accent-foreground transition-opacity hover:opacity-90"
+            className="inline-flex items-center gap-2 rounded-xl bg-primary-accent px-6 py-3 text-sm font-semibold text-primary-accent-foreground transition-opacity hover:opacity-90"
           >
             Get listed
             <Icon.arrowRight className="h-4 w-4" weight="bold" />

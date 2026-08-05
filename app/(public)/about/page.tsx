@@ -88,91 +88,117 @@ export default async function AboutPage() {
         ]}
       />
 
-      {/* Hero — the thesis, not a big number */}
-      <section className="border-b bg-muted/30">
-        <div className="mx-auto max-w-7xl px-4 py-16 lg:py-20">
-          <p className="reveal text-sm font-semibold uppercase tracking-wide text-primary-accent">About</p>
-          <h1 className="reveal reveal-delay-1 mt-3 max-w-3xl text-balance font-display text-4xl font-bold tracking-tight lg:text-5xl">
-            ServicePros isn&rsquo;t a directory. It&rsquo;s a DPM.
+      <section className="border-b bg-slate-950/95 text-white">
+        <div className="mx-auto max-w-7xl px-4 py-20 lg:py-24">
+          <div className="h-1 w-24 rounded-full bg-primary-accent/90" />
+          <p className="mt-6 text-sm font-semibold uppercase tracking-[0.28em] text-primary-accent">About ServicePros</p>
+          <h1 className="mt-6 max-w-3xl text-5xl font-display font-semibold tracking-tight leading-tight">
+            A premium DPM for trusted providers and confident customers.
           </h1>
-          <p className="reveal reveal-delay-2 mt-5 max-w-2xl text-lg leading-8 text-muted-foreground text-pretty">
-            A DPM — Directory &amp; Provider Marketplace — lets customers find a business the way they
-            would use a directory, then book, pay and review the way they would use a marketplace. One
-            place instead of two. See the full{' '}
-            <Link href="/dpm" className="text-primary hover:underline">definition of a DPM</Link>.
+          <p className="mt-6 max-w-2xl text-xl leading-9 text-slate-300">
+            ServicePros brings discovery, booking, payment and verification into one refined experience.
+            Providers get a living business presence. Customers get real profiles, clear pricing and work
+            that can be completed, paid and reviewed with confidence.
           </p>
+        </div>
+      </section>
 
-          <div className="reveal reveal-delay-3 mt-12">
-            <TransformationGraphic />
+      <section className="mx-auto max-w-7xl px-4 py-20">
+        <div className="grid gap-8 lg:grid-cols-3">
+          <div className="rounded-[2rem] border border-white/10 bg-slate-950/80 p-8 shadow-[0_24px_80px_rgba(15,23,42,0.12)] backdrop-blur-xl">
+            <p className="text-sm uppercase tracking-[0.24em] text-primary-accent">Real business presence</p>
+            <p className="mt-4 text-base leading-7 text-slate-200">
+              Every provider page is more than a listing. It is a service catalog, gallery, review hub and verification profile.
+            </p>
+          </div>
+          <div className="rounded-[2rem] border border-white/10 bg-slate-950/80 p-8 shadow-[0_24px_80px_rgba(15,23,42,0.12)] backdrop-blur-xl">
+            <p className="text-sm uppercase tracking-[0.24em] text-primary-accent">Transaction continuity</p>
+            <p className="mt-4 text-base leading-7 text-slate-200">
+              Customers book actual services. Providers only pay commission when a job is completed and paid.
+            </p>
+          </div>
+          <div className="rounded-[2rem] border border-white/10 bg-slate-950/80 p-8 shadow-[0_24px_80px_rgba(15,23,42,0.12)] backdrop-blur-xl">
+            <p className="text-sm uppercase tracking-[0.24em] text-primary-accent">Trust and verification</p>
+            <p className="mt-4 text-base leading-7 text-slate-200">
+              Verification signals are visible on profiles, so customers can choose based on proof, not promises.
+            </p>
           </div>
         </div>
       </section>
 
-      {/* The problem */}
-      <section className="mx-auto max-w-4xl px-4 py-16">
-        <h2 className="font-display text-2xl font-bold tracking-tight text-foreground">The problem with what came before</h2>
-        <div className="mt-5 space-y-4 text-base leading-7 text-muted-foreground">
-          <p>
-            A directory lists a business and leaves it there — a name, a number, a dead page. A lead marketplace
-            does the opposite: it makes businesses bid and pay to compete for the same enquiry, so the platform
-            wins whether or not the provider ever gets paid. Both treat the provider as inventory.
-          </p>
-          <p>
-            A DPM connects discovery to the actual transaction: real profiles, clear services, booking,
-            payment and reviews tied to completed work.
-          </p>
-        </div>
-      </section>
-
-      {/* The golden rule — most vertical room */}
-      <section className="mx-auto max-w-4xl px-4 py-20 text-center">
-        <p className="text-sm font-semibold uppercase tracking-wide text-primary-accent">The golden rule</p>
-        <p className="mt-4 text-balance font-display text-3xl font-bold leading-tight tracking-tight text-foreground lg:text-4xl">
-          Providers never pay to compete for leads. Commission is charged only on completed, paid work.
-        </p>
-        <div className="mt-10">
-          <MoneyFlowDiagram />
-        </div>
-      </section>
-
-      {/* Live stats */}
-      <section className="border-t bg-muted/30">
-        <div className="mx-auto max-w-4xl px-4 py-16">
-        <StatsBand providerCount={providerCount} categoryCount={categoryCount} cityCount={cityCount} />
-        </div>
-      </section>
-
-      {/* Namoota — compact */}
-      <section className="border-t bg-muted/30">
-        <div className="mx-auto max-w-4xl px-4 py-14">
-          <h2 className="font-display text-xl font-bold tracking-tight text-foreground">Built by Namoota Technology</h2>
-          <div className="mt-4 space-y-3 text-sm leading-7 text-muted-foreground">
+      <section className="mx-auto max-w-7xl px-4 py-20">
+        <div className="rounded-[2rem] border border-white/10 bg-slate-950/95 p-12 shadow-[0_24px_80px_rgba(15,23,42,0.12)] backdrop-blur-xl">
+          <p className="text-sm font-semibold uppercase tracking-[0.28em] text-primary-accent">How the platform behaves</p>
+          <div className="mt-6 space-y-6 text-lg leading-8 text-slate-300">
             <p>
-              Namoota Technology (Pty) Ltd built the DPM engine and ServicePros is the first platform deployed on it.
+              ServicePros does not sell visibility. It gives providers a premium place to show their work,
+              and it gives customers an easy way to find, book and pay a local provider without the noise of
+              bid-style lead marketplaces.
             </p>
-            <p className="text-xs text-muted-foreground/80">
-              Namoota Technology (Pty) Ltd · Reg. 2024/529614/07 · 152 Company Street, Muckleneuk, Pretoria, Gauteng, 0002
+            <p>
+              Every customer action is connected to the job. A booking starts with a provider service page,
+              proceeds through a secured payment path, and ends with a review that reflects real, paid work.
+            </p>
+            <p>
+              That means the platform is built around completed outcomes, not pageviews or enquiries.
+              Providers benefit from discovery and actual bookings. Customers benefit from verified vendors,
+              clear pricing, and a calm purchase path.
             </p>
           </div>
-          <a
-            href={NAMOOTA_URL}
-            target="_blank"
-            rel="noopener"
-            className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-primary hover:underline"
-          >
-            namootatech.com
-            <Icon.external className="h-4 w-4" />
-          </a>
         </div>
       </section>
 
-      {/* Closing CTA — compact */}
+      <section className="mx-auto max-w-7xl px-4 py-20">
+        <div className="grid gap-6 rounded-[2rem] border border-white/10 bg-slate-950/95 p-8 text-white shadow-[0_24px_80px_rgba(15,23,42,0.12)] backdrop-blur-xl sm:grid-cols-3">
+          <div className="rounded-3xl bg-slate-900/80 p-6 ring-1 ring-white/10">
+            <p className="text-5xl font-display font-semibold tracking-tight">{providerCount.toLocaleString()}</p>
+            <p className="mt-3 text-sm uppercase tracking-[0.24em] text-slate-400">Providers live on ServicePros</p>
+          </div>
+          <div className="rounded-3xl bg-slate-900/80 p-6 ring-1 ring-white/10">
+            <p className="text-5xl font-display font-semibold tracking-tight">{categoryCount}</p>
+            <p className="mt-3 text-sm uppercase tracking-[0.24em] text-slate-400">Service categories</p>
+          </div>
+          <div className="rounded-3xl bg-slate-900/80 p-6 ring-1 ring-white/10">
+            <p className="text-5xl font-display font-semibold tracking-tight">{cityCount}</p>
+            <p className="mt-3 text-sm uppercase tracking-[0.24em] text-slate-400">Cities served</p>
+          </div>
+        </div>
+      </section>
+
+      <section className="mx-auto max-w-7xl px-4 py-20">
+        <div className="rounded-[2rem] border border-white/10 bg-white/5 p-10 shadow-[0_24px_80px_rgba(15,23,42,0.12)] backdrop-blur-xl">
+          <div className="grid gap-8 lg:grid-cols-[minmax(260px,1fr)_minmax(380px,1.4fr)] lg:items-center">
+            <div>
+              <p className="text-sm font-semibold uppercase tracking-[0.28em] text-primary-accent">Built by</p>
+              <h2 className="mt-4 text-3xl font-display font-semibold tracking-tight text-white">Namoota Technology</h2>
+            </div>
+            <div className="space-y-4 text-sm leading-7 text-slate-300">
+              <p>
+                ServicePros is the first platform built on Namoota Technology&apos;s DPM engine — designed to make provider profiles, bookings and verification feel premium, intuitive and trustworthy.
+              </p>
+              <p className="text-xs uppercase tracking-[0.24em] text-slate-500">
+                Namoota Technology (Pty) Ltd · Reg. 2024/529614/07 · 152 Company Street, Muckleneuk, Pretoria, Gauteng, 0002
+              </p>
+              <a
+                href={NAMOOTA_URL}
+                target="_blank"
+                rel="noopener"
+                className="inline-flex items-center gap-2 text-sm font-semibold text-primary-accent hover:text-primary"
+              >
+                namootatech.com
+                <Icon.external className="h-4 w-4" />
+              </a>
+            </div>
+          </div>
+        </div>
+      </section>
+
       <section className="border-t bg-primary text-primary-foreground">
         <div className="mx-auto flex max-w-7xl flex-col gap-8 px-4 py-14 md:flex-row md:items-center md:justify-between">
           <div>
-            <h2 className="font-display text-2xl font-bold tracking-tight">See it from either side</h2>
+            <h2 className="font-display text-2xl font-bold tracking-tight">See the difference in every step.</h2>
             <p className="mt-2 max-w-xl text-primary-foreground/80">
-              Providers get a real presence, not a listing. Customers get real profiles, not adverts.
+              One platform for discovery, booking, payment and review — built for trusted local providers.
             </p>
           </div>
           <div className="flex shrink-0 flex-col items-start gap-2 sm:flex-row sm:items-center">
@@ -180,7 +206,7 @@ export default async function AboutPage() {
               href="/get-listed"
               className="inline-flex items-center gap-2 rounded-xl bg-primary-accent px-6 py-3 text-sm font-semibold text-primary-accent-foreground transition-opacity hover:opacity-90"
             >
-              List your business
+              Get listed
               <Icon.arrowRight className="h-4 w-4" weight="bold" />
             </Link>
             <Link

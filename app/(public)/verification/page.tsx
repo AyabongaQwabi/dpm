@@ -48,99 +48,91 @@ const TIER_DETAIL: Record<
 
 export default function VerificationPage() {
   return (
-    <main className="mx-auto max-w-4xl px-4 py-16">
-      <p className="text-sm font-semibold uppercase tracking-wide text-primary-accent">Trust</p>
-      <h1 className="mt-2 text-4xl font-bold tracking-tight">How verification works</h1>
-      <p className="mt-5 max-w-2xl text-lg leading-8 text-muted-foreground text-pretty">
-        Verification is layered — a provider can hold any combination of four independent badges.
-        Listings show the strongest badge a provider has earned.
-      </p>
+    <main className="mx-auto max-w-5xl px-4 py-16">
+      <div className="rounded-[2rem] border border-slate-200/10 bg-slate-950 p-10 text-white shadow-2xl shadow-slate-950/20">
+        <p className="text-sm font-semibold uppercase tracking-[0.28em] text-primary-accent">Trust</p>
+        <h1 className="mt-4 text-5xl font-display font-semibold tracking-tight">How verification works</h1>
+        <p className="mt-6 max-w-3xl text-lg leading-9 text-slate-300">
+          Verification on ServicePros is layered. Providers can hold any combination of four independent badges, and listings highlight the strongest badge they have earned.
+        </p>
+      </div>
 
-      {/* Priority order note */}
-      <section className="mt-10 rounded-2xl border bg-muted/30 p-6">
-        <p className="text-sm leading-6 text-muted-foreground">
-          A provider&apos;s listing shows a single badge: the strongest one they hold, in this order —{' '}
-          <strong className="text-foreground">FICA</strong>, then{' '}
-          <strong className="text-foreground">CIPC</strong>, then{' '}
-          <strong className="text-foreground">Google</strong>, then{' '}
-          <strong className="text-foreground">Contact</strong>. Holding a stronger badge doesn&apos;t
-          remove the weaker ones — it just means the listing leads with the strongest proof available.
-          Google verification sits below FICA and CIPC because it&apos;s a real-world signal we import
-          from Google, not a check ServicePros performs directly.
+      <section className="mt-12 rounded-[2rem] border border-slate-200/10 bg-white p-8 shadow-xl shadow-slate-900/5">
+        <h2 className="text-2xl font-semibold tracking-tight">What the badge order means</h2>
+        <p className="mt-4 text-sm leading-7 text-muted-foreground">
+          A listing shows one badge: the strongest badge the provider holds. In order of strength, that is{' '}
+          <strong className="text-foreground">FICA</strong>, <strong className="text-foreground">CIPC</strong>, <strong className="text-foreground">Google</strong>, then <strong className="text-foreground">Contact</strong>.
+          A stronger badge does not remove weaker signals — it just means the listing leads with the most robust proof available.
         </p>
       </section>
 
-      {/* Tiers */}
-      <section className="mt-10 space-y-6">
+      <section className="mt-12 grid gap-6">
         {TIER_ORDER.map((tier) => {
           const meta = TIER_META[tier]
           const detail = TIER_DETAIL[tier]
           const Glyph = meta.icon
           return (
-            <div key={tier} className="rounded-2xl border bg-card p-6">
-              <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-sm font-semibold ${meta.className}`}>
-                <Glyph className="h-4 w-4" weight="fill" />
-                {meta.label}
-              </span>
-              <dl className="mt-4 grid gap-4 sm:grid-cols-2">
+            <div key={tier} className="rounded-[2rem] border border-slate-200/10 bg-slate-50 p-8 shadow-sm">
+              <div className="flex flex-wrap items-center gap-3">
+                <span className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold ${meta.className}`}>
+                  <Glyph className="h-4 w-4" weight="fill" />
+                  {meta.label}
+                </span>
+                <p className="text-sm text-muted-foreground">{meta.description}</p>
+              </div>
+              <div className="mt-6 grid gap-6 sm:grid-cols-2">
                 <div>
                   <dt className="text-sm font-medium text-foreground">What the provider submitted</dt>
-                  <dd className="mt-1 text-sm leading-6 text-muted-foreground">{detail.submitted}</dd>
+                  <dd className="mt-2 text-sm leading-7 text-muted-foreground">{detail.submitted}</dd>
                 </div>
                 <div>
-                  <dt className="text-sm font-medium text-foreground">What you can rely on</dt>
-                  <dd className="mt-1 text-sm leading-6 text-muted-foreground">{detail.customerCanRely}</dd>
+                  <dt className="text-sm font-medium text-foreground">What customers can rely on</dt>
+                  <dd className="mt-2 text-sm leading-7 text-muted-foreground">{detail.customerCanRely}</dd>
                 </div>
-              </dl>
+              </div>
             </div>
           )
         })}
       </section>
 
-      {/* Unverified */}
-      <section className="mt-10 rounded-2xl border bg-muted/30 p-6">
-        <span className="inline-flex items-center gap-1.5 rounded-full bg-muted px-3 py-1 text-sm font-semibold text-muted-foreground">
+      <section className="mt-12 rounded-[2rem] border border-slate-200/10 bg-muted/30 p-8">
+        <div className="flex items-center gap-3 text-sm font-semibold text-muted-foreground">
           <Icon.shield className="h-4 w-4" />
-          Unverified
-        </span>
-        <p className="mt-4 text-sm leading-6 text-muted-foreground">
-          Details on this listing are self-reported and the business hasn&apos;t completed verification
-          yet. That doesn&apos;t mean the business isn&apos;t genuine — it means we haven&apos;t
-          independently confirmed anything on the profile. Reviews from completed bookings are still a
-          useful signal on an unverified listing.
+          Unverified listings
+        </div>
+        <p className="mt-4 text-sm leading-7 text-muted-foreground">
+          Unverified listings are still useful, but their details are self-reported. A provider may still be genuine, but ServicePros has not independently confirmed their contact, registration or identity details yet.
         </p>
       </section>
 
-      {/* How to get verified */}
-      <section className="mt-10">
-        <h2 className="text-2xl font-bold tracking-tight">How a provider gets verified</h2>
-        <p className="mt-2 max-w-2xl text-muted-foreground">
-          Contact, CIPC, and FICA verification are managed from the provider dashboard: contact
-          verification is confirming your cell number and email; CIPC verification requires your
-          registered business details; FICA verification requires a valid ID and proof of address. Google
-          verification isn&apos;t something a provider applies for — it&apos;s added automatically when
-          ServicePros matches a listing to a business Google Places has confirmed is real.
-        </p>
+      <section className="mt-12 rounded-[2rem] border border-slate-200/10 bg-white p-8 shadow-sm">
+        <h2 className="text-2xl font-semibold tracking-tight">How providers get verified</h2>
+        <div className="mt-6 space-y-4 text-sm leading-7 text-muted-foreground">
+          <p>
+            Contact, CIPC and FICA verification are managed from the provider dashboard. Contact verification confirms the provider&apos;s phone number and email. CIPC verification checks registered business details. FICA verification validates identity and proof of address.
+          </p>
+          <p>
+            Google verification is added automatically when ServicePros matches a profile to an existing Google Places business listing. Providers do not apply for Google verification directly on our platform.
+          </p>
+        </div>
         <Link
           href="/provider-dashboard"
-          className="mt-5 inline-flex items-center gap-2 rounded-xl bg-primary-accent px-5 py-3 text-sm font-semibold text-primary-accent-foreground hover:opacity-90"
+          className="mt-8 inline-flex items-center gap-2 rounded-xl bg-primary-accent px-6 py-3 text-sm font-semibold text-primary-accent-foreground transition-opacity hover:opacity-90"
         >
           Go to your dashboard
           <Icon.arrowRight className="h-4 w-4" weight="bold" />
         </Link>
       </section>
 
-      {/* Misrepresentation */}
-      <section className="mt-10 rounded-2xl border bg-card p-6">
-        <h2 className="font-display text-lg font-semibold">If a verified provider misrepresents themselves</h2>
-        <p className="mt-2 text-sm leading-6 text-muted-foreground">
-          A verification badge confirms the specific thing it checks — contact details, a Google listing,
-          business registration, or identity — not the quality of the work. If a verified provider misrepresents
-          themselves or the service they deliver, message them first to try to resolve it, then{' '}
+      <section className="mt-12 rounded-[2rem] border border-slate-200/10 bg-slate-50 p-8 shadow-sm">
+        <h2 className="text-2xl font-semibold tracking-tight">What verification does and does not guarantee</h2>
+        <p className="mt-4 text-sm leading-7 text-muted-foreground">
+          Verification confirms specific facts — a phone number, a registered business, or an identity document. It does not guarantee service quality, timeliness, or the exact outcome of the job.
+        </p>
+        <p className="mt-4 text-sm leading-7 text-muted-foreground">
+          If a verified provider misrepresents their work, message them first. If it cannot be resolved,{' '}
           <Link href="/contact" className="text-primary hover:underline">report the problem</Link>{' '}
-          to us. See our{' '}
-          <Link href="/refund" className="text-primary hover:underline">refund policy</Link> for how
-          credit refunds work on disputed bookings.
+          and refer to our <Link href="/refund" className="text-primary hover:underline">refund policy</Link>.
         </p>
       </section>
     </main>
