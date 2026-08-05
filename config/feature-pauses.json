@@ -1,18 +1,18 @@
 {
   "purchases": {
-    "paused": false,
-    "message": "Purchases are temporarily unavailable. Please check back soon."
+    "paused": true,
+    "message": "Purchases are temporarily unavailable. Please check back on the 1st of September 2026."
   },
   "profileClaiming": {
-    "paused": false,
-    "message": "Claiming business profiles is temporarily unavailable. Please check back soon."
+    "paused": true,
+    "message": "Claiming business profiles is temporarily unavailable. Please check back on the 1st of September 2026."
   },
   "signUp": {
-    "paused": false,
-    "message": "New sign ups are temporarily unavailable. Please check back soon."
+    "paused": true,
+    "message": "New sign ups are temporarily unavailable. Please check back on the 1st of September 2026."
   },
   "login": {
-    "paused": false,
-    "message": "Login is temporarily unavailable. Please check back soon."
+    "paused": true,
+    "message": "Login is temporarily unavailable. Please check back on the 1st of September 2026."
   }
 }
