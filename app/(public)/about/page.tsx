@@ -3,13 +3,11 @@ import Link from 'next/link'
 import { JsonLd } from '@/components/seo/JsonLd'
 import { Icon } from '@/components/ui/Icon'
 import { TransformationGraphic } from '@/components/about/TransformationGraphic'
-import { AnatomyDiagram } from '@/components/about/AnatomyDiagram'
 import { MoneyFlowDiagram } from '@/components/about/MoneyFlowDiagram'
-import { ComparisonTable } from '@/components/about/ComparisonTable'
 import { StatsBand } from '@/components/about/StatsBand'
 import { getCategories, getLocations } from '@/lib/public-data'
 import { createClient } from '@/lib/supabase/server'
-import { canonicalAlternates, canonicalUrl, defaultOpenGraph, defaultTwitter, definedTermJsonLd, SITE_NAME, SITE_URL } from '@/lib/seo'
+import { canonicalAlternates, canonicalUrl, defaultOpenGraph, defaultTwitter, SITE_NAME, SITE_URL } from '@/lib/seo'
 import { isFeaturePaused, getFeaturePauseMessage } from '@/lib/feature-pauses'
 
 export const revalidate = 3600
@@ -19,16 +17,16 @@ const NAMOOTA_URL = 'https://namootatech.com'
 export const metadata: Metadata = {
   title: 'What is a DPM? — About ServicePros',
   description:
-    'ServicePros is a DPM — a Directory Provider Maker, a category coined by Namoota Technology. Discovery, storefront, quoting, payment and growth in one engine, and the platform only earns when the provider earns.',
+    'ServicePros is a DPM — a Directory & Provider Marketplace where customers can find, book, pay and review trusted South African providers in one place.',
   alternates: canonicalAlternates('/about'),
   openGraph: defaultOpenGraph(
     'What is a DPM? — About ServicePros',
-    'ServicePros is a DPM — a Directory Provider Maker, a category coined by Namoota Technology.',
+    'ServicePros is a DPM — a Directory & Provider Marketplace for finding, booking and reviewing trusted providers.',
     '/about',
   ),
   twitter: defaultTwitter(
     'What is a DPM? — About ServicePros',
-    'ServicePros is a DPM — a Directory Provider Maker, a category coined by Namoota Technology.',
+    'ServicePros is a DPM — a Directory & Provider Marketplace for finding, booking and reviewing trusted providers.',
   ),
 }
 
@@ -52,7 +50,7 @@ export default async function AboutPage() {
             name: 'About ServicePros',
             url: canonicalUrl('/about'),
             description:
-              'ServicePros is a DPM — a Directory Provider Maker. Discovery, storefront, quoting, payment and growth in one engine.',
+              'ServicePros is a DPM — a Directory and Provider Marketplace where customers can find, book, pay and review trusted South African providers in one place.',
             isPartOf: {
               '@type': 'WebSite',
               name: SITE_NAME,
@@ -87,13 +85,6 @@ export default async function AboutPage() {
               },
             },
           },
-          definedTermJsonLd({
-            path: '/about',
-            termName: 'DPM (Directory Provider Maker)',
-            description:
-              'A DPM is a platform category coined by Namoota Technology: a directory that makes providers, not just lists them — combining discovery, storefront, quoting, payment, reputation and growth in one engine that only earns when the provider earns.',
-            inDefinedTermSetPath: '/about',
-          }),
         ]}
       />
 
@@ -105,9 +96,9 @@ export default async function AboutPage() {
             ServicePros isn&rsquo;t a directory. It&rsquo;s a DPM.
           </h1>
           <p className="reveal reveal-delay-2 mt-5 max-w-2xl text-lg leading-8 text-muted-foreground text-pretty">
-            A DPM — Directory Provider Maker — doesn&rsquo;t just list a business. It makes one: discovery,
-            storefront, quoting, payment, reputation and growth, in a single engine that only earns when the
-            provider earns. See the full{' '}
+            A DPM — Directory &amp; Provider Marketplace — lets customers find a business the way they
+            would use a directory, then book, pay and review the way they would use a marketplace. One
+            place instead of two. See the full{' '}
             <Link href="/dpm" className="text-primary hover:underline">definition of a DPM</Link>.
           </p>
 
@@ -127,21 +118,9 @@ export default async function AboutPage() {
             wins whether or not the provider ever gets paid. Both treat the provider as inventory.
           </p>
           <p>
-            A DPM inverts it. The directory doesn&rsquo;t just list the provider — it makes the provider.
+            A DPM connects discovery to the actual transaction: real profiles, clear services, booking,
+            payment and reviews tied to completed work.
           </p>
-        </div>
-      </section>
-
-      {/* DPM anatomy — most vertical room */}
-      <section className="border-y bg-muted/30">
-        <div className="mx-auto max-w-7xl px-4 py-20">
-          <h2 className="font-display text-2xl font-bold tracking-tight text-foreground">Directory. Provider. Maker.</h2>
-          <p className="mt-3 max-w-2xl text-muted-foreground">
-            The three parts of the name are a real sequence — each one is a layer the one before it needs.
-          </p>
-          <div className="mt-8">
-            <AnatomyDiagram />
-          </div>
         </div>
       </section>
 
@@ -156,29 +135,11 @@ export default async function AboutPage() {
         </div>
       </section>
 
-      {/* Old model vs DPM */}
-      <section className="border-t bg-muted/30">
-        <div className="mx-auto max-w-5xl px-4 py-16">
-          <h2 className="font-display text-2xl font-bold tracking-tight text-foreground">How this compares</h2>
-          <div className="mt-8">
-            <ComparisonTable />
-          </div>
-        </div>
-      </section>
-
-      {/* The engine, not just the site */}
-      <section className="mx-auto max-w-4xl px-4 py-16">
-        <h2 className="font-display text-2xl font-bold tracking-tight text-foreground">One engine, more than one directory</h2>
-        <p className="mt-5 text-base leading-7 text-muted-foreground">
-          ServicePros is the first platform built on the DPM engine, but the engine itself is config-driven and
-          multi-tenant. The same architecture that runs category and city discovery, provider profiles, quoting
-          and payments here can run other directories across other verticals.
-        </p>
-      </section>
-
       {/* Live stats */}
-      <section className="mx-auto max-w-4xl px-4 pb-16">
+      <section className="border-t bg-muted/30">
+        <div className="mx-auto max-w-4xl px-4 py-16">
         <StatsBand providerCount={providerCount} categoryCount={categoryCount} cityCount={cityCount} />
+        </div>
       </section>
 
       {/* Namoota — compact */}
@@ -187,14 +148,7 @@ export default async function AboutPage() {
           <h2 className="font-display text-xl font-bold tracking-tight text-foreground">Built by Namoota Technology</h2>
           <div className="mt-4 space-y-3 text-sm leading-7 text-muted-foreground">
             <p>
-              ServicePros is built and owned by Namoota Technology (Pty) Ltd, a South African technology company
-              registered in Pretoria in August 2024. Namoota builds the DPM engine; ServicePros is where it runs
-              first. DPM is a term we coined and a category we named — not a claim that no one else has ever
-              tried something like it, just a name for what this platform actually does.
-            </p>
-            <p>
-              Namoota is co-founded by Zweli Mthethwa and Ayabonga Qwabi, both software engineers, who designed
-              the DPM engine that powers ServicePros.
+              Namoota Technology (Pty) Ltd built the DPM engine and ServicePros is the first platform deployed on it.
             </p>
             <p className="text-xs text-muted-foreground/80">
               Namoota Technology (Pty) Ltd · Reg. 2024/529614/07 · 152 Company Street, Muckleneuk, Pretoria, Gauteng, 0002

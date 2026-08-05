@@ -1,6 +1,6 @@
 @AGENTS.md
 
-# DPM — coding rules
+# The DPM engine — coding rules
 
 ## Data access: Supabase only, no ORM
 

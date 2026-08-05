@@ -1,4 +1,4 @@
-# DPM — UI design direction (insert into build prompt)
+# The DPM engine — UI design direction (insert into build prompt)
 
 ## Brief
 
@@ -18,7 +18,7 @@ resemble any of these, stop and revise before building it out.
 
 ## The actual subject, not a generic marketplace
 
-DPM is not "a directory app." It's the online front door for real South African
+ServicePros is not "a directory app." It's the online front door for real South African
 trade businesses — a wedding caterer, a security company, a cleaning crew, a legal
 firm — who currently either have no real web presence or a generic one. The
 emotional stakes are real: independent operators losing ground to faceless,
@@ -43,13 +43,13 @@ border weight, same internal proportions. Only the color and any iconography
 inside that frame change per vertical/trade.
 
 This is the single memorable thing the UI is built around: the frame's *shape*
-signals "this is DPM, a trustworthy system," while its *color and content* signal
+signals "this is a trustworthy system," while its *color and content* signal
 "this specific kind of trade." Don't dilute this by introducing a second competing
 signature element elsewhere on the page — keep the boldness spent here.
 
 ## Color: per-vertical, not one fixed palette
 
-Because DPM is genuinely multi-vertical, do not design one fixed brand palette and
+Because the DPM engine is genuinely multi-vertical, do not design one fixed brand palette and
 apply a single accent-color swap per tenant — that produces the generic "same
 template, different accent" feeling the client has explicitly rejected. Instead,
 design 4-6 small, deliberate per-trade palettes, each named for what it evokes

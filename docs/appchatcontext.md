@@ -1,4 +1,4 @@
-DPM stands for directory provider maker - its the app that is responsible for onboarding providers and where customers can book providers
+DPM stands for Directory & Provider Marketplace in public copy: the app where customers find, book, pay and review providers. The DPM engine is the internal configurable codebase that deploys marketplaces like ServicePros.
 
 no there are no real assets to be designed , if i have a weddingvendors website it will be just pictures any ways just pictures of the wedding things they do no need for any real design work 
 

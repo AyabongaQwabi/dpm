@@ -209,7 +209,7 @@ article (Section 5) and its pricing packages, and let the customer choose a
 package and proceed.
 
 **No cart.** A single, direct path from "choose a package" to checkout for
-one service at a time, rather than a multi-item cart. DPM's services are
+one service at a time, rather than a multi-item cart. ServicePros services are
 predominantly being hired (a DJ, a caterer, a security shift) rather than
 purchased as interchangeable commodities, and a cart introduces real added
 complexity — multi-provider checkout, mixed commission calculations across

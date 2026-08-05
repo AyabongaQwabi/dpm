@@ -1,4 +1,4 @@
-# DPM phase: public pages, theming, and seed data
+# The DPM engine phase: public pages, theming, and seed data
 
 ## Status
 Scoping document, written before any implementation. Per the instruction this

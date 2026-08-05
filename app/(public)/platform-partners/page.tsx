@@ -3,7 +3,6 @@ import Link from 'next/link'
 import { Icon } from '@/components/ui/Icon'
 import { getSupportEmail } from '@/lib/policy-content'
 import { canonicalAlternates, defaultOpenGraph, defaultTwitter } from '@/lib/seo'
-import { TodoPlaceholder } from '@/components/TodoPlaceholder'
 
 export const metadata: Metadata = {
   title: 'Platform partners',
@@ -20,6 +19,25 @@ export const metadata: Metadata = {
     'Sell business services to ServicePros providers through the closed, in-dashboard marketplace.',
   ),
 }
+
+const commercialTerms = [
+  {
+    title: 'Paid partner services',
+    body: 'Partners set the dashboard price for each approved service. ServicePros keeps a 15% platform fee on completed, paid orders and pays the partner the remaining 85%, less any refunds or chargebacks.',
+  },
+  {
+    title: 'Package perks and coupons',
+    body: 'When a provider redeems an included perk, such as a graphic design or social content coupon, the partner is paid the agreed fulfilment rate for that perk. The provider does not pay again unless they request extra work outside the coupon scope.',
+  },
+  {
+    title: 'Scope before publishing',
+    body: 'Every partner service needs a clear deliverable, price, turnaround time, revision allowance, and completion rule before it appears in the provider dashboard.',
+  },
+  {
+    title: 'Payouts and review',
+    body: 'Partner payouts are released after the order is marked complete or the refund window closes. Launch rates may be reviewed as the marketplace grows, with existing partners notified before changes take effect.',
+  },
+] as const
 
 export default async function PlatformPartnersPage() {
   const supportEmail = await getSupportEmail()
@@ -102,9 +120,25 @@ export default async function PlatformPartnersPage() {
       {/* Commercial terms */}
       <section className="border-t bg-muted/30">
         <div className="mx-auto max-w-4xl px-4 py-14">
-          <h2 className="font-display text-lg font-semibold">Commercial terms</h2>
-          <p className="mt-3">
-            <TodoPlaceholder>commercial terms for platform partners aren&apos;t standardised yet — confirm rate structure before publishing</TodoPlaceholder>
+          <p className="text-sm font-semibold uppercase tracking-wide text-primary-accent">Commercial terms</p>
+          <h2 className="mt-3 font-display text-2xl font-bold tracking-tight">How partner services are paid</h2>
+          <p className="mt-3 max-w-2xl leading-7 text-muted-foreground">
+            The launch terms keep the model simple: partners earn from completed work, providers see the
+            full price before buying, and ServicePros takes a small platform fee for the dashboard,
+            payments, support and marketplace access.
+          </p>
+          <div className="mt-8 grid gap-4 sm:grid-cols-2">
+            {commercialTerms.map((term) => (
+              <div key={term.title} className="rounded-lg border bg-card p-5">
+                <h3 className="font-display text-base font-semibold text-foreground">{term.title}</h3>
+                <p className="mt-2 text-sm leading-6 text-muted-foreground">{term.body}</p>
+              </div>
+            ))}
+          </div>
+          <p className="mt-6 text-xs leading-5 text-muted-foreground">
+            Final partner agreements can include service-specific rates where a custom fulfilment cost is
+            required, but the public marketplace rule is standard: 85% to the partner, 15% to ServicePros
+            on completed paid orders.
           </p>
         </div>
       </section>

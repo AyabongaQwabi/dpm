@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 
 interface Props {
   message: string
@@ -8,11 +8,8 @@ interface Props {
 
 /** Popup shown when the user attempts a paused action (see config/feature-pauses.json). */
 export function PausedFeatureNotice({ message }: Props) {
-  const [open, setOpen] = useState(true)
-
-  useEffect(() => {
-    setOpen(true)
-  }, [message])
+  const [dismissedMessage, setDismissedMessage] = useState<string | null>(null)
+  const open = dismissedMessage !== message
 
   if (!open) return null
 
@@ -23,7 +20,7 @@ export function PausedFeatureNotice({ message }: Props) {
         <p className="mt-2 text-sm text-muted-foreground">{message}</p>
         <button
           type="button"
-          onClick={() => setOpen(false)}
+          onClick={() => setDismissedMessage(message)}
           className="mt-5 w-full rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90"
         >
           OK

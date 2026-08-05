@@ -1,8 +1,8 @@
-# DPM — Directory Provider Maker
+# The DPM engine
 
 ## What this is
 
-DPM is a **multi-vertical service provider marketplace platform**, not a single
+The DPM engine is a **multi-vertical service provider marketplace platform**, not a single
 website. It's the underlying system that powers multiple separately-branded
 directory/marketplace sites — one for cleaning services, one for event vendors, one
 for security companies, and so on — all running from the same codebase and the same
@@ -44,7 +44,7 @@ different profile fields. Cleaning services and security companies need their ow
 different fields entirely.
 
 Rather than building a separate app per vertical, or a separate app per provider
-type, DPM uses **one configurable core application and one shared database**:
+type, the DPM engine uses **one configurable core application and one shared database**:
 
 - Each vertical (cleaningservices.co.za, eventvendors.co.za, etc.) is the same
   codebase, deployed once, with the active site resolved by which domain the
@@ -62,7 +62,7 @@ application code.
 ## How different provider types are handled without different databases
 
 Rather than a fixed schema per provider type (which would mean a database
-migration every time a new type is added), DPM uses a **configuration-driven
+migration every time a new type is added), the DPM engine uses a **configuration-driven
 dynamic schema**:
 
 - A global, reusable registry of **fields** (e.g. "cuisine types," "sample mix
@@ -91,7 +91,7 @@ for that booking is triggered.
 
 ## Monetization
 
-- **Providers pay to be listed** — DPM takes a cut when a provider is hired/booked
+- **Providers pay to be listed** — the platform takes a cut when a provider is hired/booked
   by a customer, and a cut on services providers purchase from partners through the
   platform. Both cuts are intentionally modest, not maximized.
 - **An early, since-evolved idea**: bundle a free graphic-design credit allowance

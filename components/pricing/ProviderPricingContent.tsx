@@ -44,8 +44,8 @@ const BRACKETS = COMMISSION_BRACKETS.map((b) => {
 //   "Commission Cap at X%"              ceiling rate feature
 //   "Discount 4 Discount Bonus"         earn a lower rate by giving customers 10% off
 //   "Commission Rate Reduction"         time-limited perk that stacks on top
-//   "Business Growth Support"           DPM business support service
-//   "Business Rescue"                   DPM turnaround service
+//   "Business Growth Support"           ServicePros business support service
+//   "Business Rescue"                   ServicePros turnaround service
 //   "Free Graphic Design Service"       partner-provided design
 //   "Free Social Media Management"      partner-provided content management
 //
@@ -60,7 +60,7 @@ const PLAN_PERKS: Record<string, Perk[]> = {
     { label: "Search & Discovery Boost", status: "included", detail: "We actively promote your listing in search results so customers find you first, not your competitors." },
     { label: "AI Citation Presence", status: "included", detail: "Your business surfaces when customers ask AI tools to recommend service providers in your category." },
     { label: "Website Backlink", status: "included", detail: "A quality inbound link from ServicePros to your website — good for your SEO ranking on Google." },
-    { label: "Business Growth Support", status: "included", detail: "Access to DPM's business support — guidance on growing your pipeline, pricing your services, and running your business better." },
+    { label: "Business Growth Support", status: "included", detail: "Access to ServicePros business support — guidance on growing your pipeline, pricing your services, and running your business better." },
     { label: `Standard Commission (${formatRate(MAX_COMMISSION_RATE)} & lower)`, status: "included", detail: `Commission scales with job size — small jobs pay ${formatRate(MIN_COMMISSION_RATE)}, large jobs pay up to ${formatRate(MAX_COMMISSION_RATE)}. Each job is rated independently.` },
     { label: `Commission Rate Reduction — ${formatRate(p1.tempReduction.points)} for ${p1.tempReduction.months} months`, status: "included", detail: `A loyalty perk we can grant you: your commission rate drops by ${formatRate(p1.tempReduction.points)} for ${p1.tempReduction.months} months — automatically applied to every sale.` },
     { label: "Commission Cap", status: "not-included", detail: `Available on ceiling packages (${formatFee(p2.monthlyFee)}+).` },
@@ -78,8 +78,8 @@ const PLAN_PERKS: Record<string, Perk[]> = {
     { label: `Commission Cap at ${formatRate(p2.ceilingRate!)}`, status: "included", detail: `Your commission rate is capped at ${formatRate(p2.ceilingRate!)} regardless of job size. Protects you from the ${formatRate(MAX_COMMISSION_RATE)} bracket on large jobs.` },
     { label: `Discount 4 Discount Bonus — ${formatRate(p2.d4dBonus!)} rate reduction`, status: "included", detail: `Offer customers a genuine 10% discount and unlock a ${formatRate(p2.d4dBonus!)} reduction in your commission rate — bringing your effective rate down to ${formatRate(d4dEffectiveRate(p2.ceilingRate!, p2.d4dBonus!))}.` },
     { label: `Commission Rate Reduction — ${formatRate(p2.tempReduction.points)} for ${p2.tempReduction.months} months`, status: "included", detail: `A loyalty perk: your rate drops by ${formatRate(p2.tempReduction.points)} for ${p2.tempReduction.months} months — stacks with your cap and any Discount 4 Discount Bonus.` },
-    { label: "Business Growth Support", status: "included", detail: "Ongoing DPM business support to help you grow." },
-    { label: "Business Rescue", status: "included", detail: "When things get hard, DPM steps in. Turnaround support for providers who need to get back on track." },
+    { label: "Business Growth Support", status: "included", detail: "Ongoing ServicePros business support to help you grow." },
+    { label: "Business Rescue", status: "included", detail: "When things get hard, ServicePros steps in. Turnaround support for providers who need to get back on track." },
     { label: "Free Graphic Design Service", status: "not-included", detail: `Available on the ${formatFee(p3.monthlyFee)} plan and above.` },
     { label: "Free Social Media Management", status: "not-included", detail: `Available on the ${formatFee(p4.monthlyFee)} plan and above.` },
   ],
@@ -92,8 +92,8 @@ const PLAN_PERKS: Record<string, Perk[]> = {
     { label: `Commission Cap at ${formatRate(p3.ceilingRate!)}`, status: "included", detail: `Rate capped at ${formatRate(p3.ceilingRate!)} on every job. Protects you from the ${formatRate(COMMISSION_BRACKETS[3].rate)} and ${formatRate(MAX_COMMISSION_RATE)} brackets — so your large jobs cost you less.` },
     { label: `Discount 4 Discount Bonus — ${formatRate(p3.d4dBonus!)} rate reduction`, status: "included", detail: `Offer a genuine 10% discount and unlock a ${formatRate(p3.d4dBonus!)} commission reduction — bringing your effective rate down to ${formatRate(d4dEffectiveRate(p3.ceilingRate!, p3.d4dBonus!))}.` },
     { label: `Commission Rate Reduction — ${formatRate(p3.tempReduction.points)} for ${p3.tempReduction.months} months`, status: "included", detail: `A loyalty perk: your rate drops ${formatRate(p3.tempReduction.points)} for ${p3.tempReduction.months} months, stacking with your cap and bonus.` },
-    { label: "Business Growth Support", status: "included", detail: "Ongoing DPM business support to help you grow." },
-    { label: "Business Rescue", status: "included", detail: "Turnaround support from DPM when your business needs it most." },
+    { label: "Business Growth Support", status: "included", detail: "Ongoing ServicePros business support to help you grow." },
+    { label: "Business Rescue", status: "included", detail: "Turnaround support from ServicePros when your business needs it most." },
     { label: "Free Graphic Design Service", status: "included", detail: "One professional graphic design job — branding, flyers, marketing materials — delivered by our partner design team." },
     { label: "Free Social Media Management", status: "not-included", detail: `Available on the ${formatFee(p4.monthlyFee)} plan and above.` },
   ],
@@ -106,8 +106,8 @@ const PLAN_PERKS: Record<string, Perk[]> = {
     { label: `Commission Cap at ${formatRate(p4.ceilingRate!)}`, status: "included", detail: `Rate capped at ${formatRate(p4.ceilingRate!)} — protects you from three of the five brackets. Every job above R1,000 costs you less than the standard rate.` },
     { label: `Discount 4 Discount Bonus — ${formatRate(p4.d4dBonus!)} rate reduction`, status: "included", detail: `Offer a genuine 10% discount and unlock a ${formatRate(p4.d4dBonus!)} commission reduction — bringing your effective rate down to ${formatRate(d4dEffectiveRate(p4.ceilingRate!, p4.d4dBonus!))}.` },
     { label: `Commission Rate Reduction — ${formatRate(p4.tempReduction.points)} for ${p4.tempReduction.months} months`, status: "included", detail: `A loyalty perk: your rate drops ${formatRate(p4.tempReduction.points)} for ${p4.tempReduction.months} months — stacking on top of your cap and bonus.` },
-    { label: "Business Growth Support", status: "included", detail: "Ongoing DPM business support to help you grow." },
-    { label: "Business Rescue", status: "included", detail: "Turnaround support from DPM when your business needs it most." },
+    { label: "Business Growth Support", status: "included", detail: "Ongoing ServicePros business support to help you grow." },
+    { label: "Business Rescue", status: "included", detail: "Turnaround support from ServicePros when your business needs it most." },
     { label: "Free Graphic Design Service", status: "included", detail: "Professional graphic design job delivered by our partner design team." },
     { label: "Free Social Media Management", status: "included", detail: "One month of social media management from our partner content team — content creation, scheduling, and publishing handled for you." },
   ],
@@ -120,8 +120,8 @@ const PLAN_PERKS: Record<string, Perk[]> = {
     { label: `Commission Cap at ${formatRate(p5.ceilingRate!)}`, status: "included", detail: `The lowest possible commission rate — capped across every bracket above R999. Your rate never rises with job size.` },
     { label: `Discount 4 Discount Bonus — ${formatRate(p5.d4dBonus!)} rate reduction (min ${formatRate(COMMISSION_STACKING_FLOOR)})`, status: "included", detail: `Offer a genuine 10% discount and unlock a ${formatRate(p5.d4dBonus!)} commission reduction. The effective rate is protected at a minimum of ${formatRate(COMMISSION_STACKING_FLOOR)} by the platform floor.` },
     { label: `Commission Rate Reduction — ${formatRate(p5.tempReduction.points)} for ${p5.tempReduction.months} months`, status: "included", detail: `The highest and longest loyalty reduction: ${formatRate(p5.tempReduction.points)} off your rate for ${p5.tempReduction.months} months. Stacks with your cap and bonus.` },
-    { label: "Business Growth Support", status: "included", detail: "Ongoing DPM business support to help you grow." },
-    { label: "Business Rescue", status: "included", detail: "Turnaround support from DPM when your business needs it most." },
+    { label: "Business Growth Support", status: "included", detail: "Ongoing ServicePros business support to help you grow." },
+    { label: "Business Rescue", status: "included", detail: "Turnaround support from ServicePros when your business needs it most." },
     { label: "Free Graphic Design Service", status: "included", detail: "Professional graphic design job delivered by our partner design team." },
     { label: "Free Social Media Management", status: "included", detail: "One month of social media management from our partner content team." },
   ],
@@ -198,11 +198,11 @@ const FAQS = [
   },
   {
     q: "What is Business Growth Support?",
-    a: "DPM's business support service — guidance on pricing your services, growing your customer pipeline, and running your business more effectively. Details of exactly what's included are being finalised and will be published before ceiling packages open for booking.",
+    a: "ServicePros business support — guidance on pricing your services, growing your customer pipeline, and running your business more effectively. Details of exactly what's included are being finalised and will be published before ceiling packages open for booking.",
   },
   {
     q: "What is Business Rescue?",
-    a: "A turnaround support service from DPM for providers going through a difficult period — whether that's cash flow pressure, a drop in bookings, or operational challenges. Scope and delivery are being finalised. Available on ceiling plans (R499+).",
+    a: "A turnaround support service from ServicePros for providers going through a difficult period — whether that's cash flow pressure, a drop in bookings, or operational challenges. Scope and delivery are being finalised. Available on ceiling plans (R499+).",
   },
   {
     q: "What are the Free Graphic Design and Social Media Management services?",
@@ -565,7 +565,7 @@ export function ProviderPricingContent() {
                   7.5% → <strong className="text-foreground">R60 commission</strong>.{" "}
                   A <strong className="text-foreground">R28,000 job</strong> →
                   10% → <strong className="text-foreground">R2,800 commission</strong>.
-                  These never interact. Your cheap job doesn't get penalised
+                  These never interact. Your cheap job doesn&apos;t get penalised
                   because of your big job.
                 </p>
               </div>
@@ -756,7 +756,7 @@ export function ProviderPricingContent() {
                   On top of your plan&apos;s cap and any Discount 4 Discount Bonus,
                   we can grant you a temporary Commission Rate Reduction — a
                   further percentage-point cut for a fixed period. All three
-                  layers stack. The 4% floor is always the lowest you'll pay.
+                  layers stack. The 4% floor is always the lowest you&apos;ll pay.
                 </p>
               </div>
             </div>
@@ -807,11 +807,11 @@ export function ProviderPricingContent() {
               },
               {
                 title: "Business Growth Support",
-                body: "DPM's hands-on business support — pricing strategy, pipeline advice, and practical guidance on running your service business. Included on every plan. Details being finalised before ceiling packages open.",
+                body: "ServicePros hands-on business support — pricing strategy, pipeline advice, and practical guidance on running your service business. Included on every plan. Details being finalised before ceiling packages open.",
               },
               {
                 title: "Business Rescue",
-                body: "Available on ceiling plans (R499+). When your business hits a rough patch — bookings dry up, cash flow tightens — DPM's rescue service steps in with structured support to get you back on track.",
+                body: "Available on ceiling plans (R499+). When your business hits a rough patch — bookings dry up, cash flow tightens — ServicePros rescue support steps in with structured guidance to get you back on track.",
               },
               {
                 title: "Free Graphic Design Service",

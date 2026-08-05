@@ -1,6 +1,6 @@
-# DPM — Directory Provider Maker
+# The DPM engine
 
-DPM is a multi-tenant, multi-vertical service marketplace. A single core application and a single shared database support multiple independently branded front-end sites ("verticals"), each scoped to one service category (e.g. cleaning services, event services, security services). On each vertical site, customers can search for and discover service providers, view provider profiles and the services they offer, and book providers directly through the platform. Providers manage their own profile, services, and bookings through a provider dashboard. The platform charges a commission on services booked and paid through the platform. A separate, unfiltered "home marketplace" deployment aggregates providers across all verticals into a single site.
+The DPM engine is a multi-tenant, multi-vertical service marketplace codebase. A single core application and a single shared database support multiple independently branded front-end sites ("verticals"), each scoped to one service category (e.g. cleaning services, event services, security services). On each vertical site, customers can search for and discover service providers, view provider profiles and the services they offer, and book providers directly through the platform. Providers manage their own profile, services, and bookings through a provider dashboard. The platform charges a commission on services booked and paid through the platform. A separate, unfiltered "home marketplace" deployment aggregates providers across all verticals into a single site.
 
 ## Source of truth
 

@@ -11,8 +11,8 @@ const PARTS = [
   },
   {
     letter: 'M',
-    label: 'Maker',
-    body: 'The engine that grows them. Verified status, ranking, wallet and payments, subscription and commission mechanics, business services from platform partners.',
+    label: 'Marketplace',
+    body: 'The transaction. Customers can book, pay, and review without leaving, and reputation is tied to completed work.',
   },
 ] as const
 

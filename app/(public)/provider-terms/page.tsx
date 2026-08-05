@@ -3,7 +3,6 @@ import Link from 'next/link'
 import { getSupportEmail, PROVIDER_TERMS_LAST_UPDATED, PROVIDER_TERMS_VERSION } from '@/lib/policy-content'
 import { canonicalAlternates, defaultOpenGraph, defaultTwitter } from '@/lib/seo'
 import { COMMISSION_BRACKETS, COMMISSION_STACKING_FLOOR, PACKAGES, formatFee, formatRate } from '@/lib/pricing-config'
-import { TodoPlaceholder } from '@/components/TodoPlaceholder'
 
 export const metadata: Metadata = {
   title: 'Provider terms',
@@ -200,28 +199,44 @@ export default async function ProviderTermsPage() {
         <section>
           <h2 className="text-lg font-semibold text-foreground">Governing law</h2>
           <p className="mt-3">
-            <TodoPlaceholder>legal review — confirm governing law clause</TodoPlaceholder>
+            These Provider Terms are governed by the laws of the Republic of South Africa. Your use of
+            ServicePros as a provider, including subscription billing, commission, payouts, listings,
+            bookings, and account actions, is interpreted under South African law.
           </p>
         </section>
 
         <section>
           <h2 className="text-lg font-semibold text-foreground">Dispute forum</h2>
           <p className="mt-3">
-            <TodoPlaceholder>legal review — confirm dispute resolution forum</TodoPlaceholder>
+            If a dispute arises, you agree to contact us first at{' '}
+            <a href={`mailto:${supportEmail}`} className="text-primary hover:underline">{supportEmail}</a>{' '}
+            so we can try to resolve it informally. If it cannot be resolved, the dispute may be brought
+            before the courts of the Republic of South Africa, without limiting any statutory rights or
+            remedies that cannot lawfully be excluded.
           </p>
         </section>
 
         <section>
           <h2 className="text-lg font-semibold text-foreground">Limitation of liability</h2>
           <p className="mt-3">
-            <TodoPlaceholder>legal review — confirm binding limitation of liability language</TodoPlaceholder>
+            To the fullest extent permitted by law, Namoota Technology is not liable for indirect,
+            incidental, special, punitive, or consequential loss, including lost profit, lost opportunity,
+            reputational harm, or loss arising from a provider&apos;s own service delivery. For any claim
+            relating to your provider account, our total liability is limited to the platform fees actually
+            received by Namoota Technology from your account in the three months before the event giving
+            rise to the claim.
           </p>
         </section>
 
         <section>
           <h2 className="text-lg font-semibold text-foreground">Notice periods</h2>
           <p className="mt-3">
-            <TodoPlaceholder>legal review — confirm notice periods for changes to these terms and for account actions</TodoPlaceholder>
+            We will give at least 14 days&apos; notice before material changes to these Provider Terms take
+            effect, unless a shorter period is required for legal, security, fraud-prevention, payment
+            processor, or urgent operational reasons. We may suspend or restrict an account immediately
+            where there is suspected fraud, unlawful conduct, serious customer risk, fee circumvention, or
+            misuse of the platform. For non-urgent account issues, we will try to notify you and give you a
+            reasonable opportunity to respond before taking final action.
           </p>
         </section>
 
