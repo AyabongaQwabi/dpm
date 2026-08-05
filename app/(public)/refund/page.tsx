@@ -28,9 +28,9 @@ export default async function RefundPage() {
         <section>
           <h2 className="text-lg font-semibold text-foreground">Credit purchases</h2>
           <p className="mt-3">
-            Credits purchased via Paystack are generally non-refundable as cash. Once credits are added to
+            Credits purchased via Yoco are generally non-refundable as cash. Once credits are added to
             your wallet, they can be used for future bookings on the platform. If you believe a credit
-            purchase was made in error or duplicated, contact us within 7 days with your Paystack reference.
+            purchase was made in error or duplicated, contact us within 7 days with your payment reference.
           </p>
         </section>
 

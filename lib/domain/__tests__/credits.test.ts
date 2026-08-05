@@ -4,7 +4,6 @@ import {
   shortfall,
   assertPositiveCredits,
   parseCreditPurchaseMetadata,
-  isValidCreditPurchaseVerification,
 } from '../credits'
 
 describe('canAfford', () => {
@@ -62,29 +61,5 @@ describe('parseCreditPurchaseMetadata', () => {
       bonusCredits: 0,
       totalCredits: 250,
     })
-  })
-})
-
-describe('isValidCreditPurchaseVerification', () => {
-  const customerId = 'cust_123'
-
-  it('accepts successful credit purchase for matching customer', () => {
-    expect(isValidCreditPurchaseVerification('success', {
-      type: 'credit_purchase',
-      customer_id: customerId,
-      credit_amount: 100,
-    }, customerId)).toBe(true)
-  })
-
-  it('rejects wrong status, type, or customer', () => {
-    const metadata = {
-      type: 'credit_purchase',
-      customer_id: customerId,
-      credit_amount: 100,
-    }
-    expect(isValidCreditPurchaseVerification('failed', metadata, customerId)).toBe(false)
-    expect(isValidCreditPurchaseVerification('success', { ...metadata, type: 'other' }, customerId)).toBe(false)
-    expect(isValidCreditPurchaseVerification('success', metadata, 'other')).toBe(false)
-    expect(isValidCreditPurchaseVerification('success', { ...metadata, credit_amount: 0 }, customerId)).toBe(false)
   })
 })

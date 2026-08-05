@@ -24,20 +24,20 @@ export async function ensureBaseSubscription(providerId: string): Promise<void> 
 export async function renewProviderSubscription(
   providerId: string,
   subscriptionId: string,
-  paystackRef: string,
+  yocoRef: string,
 ): Promise<{ renewed: boolean; alreadyApplied: boolean }> {
   const admin = createAdminClient()
 
   const { data: sub } = await admin
     .from('provider_subscriptions')
-    .select('id, billing_end, last_renewal_paystack_ref, status')
+    .select('id, billing_end, last_renewal_yoco_ref, status')
     .eq('id', subscriptionId)
     .eq('provider_id', providerId)
     .single()
 
   if (!sub) return { renewed: false, alreadyApplied: false }
 
-  if (sub.last_renewal_paystack_ref === paystackRef) {
+  if (sub.last_renewal_yoco_ref === yocoRef) {
     return { renewed: false, alreadyApplied: true }
   }
 
@@ -49,7 +49,7 @@ export async function renewProviderSubscription(
     .update({
       status: 'active',
       billing_end: newEnd.toISOString(),
-      last_renewal_paystack_ref: paystackRef,
+      last_renewal_yoco_ref: yocoRef,
     })
     .eq('id', subscriptionId)
 

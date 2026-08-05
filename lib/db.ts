@@ -131,7 +131,7 @@ export interface ProviderSubscription {
   billing_end: string
   status: ProviderSubscriptionStatus
   last_reminder_sent_at: string | null
-  last_renewal_paystack_ref: string | null
+  last_renewal_yoco_ref: string | null
   created_at: string
 }
 
@@ -239,7 +239,7 @@ export interface CreditTransaction {
   promotion_id: string | null
   description: string
   booking_id: string | null
-  paystack_ref: string | null
+  yoco_ref: string | null
   created_at: string
 }
 

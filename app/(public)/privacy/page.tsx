@@ -31,7 +31,7 @@ export default async function PrivacyPage() {
             <li>Account details: name, email address, phone number, and password (stored securely via Supabase Auth).</li>
             <li>Profile and listing data: business name, bio, location, service descriptions, images, and pricing.</li>
             <li>Booking and messaging data: booking requests, notes, message threads, and reviews.</li>
-            <li>Payment data: credit purchases are processed by Paystack. We store transaction references and wallet balances; we do not store full card numbers.</li>
+            <li>Payment data: credit purchases are processed by Yoco. We store transaction references and wallet balances; we do not store full card numbers.</li>
             <li>Technical data: device type, browser, IP address, and usage analytics needed to operate and secure the platform.</li>
           </ul>
         </section>
@@ -51,13 +51,13 @@ export default async function PrivacyPage() {
           <h2 className="text-lg font-semibold text-foreground">Sharing your information</h2>
           <p className="mt-3">
             We share information only as needed to operate the marketplace: booking details with the relevant
-            provider or customer for fulfilment, payment processing with Paystack, and infrastructure
+            provider or customer for fulfilment, payment processing with Yoco, and infrastructure
             providers that host our services. We do not sell your personal information.
           </p>
           <p className="mt-3">
-            Paystack maintains its own privacy policy for payment data:{' '}
-            <a href="https://paystack.com/privacy" className="text-primary hover:underline" target="_blank" rel="noopener noreferrer">
-              paystack.com/privacy
+            Yoco maintains its own privacy policy for payment data:{' '}
+            <a href="https://www.yoco.com/za/legal/privacy-policy/" className="text-primary hover:underline" target="_blank" rel="noopener noreferrer">
+              yoco.com/za/legal/privacy-policy
             </a>.
           </p>
         </section>

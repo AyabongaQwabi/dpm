@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { verifyAndApplyCredits } from '@/lib/payments/verify-credits'
+import { checkCreditsApplied } from '@/lib/payments/verify-credits'
 
 export async function POST(request: Request) {
   const supabase = await createClient()
@@ -32,7 +32,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Missing reference' }, { status: 400 })
   }
 
-  const result = await verifyAndApplyCredits(reference, customer.id)
+  const result = await checkCreditsApplied(reference, customer.id)
 
   return NextResponse.json({
     credited: result.credited,

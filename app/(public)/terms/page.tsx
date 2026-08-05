@@ -45,7 +45,7 @@ export default async function TermsPage() {
         <section>
           <h2 className="text-lg font-semibold text-foreground">Credit system</h2>
           <ul className="mt-3 list-disc pl-6 space-y-2">
-            <li>Credits are purchased from Namoota Technology via Paystack. 1 credit = R1 (one South African Rand).</li>
+            <li>Credits are purchased from Namoota Technology via Yoco. 1 credit = R1 (one South African Rand).</li>
             <li>Credits have no cash value, are non-transferable between accounts, and cannot be withdrawn as cash.</li>
             <li>Credits are deducted from your wallet when you confirm a booking.</li>
             <li>Unused credits remain in your wallet until spent on a future booking, subject to these Terms.</li>

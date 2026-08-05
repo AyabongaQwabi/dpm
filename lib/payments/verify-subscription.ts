@@ -1,80 +1,30 @@
 import { createAdminClient } from '@/lib/supabase/admin'
-import { renewProviderSubscription } from '@/lib/actions/subscriptions'
 
-export type VerifySubscriptionResult = {
+export type CheckSubscriptionResult = {
   renewed: boolean
-  alreadyApplied?: boolean
-  verified: boolean
-}
-
-type SubscriptionRenewalMetadata = {
-  type?: string
-  provider_id?: string
-  subscription_id?: string
-}
-
-function isValidRenewalMetadata(
-  metadata: SubscriptionRenewalMetadata,
-  providerId: string,
-): boolean {
-  return (
-    metadata.type === 'provider_subscription_renewal'
-    && metadata.provider_id === providerId
-    && typeof metadata.subscription_id === 'string'
-    && metadata.subscription_id.length > 0
-  )
 }
 
 /**
- * Verify Paystack subscription renewal and extend billing period.
- * Idempotent via provider_subscriptions.last_renewal_paystack_ref UNIQUE.
+ * Checks whether the Yoco webhook has already applied this subscription
+ * renewal. Yoco's Checkout API has no verify-by-reference endpoint, so
+ * app/api/webhooks/yoco/route.ts (via renewProviderSubscription) is the sole
+ * writer of provider_subscriptions.last_renewal_yoco_ref — this just reads
+ * what it wrote. `renewed: false` means "not yet" (webhook may still be in
+ * flight), not "failed".
  */
-export async function verifyAndApplySubscriptionRenewal(
+export async function checkSubscriptionRenewed(
   reference: string,
   providerId: string,
-): Promise<VerifySubscriptionResult> {
-  const secretKey = process.env.PAYSTACK_SECRET_KEY
-  if (!secretKey) {
-    return { renewed: false, verified: false }
-  }
+): Promise<CheckSubscriptionResult> {
+  const admin = createAdminClient()
+  const { data } = await admin
+    .from('provider_subscriptions')
+    .select('id')
+    .eq('provider_id', providerId)
+    .eq('last_renewal_yoco_ref', reference)
+    .maybeSingle()
 
-  const paystackRes = await fetch(
-    `https://api.paystack.co/transaction/verify/${encodeURIComponent(reference)}`,
-    { headers: { Authorization: `Bearer ${secretKey}` } },
-  )
-
-  const paystackData = await paystackRes.json() as {
-    status?: boolean
-    data?: {
-      status?: string
-      reference?: string
-      metadata?: SubscriptionRenewalMetadata
-    }
-  }
-
-  const metadata = paystackData.data?.metadata ?? {}
-  const paystackStatus = paystackData.data?.status ?? ''
-
-  if (
-    !paystackRes.ok
-    || !paystackData.status
-    || paystackStatus !== 'success'
-    || !isValidRenewalMetadata(metadata, providerId)
-  ) {
-    return { renewed: false, verified: false }
-  }
-
-  const result = await renewProviderSubscription(
-    providerId,
-    metadata.subscription_id!,
-    reference,
-  )
-
-  return {
-    renewed: result.renewed,
-    alreadyApplied: result.alreadyApplied,
-    verified: true,
-  }
+  return { renewed: !!data }
 }
 
 export async function getProviderAuthEmail(providerId: string): Promise<string | null> {
