@@ -96,6 +96,42 @@ export async function requireCustomerSession(): Promise<CustomerSession> {
   return { authUserId: user.id, customer }
 }
 
+// ---- Admin session resolution ----
+
+function adminEmails(): string[] {
+  return (process.env.ADMIN_EMAILS ?? '')
+    .split(',')
+    .map((e) => e.trim().toLowerCase())
+    .filter(Boolean)
+}
+
+/**
+ * Resolves the current Supabase session to an admin operator.
+ *
+ * Admins are not a database table — they are an env-configured allowlist
+ * (ADMIN_EMAILS, comma-separated) checked against the authenticated user's
+ * email. Redirects to /sign-in if unauthenticated, notFound() if the
+ * authenticated user is not an admin (so the route surface doesn't leak).
+ *
+ * Call this at the top of every app/admin Server Component or Route Handler.
+ */
+export async function requireAdminSession(): Promise<{ authUserId: string; email: string }> {
+  const { notFound } = await import('next/navigation')
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+
+  if (!user) {
+    redirect('/sign-in')
+  }
+
+  const email = user.email?.toLowerCase() ?? ''
+  if (!email || !adminEmails().includes(email)) {
+    notFound()
+  }
+
+  return { authUserId: user.id, email }
+}
+
 /**
  * Returns the current session user without throwing or redirecting.
  * Use in layouts or components that need to branch on auth state but
