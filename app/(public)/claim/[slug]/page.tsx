@@ -3,9 +3,12 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { initiateClaim } from '@/lib/actions/claims'
+import { getFeaturePauseMessage } from '@/lib/feature-pauses'
+import { PausedFeatureNotice } from '@/components/PausedFeatureNotice'
 
 interface ClaimPageProps {
   params: Promise<{ slug: string }>
+  searchParams: Promise<{ paused?: string }>
 }
 
 export const metadata: Metadata = {
@@ -24,8 +27,9 @@ async function getClaimableProvider(slug: string) {
   return data
 }
 
-export default async function ClaimPage({ params }: ClaimPageProps) {
+export default async function ClaimPage({ params, searchParams }: ClaimPageProps) {
   const { slug } = await params
+  const { paused } = await searchParams
   const provider = await getClaimableProvider(slug)
   if (!provider) notFound()
 
@@ -40,6 +44,7 @@ export default async function ClaimPage({ params }: ClaimPageProps) {
 
   return (
     <main className="mx-auto max-w-lg px-4 py-16">
+      {paused && <PausedFeatureNotice message={getFeaturePauseMessage('profileClaiming')} />}
       <Link href={`/providers/${profileSlug}`} className="text-sm text-muted-foreground hover:text-foreground">
         ← Back to profile
       </Link>

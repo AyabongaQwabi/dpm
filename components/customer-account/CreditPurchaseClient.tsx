@@ -4,6 +4,7 @@ import { useState, useTransition } from 'react'
 import { calculatePurchaseCredits, type CreditPromotion } from '@/lib/domain/credit-promotions'
 import { CreditPackCards, CreditPurchaseConfirmation } from '@/components/credits/CreditPackCards'
 import { CreditPricingCalculator } from '@/components/credits/CreditPricingCalculator'
+import { PausedFeatureNotice } from '@/components/PausedFeatureNotice'
 
 interface Props {
   packs: number[]
@@ -11,6 +12,8 @@ interface Props {
   maxAmount: number
   initialAmount?: number
   activePromotion: CreditPromotion | null
+  purchasesPaused: boolean
+  purchasesPausedMessage: string
 }
 
 export function CreditPurchaseClient({
@@ -19,11 +22,14 @@ export function CreditPurchaseClient({
   maxAmount,
   initialAmount,
   activePromotion,
+  purchasesPaused,
+  purchasesPausedMessage,
 }: Props) {
   const [pendingAmount, setPendingAmount] = useState<number | null>(
     initialAmount ? Math.max(minAmount, Math.min(maxAmount, initialAmount)) : null,
   )
   const [error, setError] = useState<string | null>(null)
+  const [showPausedNotice, setShowPausedNotice] = useState(false)
   const [isPending, startTransition] = useTransition()
 
   const promotions = activePromotion ? [activePromotion] : []
@@ -40,12 +46,12 @@ export function CreditPurchaseClient({
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ amount }),
         })
-        const data = await res.json() as { authorization_url?: string; error?: string }
-        if (!res.ok || !data.authorization_url) {
+        const data = await res.json() as { redirect_url?: string; error?: string }
+        if (!res.ok || !data.redirect_url) {
           setError(data.error ?? 'Payment could not be started')
           return
         }
-        window.location.href = data.authorization_url
+        window.location.href = data.redirect_url
       } catch {
         setError('Network error — please try again')
       }
@@ -53,6 +59,10 @@ export function CreditPurchaseClient({
   }
 
   function requestPurchase(amount: number) {
+    if (purchasesPaused) {
+      setShowPausedNotice(true)
+      return
+    }
     if (!Number.isFinite(amount) || amount < minAmount || amount > maxAmount) {
       setError(`Enter an amount between ${minAmount} and ${maxAmount} credits`)
       return
@@ -63,6 +73,10 @@ export function CreditPurchaseClient({
 
   return (
     <div className="space-y-8">
+      {showPausedNotice && (
+        <PausedFeatureNotice message={purchasesPausedMessage} />
+      )}
+
       {preview && (
         <CreditPurchaseConfirmation
           baseCredits={preview.baseCredits}

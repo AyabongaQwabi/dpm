@@ -4,8 +4,14 @@ import { loadConfigStore } from '@/lib/config-store'
 import { getConfigNumber, CONFIG_KEYS } from '@/lib/domain/config'
 import { assertPositiveCredits } from '@/lib/domain/credits'
 import { calculatePurchaseCredits } from '@/lib/credit-promotions'
+import { createYocoCheckout, randomPaymentReference } from '@/lib/payments/yoco'
+import { isFeaturePaused, getFeaturePauseMessage } from '@/lib/feature-pauses'
 
 export async function POST(request: Request) {
+  if (isFeaturePaused('purchases')) {
+    return NextResponse.json({ error: getFeaturePauseMessage('purchases'), paused: true }, { status: 403 })
+  }
+
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
@@ -54,49 +60,29 @@ export async function POST(request: Request) {
     )
   }
 
-  const secretKey = process.env.PAYSTACK_SECRET_KEY
-  if (!secretKey) {
-    return NextResponse.json({ error: 'Payment not configured' }, { status: 503 })
-  }
-
   const { baseCredits, bonusCredits, promotion } = calculatePurchaseCredits(amount)
 
   const origin = new URL(request.url).origin
-  const callbackUrl = `${origin}/customer-account/credits?status=success`
+  const reference = randomPaymentReference()
 
-  const paystackRes = await fetch('https://api.paystack.co/transaction/initialize', {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${secretKey}`,
-      'Content-Type': 'application/json',
+  const result = await createYocoCheckout({
+    amountInCents: baseCredits * 100,
+    successUrl: `${origin}/customer-account/credits?status=success&reference=${reference}`,
+    cancelUrl: `${origin}/customer-account/credits?status=cancelled`,
+    failureUrl: `${origin}/customer-account/credits?status=failed`,
+    metadata: {
+      type: 'credit_purchase',
+      reference,
+      customer_id: customer.id,
+      credit_amount: baseCredits,
+      bonus_credits: bonusCredits,
+      promotion_id: promotion?.id ?? null,
     },
-    body: JSON.stringify({
-      email: customer.email,
-      amount: baseCredits * 100,
-      currency: 'ZAR',
-      callback_url: callbackUrl,
-      metadata: {
-        type: 'credit_purchase',
-        customer_id: customer.id,
-        credit_amount: baseCredits,
-        bonus_credits: bonusCredits,
-        promotion_id: promotion?.id ?? null,
-      },
-    }),
   })
 
-  const paystackData = await paystackRes.json() as {
-    status?: boolean
-    message?: string
-    data?: { authorization_url?: string }
+  if (!result.ok) {
+    return NextResponse.json({ error: result.error }, { status: 502 })
   }
 
-  if (!paystackRes.ok || !paystackData.status || !paystackData.data?.authorization_url) {
-    return NextResponse.json(
-      { error: paystackData.message ?? 'Failed to initialize payment' },
-      { status: 502 },
-    )
-  }
-
-  return NextResponse.json({ authorization_url: paystackData.data.authorization_url })
+  return NextResponse.json({ redirect_url: result.redirectUrl })
 }

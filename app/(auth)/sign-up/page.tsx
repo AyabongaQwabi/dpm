@@ -5,16 +5,21 @@ import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { isFeaturePaused, getFeaturePauseMessage } from '@/lib/feature-pauses'
+import { PausedFeatureNotice } from '@/components/PausedFeatureNotice'
 
 interface SignUpPageProps {
-  searchParams: Promise<{ error?: string }>
+  searchParams: Promise<{ error?: string; paused?: string }>
 }
 
 export default async function SignUpPage({ searchParams }: SignUpPageProps) {
-  const { error } = await searchParams
+  const { error, paused } = await searchParams
 
   async function signUp(formData: FormData) {
     'use server'
+    if (isFeaturePaused('signUp')) {
+      redirect('/sign-up?paused=1')
+    }
     const supabase = await createClient()
     const name = formData.get('name') as string
     const email = formData.get('email') as string
@@ -41,6 +46,7 @@ export default async function SignUpPage({ searchParams }: SignUpPageProps) {
 
   return (
     <main className="grid min-h-screen lg:grid-cols-2">
+      {paused && <PausedFeatureNotice message={getFeaturePauseMessage('signUp')} />}
       <aside className="relative hidden lg:block">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img

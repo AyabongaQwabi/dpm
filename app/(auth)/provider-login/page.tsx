@@ -2,16 +2,21 @@ import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { Icon } from '@/components/ui/Icon'
+import { isFeaturePaused, getFeaturePauseMessage } from '@/lib/feature-pauses'
+import { PausedFeatureNotice } from '@/components/PausedFeatureNotice'
 
 interface ProviderLoginPageProps {
-  searchParams: Promise<{ error?: string }>
+  searchParams: Promise<{ error?: string; paused?: string }>
 }
 
 export default async function ProviderLoginPage({ searchParams }: ProviderLoginPageProps) {
-  const { error } = await searchParams
+  const { error, paused } = await searchParams
 
   async function signInProvider(formData: FormData) {
     'use server'
+    if (isFeaturePaused('login')) {
+      redirect('/provider-login?paused=1')
+    }
     const supabase = await createClient()
     const email = formData.get('email') as string
     const password = formData.get('password') as string
@@ -29,6 +34,7 @@ export default async function ProviderLoginPage({ searchParams }: ProviderLoginP
 
   return (
     <main className="grid min-h-screen lg:grid-cols-[1fr_480px] xl:grid-cols-[1fr_520px]">
+      {paused && <PausedFeatureNotice message={getFeaturePauseMessage('login')} />}
 
       {/* ── Left panel ── */}
       <aside className="relative hidden lg:flex flex-col overflow-hidden bg-primary">

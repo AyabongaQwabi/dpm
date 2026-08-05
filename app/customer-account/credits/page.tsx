@@ -6,8 +6,10 @@ import { loadConfigStore, getConfigJsonArray } from '@/lib/config-store'
 import { getConfigNumber, CONFIG_KEYS } from '@/lib/domain/config'
 import { getActivePromotion, getPromotionById } from '@/lib/credit-promotions'
 import { formatCredits } from '@/lib/format-credits'
-import { verifyAndApplyCredits } from '@/lib/payments/verify-credits'
+import { checkCreditsApplied } from '@/lib/payments/verify-credits'
 import { CreditPurchaseClient } from '@/components/customer-account/CreditPurchaseClient'
+import { PaymentPendingNotice } from '@/components/PaymentPendingNotice'
+import { isFeaturePaused, getFeaturePauseMessage } from '@/lib/feature-pauses'
 import type { CreditTransactionType } from '@/lib/db'
 
 export const metadata: Metadata = {
@@ -16,7 +18,7 @@ export const metadata: Metadata = {
 }
 
 interface Props {
-  searchParams: Promise<{ amount?: string; status?: string; reference?: string; trxref?: string }>
+  searchParams: Promise<{ amount?: string; status?: string; reference?: string }>
 }
 
 function formatPurchaseLine(tx: {
@@ -53,8 +55,7 @@ function formatTransactionAmount(
 
 export default async function CreditsPage({ searchParams }: Props) {
   const { customer } = await requireCustomerSession()
-  const { amount: amountParam, status, reference, trxref } = await searchParams
-  const paystackReference = reference ?? trxref
+  const { amount: amountParam, status, reference } = await searchParams
   const supabase = await createClient()
 
   const config = await loadConfigStore(supabase)
@@ -66,9 +67,9 @@ export default async function CreditsPage({ searchParams }: Props) {
 
   const activePromotion = getActivePromotion()
 
-  let verifyResult: Awaited<ReturnType<typeof verifyAndApplyCredits>> | null = null
-  if (status === 'success' && paystackReference) {
-    verifyResult = await verifyAndApplyCredits(paystackReference, customer.id)
+  let verifyResult: Awaited<ReturnType<typeof checkCreditsApplied>> | null = null
+  if (status === 'success' && reference) {
+    verifyResult = await checkCreditsApplied(reference, customer.id)
   }
 
   const [{ data: customerRow }, { data: transactions }] = await Promise.all([
@@ -83,24 +84,11 @@ export default async function CreditsPage({ searchParams }: Props) {
 
   const balance = verifyResult?.balance ?? customerRow?.credit_balance ?? 0
   const initialAmount = amountParam ? Math.round(Number(amountParam)) : undefined
+  const showPendingNotice = status === 'success' && reference && verifyResult && !verifyResult.credited
 
-  const successMessage = (() => {
-    if (status !== 'success') return null
-
-    if (paystackReference && verifyResult) {
-      if (verifyResult.verified) {
-        if (verifyResult.alreadyApplied) {
-          return 'Payment confirmed — your wallet has already been updated.'
-        }
-        if (verifyResult.credited && verifyResult.totalCredits) {
-          return `Payment confirmed — ${formatCredits(verifyResult.totalCredits)} have been added to your wallet.`
-        }
-      }
-      return 'We couldn\'t confirm this payment yet. Your balance will update automatically once Paystack confirms. If this doesn\'t resolve in a few minutes, contact support.'
-    }
-
-    return 'We couldn\'t confirm this payment yet. Your balance will update automatically once Paystack confirms. If this doesn\'t resolve in a few minutes, contact support.'
-  })()
+  const successMessage = status === 'success' && verifyResult?.credited && verifyResult.totalCredits
+    ? `Payment confirmed — ${formatCredits(verifyResult.totalCredits)} have been added to your wallet.`
+    : null
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-10 space-y-10">
@@ -117,6 +105,8 @@ export default async function CreditsPage({ searchParams }: Props) {
         </div>
       )}
 
+      {showPendingNotice && <PaymentPendingNotice />}
+
       <div className="rounded-2xl border bg-card px-6 py-5">
         <p className="text-xs text-muted-foreground uppercase tracking-wide">Current balance</p>
         <p className="text-3xl font-bold mt-1">{formatCredits(balance)}</p>
@@ -128,6 +118,8 @@ export default async function CreditsPage({ searchParams }: Props) {
         maxAmount={maxAmount}
         initialAmount={initialAmount}
         activePromotion={activePromotion}
+        purchasesPaused={isFeaturePaused('purchases')}
+        purchasesPausedMessage={getFeaturePauseMessage('purchases')}
       />
 
       <section>

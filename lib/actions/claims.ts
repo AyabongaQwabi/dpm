@@ -10,6 +10,7 @@ import {
 } from '@/lib/claims/hash'
 import { sendClaimVerificationEmail } from '@/lib/email/resend'
 import { SITE_URL } from '@/lib/seo'
+import { isFeaturePaused } from '@/lib/feature-pauses'
 
 export type ClaimActionResult = {
   ok: boolean
@@ -33,6 +34,10 @@ export async function initiateClaim(
   slug: string,
   email: string,
 ): Promise<ClaimActionResult> {
+  if (isFeaturePaused('profileClaiming')) {
+    redirect(`/claim/${slug}?paused=1`)
+  }
+
   const trimmedEmail = email.trim().toLowerCase()
   if (!trimmedEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {
     return { ok: false, error: 'Enter a valid business email address.' }

@@ -5,16 +5,23 @@ import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { Icon } from '@/components/ui/Icon'
+import { isFeaturePaused, getFeaturePauseMessage } from '@/lib/feature-pauses'
+import { PausedFeatureNotice } from '@/components/PausedFeatureNotice'
 
 interface SignInPageProps {
-  searchParams: Promise<{ next?: string; error?: string }>
+  searchParams: Promise<{ next?: string; error?: string; paused?: string }>
 }
 
 export default async function SignInPage({ searchParams }: SignInPageProps) {
-  const { next, error } = await searchParams
+  const { next, error, paused } = await searchParams
 
   async function signIn(formData: FormData) {
     'use server'
+    if (isFeaturePaused('login')) {
+      const params = new URLSearchParams({ paused: '1' })
+      if (next) params.set('next', next)
+      redirect(`/sign-in?${params}`)
+    }
     const supabase = await createClient()
     const email = formData.get('email') as string
     const password = formData.get('password') as string
@@ -32,6 +39,7 @@ export default async function SignInPage({ searchParams }: SignInPageProps) {
 
   return (
     <main className="grid min-h-screen lg:grid-cols-[1fr_480px] xl:grid-cols-[1fr_520px]">
+      {paused && <PausedFeatureNotice message={getFeaturePauseMessage('login')} />}
 
       {/* ── Left panel — warm community feel ── */}
       <aside className="relative hidden lg:flex flex-col overflow-hidden bg-primary">

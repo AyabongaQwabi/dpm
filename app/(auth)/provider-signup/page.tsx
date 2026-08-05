@@ -2,16 +2,21 @@ import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { Icon } from '@/components/ui/Icon'
+import { isFeaturePaused, getFeaturePauseMessage } from '@/lib/feature-pauses'
+import { PausedFeatureNotice } from '@/components/PausedFeatureNotice'
 
 interface ProviderSignupPageProps {
-  searchParams: Promise<{ error?: string }>
+  searchParams: Promise<{ error?: string; paused?: string }>
 }
 
 export default async function ProviderSignupPage({ searchParams }: ProviderSignupPageProps) {
-  const { error } = await searchParams
+  const { error, paused } = await searchParams
 
   async function signUpProvider(formData: FormData) {
     'use server'
+    if (isFeaturePaused('signUp')) {
+      redirect('/provider-signup?paused=1')
+    }
     const supabase = await createClient()
     const name = formData.get('name') as string
     const email = formData.get('email') as string
@@ -37,6 +42,7 @@ export default async function ProviderSignupPage({ searchParams }: ProviderSignu
 
   return (
     <main className="grid min-h-screen lg:grid-cols-[1fr_520px] xl:grid-cols-[1fr_560px]">
+      {paused && <PausedFeatureNotice message={getFeaturePauseMessage('signUp')} />}
 
       {/* ── Left panel — Highveld brand panel ── */}
       <aside className="relative hidden lg:flex flex-col overflow-hidden bg-primary">

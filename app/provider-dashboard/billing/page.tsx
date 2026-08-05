@@ -4,10 +4,12 @@ import { createClient } from '@/lib/supabase/server'
 import { PACKAGES } from '@/lib/pricing-config'
 import { daysRemaining, getPackageByNumber } from '@/lib/domain/subscriptions'
 import { BillingRenewButton } from '@/components/provider-dashboard/BillingRenewButton'
-import { verifyAndApplySubscriptionRenewal, getProviderAuthEmail } from '@/lib/payments/verify-subscription'
+import { PaymentPendingNotice } from '@/components/PaymentPendingNotice'
+import { checkSubscriptionRenewed, getProviderAuthEmail } from '@/lib/payments/verify-subscription'
+import { isFeaturePaused, getFeaturePauseMessage } from '@/lib/feature-pauses'
 
 interface BillingPageProps {
-  searchParams: Promise<{ status?: string; reference?: string; trxref?: string }>
+  searchParams: Promise<{ status?: string; reference?: string }>
 }
 
 export default async function ProviderBillingPage({ searchParams }: BillingPageProps) {
@@ -15,9 +17,10 @@ export default async function ProviderBillingPage({ searchParams }: BillingPageP
   const supabase = await createClient()
   const params = await searchParams
 
-  const reference = params.reference ?? params.trxref
+  const reference = params.reference
+  let renewed = false
   if (params.status === 'success' && reference) {
-    await verifyAndApplySubscriptionRenewal(reference, provider.id)
+    renewed = (await checkSubscriptionRenewed(reference, provider.id)).renewed
   }
 
   const { data: subscription } = await supabase
@@ -43,11 +46,13 @@ export default async function ProviderBillingPage({ searchParams }: BillingPageP
         <p className="mt-1 text-sm text-muted-foreground">Manage your subscription and commission plan.</p>
       </div>
 
-      {params.status === 'success' && reference && (
+      {params.status === 'success' && reference && renewed && (
         <div className="rounded-xl border border-primary/30 bg-primary/5 px-4 py-3 text-sm text-foreground">
           Payment received — your subscription has been updated.
         </div>
       )}
+
+      {params.status === 'success' && reference && !renewed && <PaymentPendingNotice />}
 
       {isExpired && (
         <div className="rounded-xl border border-destructive/40 bg-destructive/10 px-4 py-4">
@@ -56,7 +61,12 @@ export default async function ProviderBillingPage({ searchParams }: BillingPageP
             Renew to keep your profile live and continue receiving bookings.
           </p>
           <div className="mt-4">
-            <BillingRenewButton subscription={subscription} providerEmail={providerEmail} />
+            <BillingRenewButton
+              subscription={subscription}
+              providerEmail={providerEmail}
+              purchasesPaused={isFeaturePaused('purchases')}
+              purchasesPausedMessage={getFeaturePauseMessage('purchases')}
+            />
           </div>
         </div>
       )}
@@ -96,7 +106,12 @@ export default async function ProviderBillingPage({ searchParams }: BillingPageP
                 <p className="text-amber-700 dark:text-amber-300 text-sm font-medium">
                   Renews in {remaining} day{remaining === 1 ? '' : 's'}
                 </p>
-                <BillingRenewButton subscription={subscription} providerEmail={providerEmail} />
+                <BillingRenewButton
+              subscription={subscription}
+              providerEmail={providerEmail}
+              purchasesPaused={isFeaturePaused('purchases')}
+              purchasesPausedMessage={getFeaturePauseMessage('purchases')}
+            />
               </div>
             )}
           </div>
@@ -131,7 +146,7 @@ export default async function ProviderBillingPage({ searchParams }: BillingPageP
                 <button
                   type="button"
                   disabled
-                  title="Paystack upgrade payment not yet available"
+                  title="Upgrade payment not yet available"
                   className="mt-4 w-full rounded-lg border border-border px-4 py-2 text-sm font-semibold text-muted-foreground cursor-not-allowed"
                 >
                   Upgrade to this plan (coming soon)
