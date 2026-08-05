@@ -5,7 +5,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { RejectClaimButton, ForceUnclaimButton } from '@/components/admin/ClaimActionButtons'
 
 export const metadata: Metadata = {
-  title: 'Claim review — DPM Admin',
+  title: 'Claim review — ServicePros Admin',
   robots: { index: false, follow: false },
 }
 

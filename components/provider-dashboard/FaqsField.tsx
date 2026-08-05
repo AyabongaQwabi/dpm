@@ -55,7 +55,7 @@ export function FaqsField({ fieldKey, label, isRequired, saved }: Props) {
       {items.length === 0 && (
         <div className="rounded-[var(--radius)] border border-dashed border-border bg-muted/30 px-5 py-8 text-center">
           <p className="text-sm text-muted-foreground">No questions yet.</p>
-          <p className="text-xs text-muted-foreground/70 mt-1">Click "Add question" to let customers know what to expect.</p>
+          <p className="text-xs text-muted-foreground/70 mt-1">Click &quot;Add question&quot; to let customers know what to expect.</p>
         </div>
       )}
 

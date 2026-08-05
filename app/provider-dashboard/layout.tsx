@@ -37,7 +37,7 @@ export default async function ProviderDashboardLayout({
       <header className="sticky top-0 z-40 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
         <div className="flex h-14 items-center gap-4 px-4">
           <Link href="/" className="font-display font-bold text-primary text-lg tracking-tight">
-            DPM
+            ServicePros
           </Link>
           <span className="text-muted-foreground/40 text-lg">·</span>
           <span className="font-medium text-sm truncate max-w-xs text-foreground/80">

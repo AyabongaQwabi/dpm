@@ -16,6 +16,7 @@ export function ServicesNudge({ hasServices }: ServicesNudgeProps) {
     if (hasServices) return
     try {
       const dismissed = localStorage.getItem(DISMISSED_KEY)
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- This syncs one client-only localStorage preference after mount.
       if (!dismissed) setVisible(true)
     } catch {
       // localStorage unavailable — don't show

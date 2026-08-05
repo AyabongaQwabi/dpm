@@ -18,7 +18,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
       <header className="sticky top-0 z-40 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
         <div className="flex h-14 items-center gap-4 px-4">
           <Link href="/admin/claims" className="font-display font-bold text-primary text-lg tracking-tight">
-            DPM Admin
+            ServicePros Admin
           </Link>
           <nav className="flex items-center gap-4 text-sm">
             <Link href="/admin/claims" className="text-muted-foreground hover:text-foreground transition-colors">

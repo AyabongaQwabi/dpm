@@ -52,6 +52,7 @@ export default async function CustomerOverviewPage() {
     reviews: b.reviews ?? [],
   }))
 
+  // eslint-disable-next-line react-hooks/purity -- Server render needs one stable timestamp for stale booking calculations.
   const now = Date.now()
   const activeBookings = bookings.filter((b) => ACTIVE_STATUSES.includes(b.status))
 
