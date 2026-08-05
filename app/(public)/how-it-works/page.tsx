@@ -1,10 +1,11 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
+import { JsonLd } from '@/components/seo/JsonLd'
 import { Icon } from '@/components/ui/Icon'
 import creditPromotions from '@/config/credit-promotions.json'
 import { calculatePurchaseCredits, getActivePromotion, type CreditPromotion } from '@/lib/domain/credit-promotions'
 import { PLATFORM_CONFIG_SEED } from '@/lib/pricing-config'
-import { canonicalAlternates, defaultOpenGraph, defaultTwitter } from '@/lib/seo'
+import { breadcrumbJsonLd, canonicalAlternates, defaultOpenGraph, defaultTwitter } from '@/lib/seo'
 
 export const metadata: Metadata = {
   title: 'How ServicePros works',
@@ -29,6 +30,12 @@ const activePromotion = getActivePromotion(promotions)
 export default function HowItWorksPage() {
   return (
     <main>
+      <JsonLd
+        data={breadcrumbJsonLd([
+          { name: 'Home', path: '/' },
+          { name: 'How it works', path: '/how-it-works' },
+        ])}
+      />
       <section className="border-b bg-slate-950 text-white">
         <div className="mx-auto max-w-7xl px-4 py-20 lg:py-24">
           <p className="text-sm font-semibold uppercase tracking-[0.28em] text-primary-accent">How it works</p>
@@ -39,6 +46,20 @@ export default function HowItWorksPage() {
             </p>
           </div>
         </div>
+      </section>
+
+      <section className="mx-auto max-w-7xl px-4 pt-16">
+        <p className="max-w-3xl text-base leading-7 text-muted-foreground">
+          ServicePros works in four steps: search for a service or provider, compare profiles and reviews,
+          book a service with credits, and review the provider after the work is complete. Providers manage
+          listings, services, messages, bookings, and verification from their dashboard.
+        </p>
+        <nav aria-label="Jump to section" className="mt-6 flex flex-wrap gap-x-6 gap-y-2 text-sm font-medium text-primary">
+          <a href="#discover" className="hover:underline">1. Discover</a>
+          <a href="#credits" className="hover:underline">2. Buy credits</a>
+          <a href="#book" className="hover:underline">3. Book</a>
+          <a href="#review" className="hover:underline">4. Review</a>
+        </nav>
       </section>
 
       <section className="mx-auto max-w-7xl px-4 py-16">
@@ -57,7 +78,7 @@ export default function HowItWorksPage() {
         </div>
       </section>
 
-      <section className="mx-auto max-w-7xl px-4 py-16">
+      <section id="discover" className="mx-auto max-w-7xl px-4 py-16 scroll-mt-24">
         <div className="grid gap-12 lg:grid-cols-[auto_1fr] lg:items-start">
           <span className="inline-flex h-14 w-14 items-center justify-center rounded-3xl bg-primary/10 text-primary font-display text-lg font-bold">1</span>
           <div>
@@ -84,7 +105,7 @@ export default function HowItWorksPage() {
         </div>
       </section>
 
-      <section className="border-y bg-muted/30">
+      <section id="credits" className="border-y bg-muted/30 scroll-mt-24">
         <div className="mx-auto max-w-7xl px-4 py-20">
           <div className="grid gap-12 lg:grid-cols-[auto_1fr] lg:items-start">
             <span className="inline-flex h-14 w-14 items-center justify-center rounded-3xl bg-primary/10 text-primary font-display text-lg font-bold">2</span>
@@ -123,7 +144,7 @@ export default function HowItWorksPage() {
         </div>
       </section>
 
-      <section className="mx-auto max-w-7xl px-4 py-20">
+      <section id="book" className="mx-auto max-w-7xl px-4 py-20 scroll-mt-24">
         <div className="grid gap-12 lg:grid-cols-[auto_1fr] lg:items-start">
           <span className="inline-flex h-14 w-14 items-center justify-center rounded-3xl bg-primary/10 text-primary font-display text-lg font-bold">3</span>
           <div>
@@ -141,7 +162,7 @@ export default function HowItWorksPage() {
         </div>
       </section>
 
-      <section className="border-t bg-muted/30">
+      <section id="review" className="border-t bg-muted/30 scroll-mt-24">
         <div className="mx-auto max-w-7xl px-4 py-20">
           <div className="grid gap-12 lg:grid-cols-[auto_1fr] lg:items-start">
             <span className="inline-flex h-14 w-14 items-center justify-center rounded-3xl bg-primary/10 text-primary font-display text-lg font-bold">4</span>

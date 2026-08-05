@@ -1,10 +1,11 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { Suspense } from 'react'
+import { JsonLd } from '@/components/seo/JsonLd'
 import { Icon } from '@/components/ui/Icon'
 import { VerifiedBadge, TIER_META, type VerificationTier } from '@/components/ui/VerifiedBadge'
 import { GetListedTabs } from '@/components/get-listed/GetListedTabs'
-import { canonicalAlternates, defaultOpenGraph, defaultTwitter } from '@/lib/seo'
+import { breadcrumbJsonLd, canonicalAlternates, defaultOpenGraph, defaultTwitter } from '@/lib/seo'
 
 export const metadata: Metadata = {
   title: 'Get listed as a South African service provider',
@@ -76,6 +77,12 @@ const tierRequirements: Record<Exclude<VerificationTier, 'google'>, string> = {
 function GetListedOverview() {
   return (
     <>
+      <JsonLd
+        data={breadcrumbJsonLd([
+          { name: 'Home', path: '/' },
+          { name: 'Get listed', path: '/get-listed' },
+        ])}
+      />
       {/* Hero */}
       <section className="border-b bg-muted/30">
         <div className="mx-auto max-w-7xl px-4 py-16 lg:py-24">
@@ -111,6 +118,17 @@ function GetListedOverview() {
             </div>
           </div>
         </div>
+      </section>
+
+      {/* Snippet-ready answer */}
+      <section className="mx-auto max-w-7xl px-4 pt-16">
+        <h2 className="text-2xl font-bold tracking-tight">Does ServicePros charge for leads?</h2>
+        <p className="mt-4 max-w-3xl text-base leading-7 text-muted-foreground">
+          No. ServicePros does not charge providers for enquiries or leads. Providers pay for their listing
+          package and commission only on completed, paid bookings. To get listed, create a provider account,
+          complete your business profile, add services and prices, submit available verification details,
+          and publish your listing.
+        </p>
       </section>
 
       {/* Benefits */}

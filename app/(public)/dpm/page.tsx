@@ -5,7 +5,7 @@ import { Icon } from '@/components/ui/Icon'
 import { StatsBand } from '@/components/about/StatsBand'
 import { getCategories, getLocations } from '@/lib/public-data'
 import { createClient } from '@/lib/supabase/server'
-import { canonicalAlternates, canonicalUrl, definedTermJsonLd, defaultOpenGraph, defaultTwitter, SITE_NAME, SITE_URL } from '@/lib/seo'
+import { breadcrumbJsonLd, canonicalAlternates, canonicalUrl, definedTermJsonLd, defaultOpenGraph, defaultTwitter, SITE_NAME, SITE_URL } from '@/lib/seo'
 
 export const revalidate = 3600
 
@@ -73,6 +73,10 @@ export default async function DpmPage() {
     <main>
       <JsonLd
         data={[
+          breadcrumbJsonLd([
+            { name: 'Home', path: '/' },
+            { name: 'DPM', path: '/dpm' },
+          ]),
           definedTermJsonLd({
             path: '/dpm',
             termName: 'DPM',
@@ -112,6 +116,15 @@ export default async function DpmPage() {
       </section>
 
       <section className="mx-auto max-w-4xl px-4 py-16">
+        <h2 className="font-display text-2xl font-bold tracking-tight text-foreground">Directory vs marketplace</h2>
+        <p className="mt-5 max-w-3xl text-base leading-7 text-muted-foreground">
+          A directory mainly helps people find listed businesses. A marketplace helps people transact with
+          them. A Directory and Provider Marketplace combines both: searchable provider profiles for
+          discovery, plus tools for pricing, booking, messaging, payments, and reviews.
+        </p>
+      </section>
+
+      <section className="mx-auto max-w-4xl px-4 pb-16">
         <h2 className="font-display text-2xl font-bold tracking-tight text-foreground">Why the category needed a name</h2>
         <div className="mt-5 space-y-4 text-base leading-7 text-muted-foreground">
           <p>

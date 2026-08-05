@@ -19,16 +19,40 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const supabase = await createClient()
   const { data: service } = await supabase
     .from('services')
-    .select('title, description, image')
+    .select(`
+      title, description, image,
+      service_packages(price, discount_type, discount_amount),
+      provider:providers!inner(business_name, location_city, is_published)
+    `)
     .eq('id', id)
     .eq('is_published', true)
     .single()
   if (!service) return {}
+
+  const provider = Array.isArray(service.provider) ? service.provider[0] : service.provider
+  if (!provider?.is_published) return {}
+
+  const packages = (service.service_packages ?? []) as {
+    price: number; discount_type: DiscountType; discount_amount: number | null
+  }[]
+  const lowestPrice = packages.length
+    ? Math.min(...packages.map((p) => effectivePrice(Number(p.price), p.discount_type, p.discount_amount)))
+    : null
+
+  const title = `${service.title} by ${provider.business_name}`
+  const city = provider.location_city ? ` in ${provider.location_city}` : ''
+  const priceText = lowestPrice !== null ? ` from R${lowestPrice.toFixed(0)}` : ''
+  const description = `Book ${service.title} from ${provider.business_name}${city}. Compare packages${priceText}, reviews, and provider details on ServicePros.`
+
   return {
-    title: service.title,
-    description: service.description?.slice(0, 160),
+    title,
+    description,
     alternates: canonicalAlternates(`/services/${id}`),
-    openGraph: service.image ? { images: [service.image] } : undefined,
+    openGraph: {
+      title,
+      description,
+      images: service.image ? [service.image] : undefined,
+    },
   }
 }
 

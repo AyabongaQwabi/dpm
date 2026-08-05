@@ -1,8 +1,9 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
+import { JsonLd } from '@/components/seo/JsonLd'
 import { Icon } from '@/components/ui/Icon'
 import { TIER_META, type VerificationTier } from '@/components/ui/VerifiedBadge'
-import { canonicalAlternates, defaultOpenGraph, defaultTwitter } from '@/lib/seo'
+import { breadcrumbJsonLd, canonicalAlternates, defaultOpenGraph, defaultTwitter } from '@/lib/seo'
 
 export const metadata: Metadata = {
   title: 'How verification works',
@@ -49,15 +50,27 @@ const TIER_DETAIL: Record<
 export default function VerificationPage() {
   return (
     <main className="mx-auto max-w-5xl px-4 py-16">
+      <JsonLd
+        data={breadcrumbJsonLd([
+          { name: 'Home', path: '/' },
+          { name: 'Verification', path: '/verification' },
+        ])}
+      />
       <div className="rounded-[2rem] border border-slate-200/10 bg-slate-950 p-10 text-white shadow-2xl shadow-slate-950/20">
         <p className="text-sm font-semibold uppercase tracking-[0.28em] text-primary-accent">Trust</p>
         <h1 className="mt-4 text-5xl font-display font-semibold tracking-tight">How verification works</h1>
         <p className="mt-6 max-w-3xl text-lg leading-9 text-slate-300">
           Verification on ServicePros is layered. Providers can hold any combination of four independent badges, and listings highlight the strongest badge they have earned.
         </p>
+        <nav aria-label="Jump to section" className="mt-6 flex flex-wrap gap-x-6 gap-y-2 text-sm font-medium text-primary-accent">
+          <a href="#badge-order" className="hover:underline">Badge order</a>
+          <a href="#badges" className="hover:underline">Badge details</a>
+          <a href="#how-to-verify" className="hover:underline">How to get verified</a>
+          <a href="#guarantees" className="hover:underline">What it guarantees</a>
+        </nav>
       </div>
 
-      <section className="mt-12 rounded-[2rem] border border-slate-200/10 bg-white p-8 shadow-xl shadow-slate-900/5">
+      <section id="badge-order" className="mt-12 scroll-mt-24 rounded-[2rem] border border-slate-200/10 bg-white p-8 shadow-xl shadow-slate-900/5">
         <h2 className="text-2xl font-semibold tracking-tight">What the badge order means</h2>
         <p className="mt-4 text-sm leading-7 text-muted-foreground">
           A listing shows one badge: the strongest badge the provider holds. In order of strength, that is{' '}
@@ -66,7 +79,7 @@ export default function VerificationPage() {
         </p>
       </section>
 
-      <section className="mt-12 grid gap-6">
+      <section id="badges" className="mt-12 grid scroll-mt-24 gap-6">
         {TIER_ORDER.map((tier) => {
           const meta = TIER_META[tier]
           const detail = TIER_DETAIL[tier]
@@ -105,7 +118,7 @@ export default function VerificationPage() {
         </p>
       </section>
 
-      <section className="mt-12 rounded-[2rem] border border-slate-200/10 bg-white p-8 shadow-sm">
+      <section id="how-to-verify" className="mt-12 scroll-mt-24 rounded-[2rem] border border-slate-200/10 bg-white p-8 shadow-sm">
         <h2 className="text-2xl font-semibold tracking-tight">How providers get verified</h2>
         <div className="mt-6 space-y-4 text-sm leading-7 text-muted-foreground">
           <p>
@@ -124,7 +137,7 @@ export default function VerificationPage() {
         </Link>
       </section>
 
-      <section className="mt-12 rounded-[2rem] border border-slate-200/10 bg-slate-50 p-8 shadow-sm">
+      <section id="guarantees" className="mt-12 scroll-mt-24 rounded-[2rem] border border-slate-200/10 bg-slate-50 p-8 shadow-sm">
         <h2 className="text-2xl font-semibold tracking-tight">What verification does and does not guarantee</h2>
         <p className="mt-4 text-sm leading-7 text-muted-foreground">
           Verification confirms specific facts — a phone number, a registered business, or an identity document. It does not guarantee service quality, timeliness, or the exact outcome of the job.

@@ -1,8 +1,9 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
+import { JsonLd } from '@/components/seo/JsonLd'
 import { Icon } from '@/components/ui/Icon'
 import { getSupportEmail } from '@/lib/policy-content'
-import { canonicalAlternates, defaultOpenGraph, defaultTwitter } from '@/lib/seo'
+import { breadcrumbJsonLd, canonicalAlternates, defaultOpenGraph, defaultTwitter } from '@/lib/seo'
 
 export const metadata: Metadata = {
   title: 'Platform partners',
@@ -44,6 +45,12 @@ export default async function PlatformPartnersPage() {
 
   return (
     <main>
+      <JsonLd
+        data={breadcrumbJsonLd([
+          { name: 'Home', path: '/' },
+          { name: 'Platform partners', path: '/platform-partners' },
+        ])}
+      />
       {/* Hero */}
       <section className="border-b bg-muted/30">
         <div className="mx-auto max-w-7xl px-4 py-16 lg:py-24">
@@ -59,6 +66,16 @@ export default async function PlatformPartnersPage() {
             </p>
           </div>
         </div>
+      </section>
+
+      {/* Snippet-ready answer */}
+      <section className="mx-auto max-w-7xl px-4 pt-16">
+        <h2 className="text-2xl font-bold tracking-tight">What are ServicePros platform partners?</h2>
+        <p className="mt-4 max-w-3xl text-base leading-7 text-muted-foreground">
+          ServicePros platform partners provide specialist services to listed providers, such as design,
+          marketing, admin, or growth support. Paid partner services use agreed scopes, prices, turnaround
+          times, and fulfilment terms before being published on the platform.
+        </p>
       </section>
 
       {/* What a platform partner is, vs provider / referral agent */}

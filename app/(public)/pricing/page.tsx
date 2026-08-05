@@ -8,7 +8,7 @@ import { CreditPackCards } from '@/components/credits/CreditPackCards'
 import { CreditPricingCalculator } from '@/components/credits/CreditPricingCalculator'
 import { Icon } from '@/components/ui/Icon'
 import { JsonLd } from '@/components/seo/JsonLd'
-import { canonicalAlternates, defaultOpenGraph, defaultTwitter, offerCatalogJsonLd } from '@/lib/seo'
+import { breadcrumbJsonLd, canonicalAlternates, defaultOpenGraph, defaultTwitter, offerCatalogJsonLd } from '@/lib/seo'
 
 export const metadata: Metadata = {
   title: 'Credits and pricing for ServicePros bookings',
@@ -80,17 +80,23 @@ export default async function CustomerPricingPage() {
   return (
     <main>
       <JsonLd
-        data={offerCatalogJsonLd({
-          name: 'ServicePros credit packs',
-          path: '/pricing',
-          offers: packs.map((pack) => ({
-            name: `${Number(pack).toLocaleString('en-ZA')} ServicePros credits`,
-            description: `Credits used to pay for bookings on ServicePros. 1 credit equals R1.`,
-            price: Number(pack),
-            priceCurrency: 'ZAR',
-            url: '/pricing',
-          })),
-        })}
+        data={[
+          breadcrumbJsonLd([
+            { name: 'Home', path: '/' },
+            { name: 'Pricing', path: '/pricing' },
+          ]),
+          offerCatalogJsonLd({
+            name: 'ServicePros credit packs',
+            path: '/pricing',
+            offers: packs.map((pack) => ({
+              name: `${Number(pack).toLocaleString('en-ZA')} ServicePros credits`,
+              description: `Credits used to pay for bookings on ServicePros. 1 credit equals R1.`,
+              price: Number(pack),
+              priceCurrency: 'ZAR',
+              url: '/pricing',
+            })),
+          }),
+        ]}
       />
       <section className="border-b bg-muted/30">
         <div className="mx-auto max-w-7xl px-4 py-16 lg:py-20">
@@ -111,6 +117,15 @@ export default async function CustomerPricingPage() {
             )}
           </div>
         </div>
+      </section>
+
+      <section className="mx-auto max-w-7xl px-4 pt-16">
+        <h2 className="text-2xl font-bold tracking-tight">How ServicePros credits work</h2>
+        <p className="mt-4 max-w-3xl text-base leading-7 text-muted-foreground">
+          ServicePros credits are used to pay for bookings. One credit equals R1. Customers buy credits,
+          spend them on services, and receive credits back if an eligible booking is cancelled before work
+          begins. Credits do not expire and can be topped up anytime.
+        </p>
       </section>
 
       <section className="mx-auto max-w-7xl px-4 py-16">
