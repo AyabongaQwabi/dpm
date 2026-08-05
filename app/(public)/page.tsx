@@ -50,8 +50,9 @@ export default async function LandingPage() {
     ...Object.fromEntries((configRows ?? []).map((r) => [r.key, r.value])),
   })
 
-  const [featured, recent, categories, locations, recommendedServices] = await Promise.all([
+  const [featured, withCompleteProfile, recent, categories, locations, recommendedServices] = await Promise.all([
     getPublishedProviders(supabase, { featured: true, limit: 6, categorySlug: tenant.categorySlug ?? undefined }),
+    getPublishedProviders(supabase, { withCompleteProfile: true, limit: 6, categorySlug: tenant.categorySlug ?? undefined }),
     getPublishedProviders(supabase, { limit: 6, categorySlug: tenant.categorySlug ?? undefined }),
     getCategories(supabase),
     getLocations(supabase),
@@ -59,7 +60,10 @@ export default async function LandingPage() {
   ])
 
   const siteName = tenant.branding?.siteName ?? 'Service Pros'
-  const providers = featured.length ? featured : recent
+  // Manually-flagged featured providers win; otherwise prefer providers with
+  // a real photo + bio over an arbitrary recent scrape so the section never
+  // shows an incomplete-looking listing (see lib/public-data.ts withCompleteProfile).
+  const providers = featured.length ? featured : withCompleteProfile.length ? withCompleteProfile : recent
   const totalProviders = categories.reduce((sum, c) => sum + c.providerCount, 0)
   const cityCount = locations.length
 

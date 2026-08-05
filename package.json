@@ -21,7 +21,11 @@
     "images:fetch": "node scripts/fetch-provider-images.mjs",
     "images:fetch:dry-run": "node scripts/fetch-provider-images.mjs --dry-run",
     "profile:fetch": "node scripts/fetch-provider-profile-data.mjs",
-    "profile:fetch:dry-run": "node scripts/fetch-provider-profile-data.mjs --dry-run"
+    "profile:fetch:dry-run": "node scripts/fetch-provider-profile-data.mjs --dry-run",
+    "ratings:backfill": "node scripts/backfill-google-ratings.mjs",
+    "ratings:backfill:dry-run": "node scripts/backfill-google-ratings.mjs --dry-run",
+    "ratings:refresh": "node scripts/refresh-google-ratings.mjs",
+    "ratings:refresh:dry-run": "node scripts/refresh-google-ratings.mjs --dry-run"
   },
   "dependencies": {
     "@phosphor-icons/react": "^2.1.10",

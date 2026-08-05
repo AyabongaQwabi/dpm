@@ -3,6 +3,7 @@ import { Avatar } from '@/components/ui/Avatar'
 import { BadgeList } from '@/components/ui/badge'
 import { Icon } from '@/components/ui/Icon'
 import { StarRating } from '@/components/ui/StarRating'
+import { GoogleRatingBadge } from '@/components/ui/GoogleRatingBadge'
 import {
   ProviderVerificationBadge,
   type BusinessType,
@@ -18,6 +19,8 @@ export interface ProviderCardData {
   tags: string[]
   avgRating: number | null
   reviewCount?: number
+  googleRating?: number | null
+  googleRatingCount?: number
   isFeatured?: boolean
   slug?: string | null
   locationCity?: string | null
@@ -77,9 +80,14 @@ export function ProviderCard({ provider }: { provider: ProviderCardData }) {
             {provider.locationCity}
           </p>
         )}
-        {provider.avgRating !== null && (
-          <div className="mt-1.5">
-            <StarRating rating={provider.avgRating} reviewCount={provider.reviewCount} size="sm" />
+        {(provider.avgRating !== null || provider.googleRating != null) && (
+          <div className="mt-1.5 flex flex-wrap items-center gap-2">
+            {provider.avgRating !== null && (
+              <StarRating rating={provider.avgRating} reviewCount={provider.reviewCount} size="sm" />
+            )}
+            {provider.googleRating != null && (
+              <GoogleRatingBadge rating={provider.googleRating} ratingCount={provider.googleRatingCount ?? 0} size="sm" />
+            )}
           </div>
         )}
         <StatusRow provider={provider} />
@@ -111,9 +119,14 @@ export function ProviderCardCompact({ provider }: { provider: ProviderCardData }
             {provider.locationCity}
           </p>
         )}
-        {provider.avgRating !== null && (
-          <div className="mt-0.5">
-            <StarRating rating={provider.avgRating} reviewCount={provider.reviewCount} size="sm" />
+        {(provider.avgRating !== null || provider.googleRating != null) && (
+          <div className="mt-0.5 flex flex-wrap items-center gap-1.5">
+            {provider.avgRating !== null && (
+              <StarRating rating={provider.avgRating} reviewCount={provider.reviewCount} size="sm" />
+            )}
+            {provider.googleRating != null && (
+              <GoogleRatingBadge rating={provider.googleRating} ratingCount={provider.googleRatingCount ?? 0} size="sm" />
+            )}
           </div>
         )}
         <StatusRow provider={provider} />

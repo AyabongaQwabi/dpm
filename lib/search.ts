@@ -19,6 +19,8 @@ export interface SearchResult {
   providerTypeName: string
   tags: string[]
   avgRating: number | null
+  googleRating: number | null
+  googleRatingCount: number
   finalScore: number
   businessType: BusinessType
   verification: VerificationState
@@ -79,6 +81,8 @@ export async function searchProviders(params: {
       location_city,
       is_published,
       provider_type_id,
+      google_rating,
+      google_rating_count,
       business_type,
       verified_contact,
       verified_cipc,
@@ -181,6 +185,8 @@ export async function searchProviders(params: {
       providerTypeName: (providerType as { name: string } | null)?.name ?? '',
       tags,
       avgRating,
+      googleRating: (row as { google_rating?: number | null }).google_rating ?? null,
+      googleRatingCount: (row as { google_rating_count?: number | null }).google_rating_count ?? 0,
       finalScore: r.finalScore,
       businessType: (row as { business_type?: BusinessType }).business_type ?? null,
       verification: {

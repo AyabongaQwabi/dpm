@@ -116,6 +116,8 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
     providerTypeName: r.providerTypeName,
     tags: r.tags,
     avgRating: r.avgRating,
+    googleRating: r.googleRating,
+    googleRatingCount: r.googleRatingCount,
     locationCity: r.locationCity,
     businessType: r.businessType,
     verification: r.verification,

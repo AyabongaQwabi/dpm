@@ -16,6 +16,8 @@ export interface ProviderCardView {
   tags: string[]
   avgRating: number | null
   reviewCount: number
+  googleRating: number | null
+  googleRatingCount: number
   isFeatured: boolean
   businessType: BusinessType
   verification: VerificationState
@@ -67,6 +69,8 @@ type ProviderRow = {
   bio: string | null
   profile_image: string | null
   location_city: string | null
+  google_rating?: number | null
+  google_rating_count?: number | null
   is_featured?: boolean | null
   business_type?: BusinessType
   verified_contact?: boolean | null
@@ -112,6 +116,8 @@ export function toProviderCard(row: ProviderRow): ProviderCardView {
     tags,
     avgRating: reviews.length ? reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length : null,
     reviewCount: reviews.length,
+    googleRating: row.google_rating ?? null,
+    googleRatingCount: row.google_rating_count ?? 0,
     isFeatured: Boolean(row.is_featured),
     businessType: row.business_type ?? null,
     verification: {
@@ -130,6 +136,8 @@ export function providerSelect() {
     bio,
     profile_image,
     location_city,
+    google_rating,
+    google_rating_count,
     is_featured,
     business_type,
     verified_contact,
@@ -152,6 +160,10 @@ export async function getPublishedProviders(
     categorySlug?: string
     city?: string
     featured?: boolean
+    /** Only providers with a real profile image AND bio — used as the
+     *  "featured" fallback when no provider is manually flagged, so the
+     *  section doesn't surface an incomplete scraped listing. */
+    withCompleteProfile?: boolean
     orderByRating?: boolean
   } = {},
 ) {
@@ -169,6 +181,9 @@ export async function getPublishedProviders(
   }
   if (options.featured) {
     query = query.eq('is_featured', true)
+  }
+  if (options.withCompleteProfile) {
+    query = query.not('profile_image', 'is', null).not('bio', 'is', null)
   }
 
   query = query.order('created_at', { ascending: false })

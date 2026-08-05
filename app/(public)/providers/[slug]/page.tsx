@@ -18,6 +18,8 @@ import { ServiceCard } from '@/components/ServiceCard'
 import { Avatar } from '@/components/ui/Avatar'
 import { BadgeList } from '@/components/ui/badge'
 import { StarRating } from '@/components/ui/StarRating'
+import { GoogleRatingBadge } from '@/components/ui/GoogleRatingBadge'
+import { ViewOnGoogleButton } from '@/components/providers/ViewOnGoogleButton'
 import { RecommendedServices } from '@/components/home/RecommendedServices'
 import type { DiscountType } from '@/lib/db'
 import { createClient } from '@/lib/supabase/server'
@@ -75,6 +77,9 @@ async function getProvider(slug: string) {
       address,
       claim_status,
       is_scraped,
+      google_place_id,
+      google_rating,
+      google_rating_count,
       provider_types!inner(name, slug, provider_categories(name, slug)),
       provider_tags(tag:tags(name)),
       services(id, title, description, image, is_published, service_type,
@@ -322,6 +327,13 @@ export default async function ProviderProfilePage({ params }: ProfilePageProps) 
                     </span>
                   )}
                   {avgRating !== null && <StarRating rating={avgRating} reviewCount={reviews.length} />}
+                  {provider.google_rating !== null && (
+                    <GoogleRatingBadge
+                      rating={provider.google_rating as number}
+                      ratingCount={(provider.google_rating_count as number | null) ?? 0}
+                      size="sm"
+                    />
+                  )}
                 </div>
                 {tags.length > 0 && (
                   <div className="mt-4">
@@ -505,6 +517,14 @@ export default async function ProviderProfilePage({ params }: ProfilePageProps) 
                   <div className="flex justify-between gap-4 items-start">
                     <dt className="text-muted-foreground flex-shrink-0">Country</dt>
                     <dd className="font-medium text-right">{provider.location_country}</dd>
+                  </div>
+                )}
+                {provider.google_place_id && (
+                  <div className="flex justify-between gap-4 items-start">
+                    <dt className="text-muted-foreground flex-shrink-0">Google</dt>
+                    <dd className="text-right">
+                      <ViewOnGoogleButton googlePlaceId={provider.google_place_id as string} />
+                    </dd>
                   </div>
                 )}
                 {avgRating !== null && (
