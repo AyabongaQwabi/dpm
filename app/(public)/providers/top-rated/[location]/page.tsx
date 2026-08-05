@@ -1,11 +1,13 @@
 import type { Metadata } from 'next'
 import { ProviderCard } from '@/components/ProviderCard'
-import { getPublishedProviders, titleFromSlug } from '@/lib/public-data'
+import { Pagination } from '@/components/Pagination'
+import { getPublishedProvidersPage, titleFromSlug } from '@/lib/public-data'
 import { createClient } from '@/lib/supabase/server'
 import { canonicalAlternates, defaultOpenGraph, defaultTwitter } from '@/lib/seo'
 
 interface PageProps {
   params: Promise<{ location: string }>
+  searchParams: Promise<{ page?: string }>
 }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
@@ -23,11 +25,18 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   }
 }
 
-export default async function TopRatedProvidersPage({ params }: PageProps) {
+export default async function TopRatedProvidersPage({ params, searchParams }: PageProps) {
   const { location } = await params
+  const { page: pageParam } = await searchParams
+  const page = Math.max(1, Number(pageParam) || 1)
   const city = titleFromSlug(location)
   const supabase = await createClient()
-  const providers = await getPublishedProviders(supabase, { city: location, orderByRating: true, limit: 48 })
+  const { providers, totalPages } = await getPublishedProvidersPage(supabase, {
+    city: location,
+    orderByRating: true,
+    page,
+    pageSize: 24,
+  })
 
   return (
     <main className="mx-auto max-w-7xl px-4 py-12">
@@ -43,6 +52,11 @@ export default async function TopRatedProvidersPage({ params }: PageProps) {
           <ProviderCard key={provider.id} provider={provider} />
         ))}
       </section>
+      <Pagination
+        page={page}
+        totalPages={totalPages}
+        hrefForPage={(p) => (p === 1 ? `/providers/top-rated/${location}` : `/providers/top-rated/${location}?page=${p}`)}
+      />
     </main>
   )
 }

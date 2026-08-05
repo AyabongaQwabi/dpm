@@ -195,6 +195,79 @@ export async function getPublishedProviders(
     : providers
 }
 
+export interface ProviderPage {
+  providers: ProviderCardView[]
+  total: number
+  page: number
+  pageSize: number
+  totalPages: number
+}
+
+/**
+ * Paginated variant of getPublishedProviders — separate function (rather than
+ * an option on getPublishedProviders) so existing unpaginated callers are
+ * unaffected. Supports composing categorySlug + city together, which the
+ * single-filter category/[slug] and in/[location] pages didn't previously
+ * allow linking between.
+ */
+export async function getPublishedProvidersPage(
+  supabase: SupabaseClient,
+  options: {
+    page?: number
+    pageSize?: number
+    categorySlug?: string
+    city?: string
+    orderByRating?: boolean
+  } = {},
+): Promise<ProviderPage> {
+  const pageSize = options.pageSize ?? 24
+  const page = Math.max(1, options.page ?? 1)
+  const from = (page - 1) * pageSize
+  const to = from + pageSize - 1
+
+  let query = supabase
+    .from('providers')
+    .select(providerSelect(), { count: 'exact' })
+    .eq('is_published', true)
+
+  if (options.categorySlug) {
+    query = query.eq('provider_types.provider_categories.slug', options.categorySlug)
+  }
+  if (options.city) {
+    query = query.ilike('location_city', options.city.replaceAll('-', ' '))
+  }
+
+  // Rating-ordered listings can't be paginated at the DB level (rating is
+  // computed client-side from the joined reviews array), so that mode fetches
+  // a bounded pool, sorts, then slices — same tradeoff getPublishedProviders
+  // already made for orderByRating.
+  if (options.orderByRating) {
+    query = query.limit(500)
+  } else {
+    query = query.order('created_at', { ascending: false }).range(from, to)
+  }
+
+  const { data, count, error } = await query
+  if (error) throw new Error(`getPublishedProvidersPage: ${error.message}`)
+
+  let providers = ((data ?? []) as unknown as ProviderRow[]).map(toProviderCard)
+  let total = count ?? providers.length
+
+  if (options.orderByRating) {
+    providers = providers.sort((a, b) => (b.avgRating ?? 0) - (a.avgRating ?? 0))
+    total = providers.length
+    providers = providers.slice(from, to + 1)
+  }
+
+  return {
+    providers,
+    total,
+    page,
+    pageSize,
+    totalPages: Math.max(1, Math.ceil(total / pageSize)),
+  }
+}
+
 export async function getCategories(supabase: SupabaseClient): Promise<CategoryView[]> {
   const { data } = await supabase
     .from('provider_categories')

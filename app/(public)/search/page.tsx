@@ -10,6 +10,7 @@ import { InMemoryConfigStore } from '@/lib/domain/config'
 import { ProviderCardCompact } from '@/components/ProviderCard'
 import { NameSearchBar } from '@/components/NameSearchBar'
 import { SearchFilters } from '@/components/SearchFilters'
+import { Pagination } from '@/components/Pagination'
 import { JsonLd } from '@/components/seo/JsonLd'
 import {
   canonicalAlternates,
@@ -19,7 +20,7 @@ import {
 } from '@/lib/seo'
 
 interface SearchPageProps {
-  searchParams: Promise<{ q?: string; type?: string; tags?: string }>
+  searchParams: Promise<{ q?: string; type?: string; tags?: string; page?: string }>
 }
 
 export async function generateMetadata({ searchParams }: SearchPageProps): Promise<Metadata> {
@@ -65,6 +66,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
   const query = params.q?.trim() ?? ''
   const typeSlug = params.type ?? ''
   const tagFilter = params.tags ? params.tags.split(',').filter(Boolean) : []
+  const page = Math.max(1, Number(params.page) || 1)
 
   // Default ranking config so search works even when platform_config rows are
   // absent. Any matching DB row overrides the corresponding default below.
@@ -93,18 +95,21 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
     .order('name', { ascending: true })
   if (tenant.categoryId) ptQuery = ptQuery.eq('category_id', tenant.categoryId)
 
-  const [results, { data: providerTypes }, { data: allTags }] = await Promise.all([
+  const [searchPage, { data: providerTypes }, { data: allTags }] = await Promise.all([
     searchProviders({
       categoryId: tenant.categoryId,
       query: query || undefined,
       providerTypeSlug: typeSlug || undefined,
       tagNames: tagFilter.length > 0 ? tagFilter : undefined,
       config,
-      limit: 50,
+      page,
+      pageSize: 24,
     }),
     ptQuery,
     supabase.from('tags').select('name').order('name', { ascending: true }).limit(50),
   ])
+
+  const { results, total, totalPages } = searchPage
 
   // Map SearchResult → ProviderCardData
   const cards = results.map((r) => ({
@@ -158,12 +163,25 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
             <p className="text-muted-foreground">No providers found. Try adjusting your filters.</p>
           ) : (
             <>
-              <p className="text-sm text-muted-foreground mb-4">{cards.length} providers found</p>
+              <p className="text-sm text-muted-foreground mb-4">{total} provider{total === 1 ? '' : 's'} found</p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {cards.map((p) => (
                   <ProviderCardCompact key={p.id} provider={p} />
                 ))}
               </div>
+              <Pagination
+                page={page}
+                totalPages={totalPages}
+                hrefForPage={(p) => {
+                  const urlParams = new URLSearchParams()
+                  if (query) urlParams.set('q', query)
+                  if (typeSlug) urlParams.set('type', typeSlug)
+                  if (tagFilter.length) urlParams.set('tags', tagFilter.join(','))
+                  if (p > 1) urlParams.set('page', String(p))
+                  const qs = urlParams.toString()
+                  return qs ? `/search?${qs}` : '/search'
+                }}
+              />
             </>
           )}
         </section>

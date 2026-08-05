@@ -1,14 +1,16 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { ProviderCard } from '@/components/ProviderCard'
+import { Pagination } from '@/components/Pagination'
 import { JsonLd } from '@/components/seo/JsonLd'
-import { getCategories, getLocations, getPublishedProviders, titleFromSlug } from '@/lib/public-data'
+import { getCategories, getLocations, getPublishedProvidersPage, titleFromSlug } from '@/lib/public-data'
 import { createClient } from '@/lib/supabase/server'
 import { createStaticClient } from '@/lib/supabase/static'
 import { canonicalAlternates, defaultOpenGraph, defaultTwitter, providerListJsonLd } from '@/lib/seo'
 
 interface PageProps {
   params: Promise<{ location: string }>
+  searchParams: Promise<{ page?: string }>
 }
 
 export const dynamicParams = true
@@ -35,12 +37,14 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   }
 }
 
-export default async function ProvidersInLocationPage({ params }: PageProps) {
+export default async function ProvidersInLocationPage({ params, searchParams }: PageProps) {
   const { location } = await params
+  const { page: pageParam } = await searchParams
+  const page = Math.max(1, Number(pageParam) || 1)
   const city = titleFromSlug(location)
   const supabase = await createClient()
-  const [providers, categories] = await Promise.all([
-    getPublishedProviders(supabase, { city: location, limit: 48 }),
+  const [{ providers, total, totalPages }, categories] = await Promise.all([
+    getPublishedProvidersPage(supabase, { city: location, page, pageSize: 24 }),
     getCategories(supabase),
   ])
 
@@ -62,20 +66,29 @@ export default async function ProvidersInLocationPage({ params }: PageProps) {
 
       <div className="mt-8 flex flex-wrap gap-2">
         {categories.slice(0, 8).map((category) => (
-          <Link key={category.id} href={`/providers/category/${category.slug}`} className="rounded-full border px-4 py-2 text-sm hover:bg-muted">
+          <Link
+            key={category.id}
+            href={`/providers/category/${category.slug}/in/${location}`}
+            className="rounded-full border px-4 py-2 text-sm hover:bg-muted"
+          >
             {category.name}
           </Link>
         ))}
       </div>
 
       <section className="mt-10">
-        <p className="mb-4 text-sm text-muted-foreground">{providers.length} providers found</p>
+        <p className="mb-4 text-sm text-muted-foreground">{total} provider{total === 1 ? '' : 's'} found</p>
         <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {providers.map((provider) => (
             <ProviderCard key={provider.id} provider={provider} />
           ))}
         </div>
       </section>
+      <Pagination
+        page={page}
+        totalPages={totalPages}
+        hrefForPage={(p) => (p === 1 ? `/providers/in/${location}` : `/providers/in/${location}?page=${p}`)}
+      />
     </main>
   )
 }

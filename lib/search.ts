@@ -28,15 +28,30 @@ export interface SearchResult {
 
 // ---- Fetch + rank ----
 
+export interface SearchResultPage {
+  results: SearchResult[]
+  total: number
+  page: number
+  pageSize: number
+  totalPages: number
+}
+
 export async function searchProviders(params: {
   categoryId: string | null
   query?: string
   providerTypeSlug?: string
   tagNames?: string[]
   config: ConfigStore
-  limit?: number
-}): Promise<SearchResult[]> {
-  const { categoryId, query, providerTypeSlug, tagNames, config, limit = 50 } = params
+  page?: number
+  pageSize?: number
+}): Promise<SearchResultPage> {
+  const { categoryId, query, providerTypeSlug, tagNames, config } = params
+  const pageSize = params.pageSize ?? 24
+  const page = Math.max(1, params.page ?? 1)
+  // Ranking is computed over the whole candidate pool (score depends on
+  // relative comparison, not a DB ORDER BY), so this fetches a bounded pool
+  // once and paginates by slicing the ranked list — not by re-querying per page.
+  const candidatePoolSize = 300
   const supabase = await createClient()
   const now = new Date().toISOString()
 
@@ -93,13 +108,15 @@ export async function searchProviders(params: {
       paid_placements(boost_factor, active_from, active_until)
     `)
     .eq('is_published', true)
-    .limit(limit * 3)
+    .limit(candidatePoolSize)
+
+  const emptyPage: SearchResultPage = { results: [], total: 0, page, pageSize, totalPages: 1 }
 
   if (providerTypeIds !== null && providerTypeIds.length > 0) {
     providersQuery = providersQuery.in('provider_type_id', providerTypeIds)
   } else if (providerTypeIds !== null && providerTypeIds.length === 0) {
     // No matching types — return empty early.
-    return []
+    return emptyPage
   }
 
   // Apply the free-text query as an actual DB filter (business_name OR bio),
@@ -112,12 +129,12 @@ export async function searchProviders(params: {
   }
 
   if (tagFilteredProviderIds !== null) {
-    if (tagFilteredProviderIds.length === 0) return []
+    if (tagFilteredProviderIds.length === 0) return emptyPage
     providersQuery = providersQuery.in('id', tagFilteredProviderIds)
   }
 
   const { data: rows } = await providersQuery
-  if (!rows || rows.length === 0) return []
+  if (!rows || rows.length === 0) return emptyPage
 
   const candidates: ScoredProvider[] = rows.map((row) => {
     const reviews = (row.reviews as { rating: number }[] | null) ?? []
@@ -160,8 +177,10 @@ export async function searchProviders(params: {
   const ranked = await rankProviders(candidates, config)
 
   const rowById = new Map(rows.map((r) => [r.id, r]))
+  const total = ranked.length
+  const from = (page - 1) * pageSize
 
-  return ranked.slice(0, limit).map((r) => {
+  const results = ranked.slice(from, from + pageSize).map((r) => {
     const row = rowById.get(r.providerId)!
     const reviews = (row.reviews as { rating: number }[] | null) ?? []
     const avgRating = reviews.length > 0
@@ -196,6 +215,8 @@ export async function searchProviders(params: {
       },
     }
   })
+
+  return { results, total, page, pageSize, totalPages: Math.max(1, Math.ceil(total / pageSize)) }
 }
 
 // ---- Signal helpers ----
