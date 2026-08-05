@@ -6,7 +6,11 @@ ALTER INDEX credit_transactions_paystack_ref_unique RENAME TO credit_transaction
 
 ALTER TABLE provider_subscriptions RENAME COLUMN last_renewal_paystack_ref TO last_renewal_yoco_ref;
 
-CREATE OR REPLACE FUNCTION credit_wallet_purchase(
+-- CREATE OR REPLACE can't rename a parameter (p_paystack_ref -> p_yoco_ref);
+-- drop and recreate instead.
+DROP FUNCTION IF EXISTS credit_wallet_purchase(TEXT, INTEGER, TEXT, TEXT, INTEGER, TEXT);
+
+CREATE FUNCTION credit_wallet_purchase(
   p_customer_id TEXT,
   p_amount INTEGER,
   p_yoco_ref TEXT,
