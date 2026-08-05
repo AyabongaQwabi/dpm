@@ -22,6 +22,10 @@ interface SearchFiltersProps {
 // pickers with selected-chip summaries rather than walls of pills. Provider
 // type is single-select, tags are multi-select. State is local; navigation
 // happens on Apply so the server component can re-run the ranked search.
+// Name search lives separately in NameSearchBar — filters here narrow by
+// type/tag only, preserving the current ?q= (read from the server-rendered
+// query prop, not useSearchParams, so this component doesn't need a Suspense
+// boundary) on apply/reset.
 export function SearchFilters({
   query,
   typeSlug,
@@ -30,7 +34,6 @@ export function SearchFilters({
   tags,
 }: SearchFiltersProps) {
   const router = useRouter()
-  const [q, setQ] = useState(query)
   const [type, setType] = useState(typeSlug)
   const [selectedTags, setSelectedTags] = useState<string[]>(tagFilter)
 
@@ -42,36 +45,25 @@ export function SearchFilters({
 
   function apply() {
     const params = new URLSearchParams()
-    if (q.trim()) params.set('q', q.trim())
+    if (query) params.set('q', query)
     if (type) params.set('type', type)
     if (selectedTags.length) params.set('tags', selectedTags.join(','))
     router.push(`/search${params.toString() ? `?${params}` : ''}`)
   }
 
   function reset() {
-    setQ('')
     setType('')
     setSelectedTags([])
-    router.push('/search')
+    router.push(query ? `/search?q=${encodeURIComponent(query)}` : '/search')
   }
 
-  const hasActiveFilters = Boolean(type) || selectedTags.length > 0 || Boolean(q.trim())
+  const hasActiveFilters = Boolean(type) || selectedTags.length > 0
   const activeTypeName = providerTypes.find((pt) => pt.slug === type)?.name
 
   return (
     <div className="rounded-2xl border bg-card p-5">
-      <div className="relative">
-        <Icon.search className="pointer-events-none absolute left-3 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-muted-foreground" />
-        <input
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') apply()
-          }}
-          placeholder="Search by name or keyword…"
-          className="w-full rounded-xl border bg-background py-2.5 pl-10 pr-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary-accent"
-        />
-      </div>
+      <p className="mb-1 text-sm font-semibold text-foreground">Filters</p>
+      <p className="mb-4 text-xs text-muted-foreground">Narrow results by provider type or tag.</p>
 
       {providerTypes.length > 0 && (
         <ProviderTypePicker

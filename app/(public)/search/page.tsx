@@ -8,6 +8,7 @@ import { getTenantContext } from '@/lib/tenant'
 import { searchProviders } from '@/lib/search'
 import { InMemoryConfigStore } from '@/lib/domain/config'
 import { ProviderCardCompact } from '@/components/ProviderCard'
+import { NameSearchBar } from '@/components/NameSearchBar'
 import { SearchFilters } from '@/components/SearchFilters'
 import { JsonLd } from '@/components/seo/JsonLd'
 import {
@@ -131,9 +132,11 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
       <h1 className="text-3xl font-bold tracking-tight mb-3">
         {tenant.branding?.siteName ? `${tenant.branding.siteName} providers` : 'Find a provider'}
       </h1>
-      <p className="mb-8 max-w-2xl text-muted-foreground">
-        Search across published providers, then narrow by provider type or tag.
+      <p className="mb-4 max-w-2xl text-muted-foreground">
+        Search by provider name, or use filters to browse by type and tag.
       </p>
+
+      <NameSearchBar query={query} typeSlug={typeSlug} tagFilter={tagFilter} />
 
       <div className="grid gap-8 lg:grid-cols-[240px_1fr]">
         {/* Filter sidebar */}

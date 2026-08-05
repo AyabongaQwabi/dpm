@@ -98,6 +98,15 @@ export async function searchProviders(params: {
     return []
   }
 
+  // Apply the free-text query as an actual DB filter (business_name OR bio),
+  // not just a post-fetch relevance score — otherwise a match outside the
+  // arbitrary `limit * 3` slice below is silently invisible.
+  const trimmedQuery = query?.trim()
+  if (trimmedQuery) {
+    const escaped = trimmedQuery.replace(/[%_]/g, (c) => `\\${c}`)
+    providersQuery = providersQuery.or(`business_name.ilike.%${escaped}%,bio.ilike.%${escaped}%`)
+  }
+
   if (tagFilteredProviderIds !== null) {
     if (tagFilteredProviderIds.length === 0) return []
     providersQuery = providersQuery.in('id', tagFilteredProviderIds)
