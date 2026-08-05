@@ -1,13 +1,13 @@
 import type { MetadataRoute } from 'next'
 import { createClient } from '@/lib/supabase/server'
 import { getLocations } from '@/lib/public-data'
-import { slugifyName } from '@/lib/domain/slug'
-import { SITE_URL } from '@/lib/seo'
+import { normalizeServiceTypeSlug } from '@/lib/domain/service-title'
+import { SEO_INDEX_THRESHOLDS, SITE_URL } from '@/lib/seo'
 
 export const revalidate = 3600
 
-const MIN_CATEGORY_LOCATION_PROVIDERS = 3
-const MIN_SERVICE_TYPE_SERVICES = 2
+const MIN_CATEGORY_LOCATION_PROVIDERS = SEO_INDEX_THRESHOLDS.categoryLocationMinProviders
+const MIN_SERVICE_TYPE_SERVICES = SEO_INDEX_THRESHOLDS.serviceTypeMinServices
 
 function locationSlug(city: string) {
   return city.toLowerCase().replaceAll(' ', '-')
@@ -93,7 +93,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   const serviceTypeCounts = new Map<string, number>()
   for (const service of services ?? []) {
-    const slug = slugifyName(service.title)
+    const slug = normalizeServiceTypeSlug(service.title)
     if (!slug) continue
     serviceTypeCounts.set(slug, (serviceTypeCounts.get(slug) ?? 0) + 1)
   }

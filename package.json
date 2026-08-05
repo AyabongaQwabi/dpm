@@ -25,7 +25,8 @@
     "ratings:backfill": "node scripts/backfill-google-ratings.mjs",
     "ratings:backfill:dry-run": "node scripts/backfill-google-ratings.mjs --dry-run",
     "ratings:refresh": "node scripts/refresh-google-ratings.mjs",
-    "ratings:refresh:dry-run": "node scripts/refresh-google-ratings.mjs --dry-run"
+    "ratings:refresh:dry-run": "node scripts/refresh-google-ratings.mjs --dry-run",
+    "seo:audit": "node scripts/seo-audit.mjs"
   },
   "dependencies": {
     "@phosphor-icons/react": "^2.1.10",

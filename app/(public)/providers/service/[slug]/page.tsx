@@ -3,10 +3,16 @@ import Link from 'next/link'
 import { JsonLd } from '@/components/seo/JsonLd'
 import { getServices, titleFromSlug } from '@/lib/public-data'
 import { createClient } from '@/lib/supabase/server'
-import { breadcrumbJsonLd, canonicalAlternates, defaultOpenGraph, defaultTwitter, providerListJsonLd } from '@/lib/seo'
+import { normalizeServiceTypeSlug } from '@/lib/domain/service-title'
+import { breadcrumbJsonLd, canonicalAlternates, defaultOpenGraph, defaultTwitter, providerListJsonLd, seoIndexPolicy, SEO_INDEX_THRESHOLDS } from '@/lib/seo'
 
 interface PageProps {
   params: Promise<{ slug: string }>
+}
+
+async function getServicesForSlug(supabase: Awaited<ReturnType<typeof createClient>>, slug: string) {
+  const allServices = await getServices(supabase, 500)
+  return allServices.filter((service) => normalizeServiceTypeSlug(service.title) === slug)
 }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
@@ -15,12 +21,15 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const title = `${service} services in South Africa`
   const description = `Find providers offering ${service.toLowerCase()} services. Compare profiles, locations, and pricing on ServicePros.`
   const path = `/providers/service/${slug}`
+  const supabase = await createClient()
+  const services = await getServicesForSlug(supabase, slug)
   return {
     title,
     description,
     alternates: canonicalAlternates(path),
     openGraph: defaultOpenGraph(title, description, path),
     twitter: defaultTwitter(title, description),
+    robots: seoIndexPolicy(services.length, SEO_INDEX_THRESHOLDS.serviceTypeMinServices),
   }
 }
 
@@ -28,9 +37,7 @@ export default async function ProvidersByServicePage({ params }: PageProps) {
   const { slug } = await params
   const serviceName = titleFromSlug(slug)
   const supabase = await createClient()
-  const services = (await getServices(supabase, 120)).filter((service) =>
-    service.title.toLowerCase().includes(serviceName.toLowerCase()),
-  )
+  const services = await getServicesForSlug(supabase, slug)
   const providersBySlug = new Map<string, { slug: string | null; id: string; business_name: string }>()
   for (const service of services) {
     const key = service.providerSlug ?? service.provider_id
@@ -42,6 +49,8 @@ export default async function ProvidersByServicePage({ params }: PageProps) {
       })
     }
   }
+
+  const cities = [...new Set(services.map((s) => s.locationCity).filter((c): c is string => Boolean(c)))].slice(0, 6)
 
   return (
     <main className="mx-auto max-w-7xl px-4 py-12">
@@ -76,6 +85,26 @@ export default async function ProvidersByServicePage({ params }: PageProps) {
           </Link>
         ))}
       </section>
+
+      {(cities.length > 0) && (
+        <section className="mt-12 border-t pt-8">
+          <h2 className="text-lg font-semibold tracking-tight">Related searches</h2>
+          <div className="mt-4 flex flex-wrap gap-2">
+            {cities.map((city) => (
+              <Link
+                key={city}
+                href={`/providers/in/${city.toLowerCase().replaceAll(' ', '-')}`}
+                className="rounded-full border px-4 py-2 text-sm hover:bg-muted"
+              >
+                Providers in {city}
+              </Link>
+            ))}
+            <Link href="/services" className="rounded-full border px-4 py-2 text-sm hover:bg-muted">
+              Browse all services
+            </Link>
+          </div>
+        </section>
+      )}
     </main>
   )
 }

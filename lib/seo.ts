@@ -26,6 +26,24 @@ export function canonicalAlternates(path: string): Metadata['alternates'] {
   return { canonical: canonicalUrl(path) }
 }
 
+/** Quality-gate thresholds for programmatic page families — see docs/seo/PROGRAMMATIC-SEO-GOVERNANCE.md. */
+export const SEO_INDEX_THRESHOLDS = {
+  /** Minimum published providers for a category-location page to be indexable. */
+  categoryLocationMinProviders: 3,
+  /** Minimum matching services for a service-type page to be indexable. */
+  serviceTypeMinServices: 2,
+} as const
+
+/**
+ * Decide whether a programmatic listing page should be indexed, given its
+ * live inventory count and the page family's threshold. Below threshold, the
+ * page still renders (so it's reachable and useful) but is kept out of
+ * search results until inventory grows.
+ */
+export function seoIndexPolicy(inventoryCount: number, minInventory: number): Metadata['robots'] {
+  return inventoryCount >= minInventory ? undefined : { index: false, follow: true }
+}
+
 export function defaultOpenGraph(
   title: string,
   description: string,
