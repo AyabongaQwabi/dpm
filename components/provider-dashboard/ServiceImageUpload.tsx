@@ -112,6 +112,13 @@ export function ServiceImageUpload({ serviceId, currentImage, action }: Props) {
         </div>
       )}
 
+      {!preview && (
+        <p className="text-xs text-muted-foreground">
+          Use a real photo of the work, your team, or the finished result — customers and search engines
+          respond better to real images than stock photos or text-heavy posters.
+        </p>
+      )}
+
       <input
         ref={inputRef}
         type="file"

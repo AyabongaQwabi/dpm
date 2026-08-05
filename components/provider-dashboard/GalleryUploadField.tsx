@@ -108,7 +108,7 @@ export function GalleryUploadField({ fieldKey, label, isRequired, savedUrls }: P
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={img.preview}
-                alt={img.name}
+                alt={`${label} ${i + 1}`}
                 className={[
                   'h-full w-full object-cover transition-opacity',
                   img.status === 'uploading' ? 'opacity-50' : 'opacity-100',
@@ -197,6 +197,9 @@ export function GalleryUploadField({ fieldKey, label, isRequired, savedUrls }: P
         />
         <p className="mt-1 text-xs text-muted-foreground">
           JPEG, PNG, WebP, AVIF, GIF · up to 10 MB each · select multiple at once
+        </p>
+        <p className="mt-1 text-xs text-muted-foreground">
+          Real photos of finished work perform better than stock images or watermarked photos.
         </p>
       </div>
 

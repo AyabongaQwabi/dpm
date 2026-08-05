@@ -208,7 +208,7 @@ export default async function ServiceDetailPage({ params }: Props) {
             // eslint-disable-next-line @next/next/no-img-element
             <img
               src={service.image}
-              alt={service.title}
+              alt={`${service.title} from ${provider.business_name}${location ? ` in ${location}` : ''}`}
               className="w-full rounded-2xl object-cover max-h-80 mb-8"
             />
           )}
@@ -261,7 +261,7 @@ export default async function ServiceDetailPage({ params }: Props) {
             <div className="flex gap-4 items-start">
               <Avatar
                 src={provider.profile_image}
-                alt={provider.business_name}
+                alt={`${provider.business_name}${location ? `, ${location}` : ''}`}
                 size="lg"
                 shape="rounded"
                 className="flex-shrink-0"

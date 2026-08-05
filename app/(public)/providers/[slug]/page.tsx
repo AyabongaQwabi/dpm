@@ -596,7 +596,7 @@ export default async function ProviderProfilePage({ params }: ProfilePageProps) 
                   <div key={service.id} className="rounded-2xl border border-border bg-card overflow-hidden flex flex-col hover:shadow-md hover:border-primary-accent/30 transition-all duration-200 cursor-pointer">
                     {service.image ? (
                       // eslint-disable-next-line @next/next/no-img-element
-                      <img src={service.image} alt={service.title} className="h-44 w-full object-cover" />
+                      <img src={service.image} alt={`${service.title} from ${provider.business_name}`} className="h-44 w-full object-cover" />
                     ) : (
                       <div className="h-32 w-full bg-muted/50 craft-pattern flex items-center justify-center">
                         <Briefcase className="h-8 w-8 text-muted-foreground/30" />
@@ -823,7 +823,12 @@ export default async function ProviderProfilePage({ params }: ProfilePageProps) 
                 <article key={post.id} className="overflow-hidden rounded-2xl border border-border bg-card hover:shadow-md hover:border-primary-accent/30 transition-all duration-200">
                   {post.image_url && (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img src={post.image_url} alt="" className="aspect-[4/3] w-full object-cover" loading="lazy" />
+                    <img
+                      src={post.image_url}
+                      alt={`${post.post_type} update from ${provider.business_name}`}
+                      className="aspect-[4/3] w-full object-cover"
+                      loading="lazy"
+                    />
                   )}
                   <div className="p-4">
                     <p className="text-xs font-semibold uppercase tracking-wider text-primary-accent">{post.post_type}</p>

@@ -45,11 +45,16 @@ export function ServiceCard({ service, bookHref, ctaLabel = 'Get this service', 
   const finalPrice = calcFinalPrice(price, service.discount_type, discountAmt)
   const hasDiscount = service.discount_type !== 'none'
 
+  // Alt text formula: "{Service title} from {Provider name}{ in City}" — see docs/seo/SEO-IMAGE-ASSET-PLAN.md.
+  const imageAlt = provider
+    ? `${service.title} from ${provider.name}${provider.locationCity ? ` in ${provider.locationCity}` : ''}`
+    : service.title
+
   return (
     <div className="flex flex-col overflow-hidden rounded-xl border bg-card">
       {service.image && (
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={service.image || "/placeholder.svg"} alt={service.title} className="h-36 w-full object-cover" />
+        <img src={service.image || "/placeholder.svg"} alt={imageAlt} className="h-36 w-full object-cover" />
       )}
       <div className="flex flex-1 flex-col p-4">
         {provider && (

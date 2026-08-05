@@ -49,6 +49,15 @@ function StatusRow({ provider }: { provider: ProviderCardData }) {
   )
 }
 
+// Alt text formula: "{Business name}, {provider type}{ in City}" — descriptive
+// without keyword-stuffing. See docs/seo/SEO-IMAGE-ASSET-PLAN.md.
+function providerImageAlt(provider: ProviderCardData): string {
+  const context = [provider.providerTypeName, provider.locationCity ? `in ${provider.locationCity}` : null]
+    .filter(Boolean)
+    .join(' ')
+  return context ? `${provider.business_name}, ${context}` : provider.business_name
+}
+
 // Full card — used on landing grid (portrait orientation, image top)
 export function ProviderCard({ provider }: { provider: ProviderCardData }) {
   return (
@@ -59,7 +68,7 @@ export function ProviderCard({ provider }: { provider: ProviderCardData }) {
       <div className="relative flex h-40 items-center justify-center overflow-hidden bg-muted">
         <Avatar
           src={provider.profile_image}
-          alt={provider.business_name}
+          alt={providerImageAlt(provider)}
           size="xl"
           shape="rounded"
           className="h-full w-full rounded-none transition-transform duration-500 group-hover:scale-105"
@@ -109,7 +118,7 @@ export function ProviderCardCompact({ provider }: { provider: ProviderCardData }
       href={`/providers/${provider.slug ?? provider.id}`}
       className="flex gap-3 rounded-2xl border bg-card p-4 transition hover:-translate-y-0.5 hover:shadow-md"
     >
-      <Avatar src={provider.profile_image} alt={provider.business_name} size="lg" shape="rounded" />
+      <Avatar src={provider.profile_image} alt={providerImageAlt(provider)} size="lg" shape="rounded" />
       <div className="min-w-0">
         <p className="mb-0.5 font-mono text-xs text-muted-foreground">{provider.providerTypeName}</p>
         <h3 className="truncate font-display text-sm font-semibold">{provider.business_name}</h3>
