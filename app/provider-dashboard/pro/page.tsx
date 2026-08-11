@@ -6,9 +6,11 @@ import { updateProfileCustomisation, updateCustomSlug } from '@/lib/actions/pro-
 import { ENTITLEMENT_KEYS } from '@/lib/entitlements'
 import { ProBadge } from '@/components/ui/ProBadge'
 import { Icon } from '@/components/ui/Icon'
+import { ProfileCoverImageUpload } from '@/components/provider-dashboard/ProfileCoverImageUpload'
+import { FormSubmitButton } from '@/components/provider-dashboard/FormSubmitButton'
 
 interface ProPageProps {
-  searchParams: Promise<{ slugError?: string }>
+  searchParams: Promise<{ profileError?: string; profileSaved?: string; slugError?: string; slugSaved?: string }>
 }
 
 const SLUG_ERRORS: Record<string, string> = {
@@ -18,9 +20,15 @@ const SLUG_ERRORS: Record<string, string> = {
   save_failed: 'Something went wrong saving your slug. Try again.',
 }
 
+const PROFILE_ERRORS: Record<string, string> = {
+  service: 'That pinned service could not be saved. Choose one of your services and try again.',
+  cover_save_failed: 'We could not save the cover image. Please try uploading it again.',
+  save_failed: 'Something went wrong saving your profile customisation. Try again.',
+}
+
 export default async function ProDashboardPage({ searchParams }: ProPageProps) {
   const { provider } = await requireProviderSession()
-  const { slugError } = await searchParams
+  const { profileError, profileSaved, slugError, slugSaved } = await searchParams
   const supabase = await createClient()
 
   const membership = await getProMembership(provider.id)
@@ -33,9 +41,27 @@ export default async function ProDashboardPage({ searchParams }: ProPageProps) {
 
   const { data: providerRow } = await supabase
     .from('providers')
-    .select('slug, accent_color, pinned_service_id, cta_label, cta_target_url')
+    .select('slug, verified_contact, accent_color, pinned_service_id, cta_label, cta_target_url')
     .eq('id', provider.id)
     .single()
+
+  const { data: coverRow } = await supabase
+    .from('providers')
+    .select('cover_image')
+    .eq('id', provider.id)
+    .maybeSingle()
+
+  const { data: coverFieldRow } = await supabase
+    .from('provider_field_values')
+    .select('value, field:fields!inner(key)')
+    .eq('provider_id', provider.id)
+    .eq('field.key', 'profile_cover_image')
+    .maybeSingle()
+  const coverField = Array.isArray(coverFieldRow?.field) ? coverFieldRow.field[0] : coverFieldRow?.field
+  const coverFieldValue = coverField?.key === 'profile_cover_image' && typeof coverFieldRow?.value === 'string'
+    ? coverFieldRow.value
+    : null
+  const coverImage = ((coverRow as { cover_image?: string | null } | null)?.cover_image ?? coverFieldValue) ?? null
 
   const { data: services } = await supabase
     .from('services')
@@ -44,21 +70,41 @@ export default async function ProDashboardPage({ searchParams }: ProPageProps) {
     .order('title', { ascending: true })
 
   return (
-    <div className="max-w-3xl px-4 py-10 space-y-8">
+    <div className="mx-auto max-w-5xl space-y-8 px-4 py-6 sm:px-6 lg:px-8 lg:py-10">
       <div className="flex items-center gap-3">
         <h1 className="font-display text-2xl font-bold text-foreground">Pro membership</h1>
         {isPro && <ProBadge size="md" />}
       </div>
+      <Link href="/pro" className="inline-flex items-center gap-2 text-sm font-semibold text-primary hover:underline">
+        Read the public Pro overview
+        <Icon.arrowRight className="h-4 w-4" weight="bold" />
+      </Link>
 
       {!isPro && (
         <section className="rounded-2xl border border-border bg-card p-6">
           <p className="text-sm text-muted-foreground">
-            You don&apos;t have an active Pro membership. Pro unlocks an expanded gallery, unlimited service
-            listings, profile customisation, Stories publishing, and a custom profile URL. See{' '}
-            <Link href="/provider-dashboard/billing" className="underline hover:text-foreground">billing</Link>{' '}
-            to purchase, or check whether your current package already includes it.
+            You don&apos;t have an active Pro membership. Billing now manages wallet balance, Pro purchase,
+            cancellation, and transaction history in one place.
           </p>
+          <Link
+            href="/provider-dashboard/billing"
+            className="mt-5 inline-flex rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground"
+          >
+            Manage billing and Pro
+          </Link>
         </section>
+      )}
+
+      {profileSaved && (
+        <p className="rounded-lg border border-primary/30 bg-primary/5 px-4 py-3 text-sm font-medium text-primary">
+          Profile customisation saved.
+        </p>
+      )}
+
+      {slugSaved && (
+        <p className="rounded-lg border border-primary/30 bg-primary/5 px-4 py-3 text-sm font-medium text-primary">
+          Profile URL saved.
+        </p>
       )}
 
       {/* ---- pro.profile_customisation ---- */}
@@ -71,6 +117,16 @@ export default async function ProDashboardPage({ searchParams }: ProPageProps) {
           <p className="mt-3 text-sm text-muted-foreground">Requires an active Pro membership.</p>
         ) : (
           <form action={updateProfileCustomisation} className="mt-4 space-y-4">
+            {profileSaved && (
+              <p className="rounded-md border border-primary/30 bg-primary/5 px-3 py-2 text-sm font-medium text-primary">
+                Profile customisation saved.
+              </p>
+            )}
+            {profileError && PROFILE_ERRORS[profileError] && (
+              <p className="rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">
+                {PROFILE_ERRORS[profileError]}
+              </p>
+            )}
             <div>
               <label htmlFor="accentColor" className="text-sm font-medium text-foreground">Accent colour</label>
               <input
@@ -80,6 +136,15 @@ export default async function ProDashboardPage({ searchParams }: ProPageProps) {
                 defaultValue={providerRow?.accent_color ?? '#14684F'}
                 className="mt-1 block h-10 w-20 cursor-pointer rounded-md border border-input"
               />
+            </div>
+            <div>
+              <label className="text-sm font-medium text-foreground">Cover image</label>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Shown across the top of your public provider profile.
+              </p>
+              <div className="mt-2">
+                <ProfileCoverImageUpload currentImage={coverImage} />
+              </div>
             </div>
             <div>
               <label htmlFor="pinnedServiceId" className="text-sm font-medium text-foreground">Pinned service</label>
@@ -120,9 +185,9 @@ export default async function ProDashboardPage({ searchParams }: ProPageProps) {
                 />
               </div>
             </div>
-            <button type="submit" className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground">
-              Save
-            </button>
+            <FormSubmitButton pendingLabel="Saving customisation...">
+              Save customisation
+            </FormSubmitButton>
           </form>
         )}
       </section>

@@ -33,6 +33,7 @@ export function SiteFooter() {
           <ul className="mt-3 space-y-2 text-sm text-primary-foreground/75">
             <li><Link href="/provider-signup" className="hover:text-primary-foreground">List your business</Link></li>
             <li><Link href="/provider-login" className="hover:text-primary-foreground">Provider login</Link></li>
+            <li><Link href="/pro" className="hover:text-primary-foreground">ServicePros Pro</Link></li>
             <li><Link href="/providers/top-rated/cape-town" className="hover:text-primary-foreground">Top rated</Link></li>
             <li><Link href="/why-servicepros" className="hover:text-primary-foreground">Why ServicePros</Link></li>
             <li><Link href="/referral-agents" className="hover:text-primary-foreground">Referral agents</Link></li>

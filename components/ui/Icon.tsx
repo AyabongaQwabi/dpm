@@ -36,6 +36,14 @@ import {
   Buildings,
   GraduationCap,
   Camera,
+  ChartLineUp,
+  ImageSquare,
+  ListChecks,
+  Palette,
+  PaperPlaneTilt,
+  LinkSimple,
+  UsersThree,
+  CaretDown,
 } from "@phosphor-icons/react/ssr";
 import type { IconProps, Icon as PhosphorIcon } from "@phosphor-icons/react";
 
@@ -84,6 +92,14 @@ export const Icon = {
   tech: make(Desktop),
   education: make(GraduationCap),
   media: make(Camera),
+  trendingUp: make(ChartLineUp),
+  image: make(ImageSquare),
+  listChecks: make(ListChecks),
+  palette: make(Palette),
+  send: make(PaperPlaneTilt),
+  link: make(LinkSimple),
+  users: make(UsersThree),
+  chevronDown: make(CaretDown),
 };
 
 // Resolve a brand icon for a provider category by slug (falls back gracefully).

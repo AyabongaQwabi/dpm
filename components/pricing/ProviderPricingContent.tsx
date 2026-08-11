@@ -362,6 +362,13 @@ export function ProviderPricingContent() {
               when you earn. Upgrade to cap your rate, unlock bonuses, and get
               services that help your business grow.
             </p>
+            <Link
+              href="/pro"
+              className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-primary hover:underline"
+            >
+              Compare standalone Pro tools
+              <Icon.arrowRight className="h-4 w-4" weight="bold" />
+            </Link>
           </div>
 
           {/* Grid: 1 col → 2 col → 3 col → 5 col */}

@@ -56,12 +56,9 @@ export const ENTITLEMENT_GRANTS: Record<EntitlementKey, readonly (typeof PRO_MEM
 export const PACKAGE_NUMBERS_INCLUDING_PRO: readonly number[] = proMembershipConfig.packageNumbersIncludingPro
 
 // Pro standalone pricing, in credits (1 credit = R1) — debited from the
-// provider's credit wallet via provider_wallet_spend, never a direct Yoco
+// provider's credit wallet via spend_provider_wallet, never a direct Yoco
 // charge. If the wallet is short, the provider tops up through the existing
-// top-up flow first. Sourced from config/pro-membership.json — also mirrored
-// into platform_config via the seed in
-// supabase/migrations/20260812000000_pro_membership.sql; keep both in sync
-// until that seed reads the JSON directly (see fast-follow list).
+// top-up flow first. Sourced from config/pro-membership.json.
 export const PRO_MEMBERSHIP_CONFIG = {
   monthlyFee: proMembershipConfig.pricing.monthlyFeeCredits,
   annualFee: proMembershipConfig.pricing.annualFeeCredits, // 10 months' worth — 2 months free vs. monthly billing

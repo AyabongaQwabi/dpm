@@ -1,6 +1,14 @@
+'use server'
+
+import { randomUUID } from 'node:crypto'
+import { revalidatePath } from 'next/cache'
+import { redirect } from 'next/navigation'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { requireProviderSession } from '@/lib/session'
 import { membershipGrants, addOneMonth, addOneYear, type ProMembershipRow } from '@/lib/domain/pro-membership'
 import { PACKAGE_NUMBERS_INCLUDING_PRO, PRO_MEMBERSHIP_CONFIG, type EntitlementKey } from '@/lib/entitlements'
+import { getProviderWalletBalance } from '@/lib/actions/provider-wallet'
+import { shortfall } from '@/lib/domain/credits'
 
 /**
  * The only way any code should check Pro status. No component or route
@@ -50,7 +58,7 @@ export async function getProMembership(providerId: string) {
 export async function purchaseProMembership(
   providerId: string,
   billingPeriod: 'monthly' | 'annual',
-): Promise<{ ok: true } | { ok: false; error: string }> {
+): Promise<{ ok: true } | { ok: false; error: string; shortfall?: number; amount?: number }> {
   const admin = createAdminClient()
 
   const { data: provider } = await admin
@@ -76,13 +84,27 @@ export async function purchaseProMembership(
   }
 
   const amount = billingPeriod === 'annual' ? PRO_MEMBERSHIP_CONFIG.annualFee : PRO_MEMBERSHIP_CONFIG.monthlyFee
+  const balance = await getProviderWalletBalance(providerId)
+  if (balance < amount) {
+    return {
+      ok: false,
+      error: 'insufficient_balance',
+      shortfall: shortfall(balance, amount),
+      amount,
+    }
+  }
+
   const now = new Date()
   const periodEnd = billingPeriod === 'annual' ? addOneYear(now) : addOneMonth(now)
+  const membershipId = existing?.id ?? randomUUID()
 
-  const { error: spendError } = await admin.rpc('provider_wallet_spend', {
+  const { error: spendError } = await admin.rpc('spend_provider_wallet', {
     p_provider_id: providerId,
     p_amount: amount,
+    p_reference_type: 'pro_membership',
+    p_reference_id: membershipId,
     p_description: `Pro membership (${billingPeriod})`,
+    p_allow_negative: false,
   })
 
   if (spendError) {
@@ -94,6 +116,7 @@ export async function purchaseProMembership(
   }
 
   const row = {
+    id: membershipId,
     provider_id: providerId,
     status: 'active' as const,
     source: 'purchased' as const,
@@ -111,6 +134,64 @@ export async function purchaseProMembership(
   }
 
   return { ok: true }
+}
+
+export async function purchaseProMembershipAction(formData: FormData) {
+  const { provider } = await requireProviderSession()
+  const billingPeriod = formData.get('billingPeriod') === 'annual' ? 'annual' : 'monthly'
+  const returnTo = formData.get('returnTo') === 'billing' ? 'billing' : 'pro'
+  const result = await purchaseProMembership(provider.id, billingPeriod)
+
+  if (!result.ok) {
+    if (result.error === 'insufficient_balance') {
+      const gap = result.shortfall ?? result.amount ?? 0
+      redirect(`/provider-dashboard/${returnTo}?proError=insufficient_balance&shortfall=${gap}&period=${billingPeriod}`)
+    }
+    redirect(`/provider-dashboard/${returnTo}?proError=${encodeURIComponent(result.error)}`)
+  }
+
+  revalidatePath('/provider-dashboard/pro')
+  revalidatePath('/provider-dashboard/billing')
+  revalidatePath('/provider-dashboard/wallet')
+  redirect(`/provider-dashboard/${returnTo}?pro=activated`)
+}
+
+export async function cancelPurchasedProMembershipAction() {
+  const { provider } = await requireProviderSession()
+  const admin = createAdminClient()
+
+  const { data: membership, error: loadError } = await admin
+    .from('pro_memberships')
+    .select('id, source, status, current_period_end')
+    .eq('provider_id', provider.id)
+    .eq('status', 'active')
+    .maybeSingle()
+
+  if (loadError || !membership) {
+    redirect('/provider-dashboard/billing?proError=no_active_pro')
+  }
+
+  if (membership.source !== 'purchased') {
+    redirect('/provider-dashboard/billing?proError=not_cancellable')
+  }
+
+  const now = new Date().toISOString()
+  const { error } = await admin
+    .from('pro_memberships')
+    .update({
+      cancelled_at: now,
+      notes: `Cancelled by provider on ${now}; entitlements remain active until current_period_end.`,
+    })
+    .eq('id', membership.id)
+
+  if (error) {
+    console.error('cancelPurchasedProMembershipAction:', error.message)
+    redirect('/provider-dashboard/billing?proError=cancel_failed')
+  }
+
+  revalidatePath('/provider-dashboard/billing')
+  revalidatePath('/provider-dashboard/pro')
+  redirect('/provider-dashboard/billing?pro=cancelled')
 }
 
 /**

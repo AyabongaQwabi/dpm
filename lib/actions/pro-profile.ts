@@ -17,6 +17,52 @@ import { ENTITLEMENT_KEYS } from '@/lib/entitlements'
 import { isReservedSlug, isValidCustomSlugFormat } from '@/lib/domain/slug'
 
 const ACCENT_COLOR_PATTERN = /^#[0-9a-fA-F]{6}$/
+const PROFILE_COVER_FIELD_KEY = 'profile_cover_image'
+
+async function upsertProfileCoverFieldValue(admin: ReturnType<typeof createAdminClient>, providerId: string, coverImage: string | null) {
+  const { data: existingField, error: fieldReadError } = await admin
+    .from('fields')
+    .select('id')
+    .eq('key', PROFILE_COVER_FIELD_KEY)
+    .maybeSingle()
+
+  if (fieldReadError) throw fieldReadError
+
+  let fieldId = existingField?.id as string | undefined
+  if (!fieldId) {
+    const { data: insertedField, error: insertFieldError } = await admin
+      .from('fields')
+      .insert({
+        key: PROFILE_COVER_FIELD_KEY,
+        label: 'Profile cover image',
+        input_type: 'image_upload',
+        options: null,
+        validator_config: null,
+      })
+      .select('id')
+      .single()
+
+    if (insertFieldError) throw insertFieldError
+    fieldId = insertedField.id
+  }
+
+  if (!coverImage) {
+    const { error: deleteError } = await admin
+      .from('provider_field_values')
+      .delete()
+      .eq('provider_id', providerId)
+      .eq('field_id', fieldId)
+
+    if (deleteError) throw deleteError
+    return
+  }
+
+  const { error: upsertError } = await admin
+    .from('provider_field_values')
+    .upsert({ provider_id: providerId, field_id: fieldId, value: coverImage }, { onConflict: 'provider_id,field_id' })
+
+  if (upsertError) throw upsertError
+}
 
 // ---- pro.profile_customisation ----
 
@@ -30,6 +76,16 @@ export async function updateProfileCustomisation(formData: FormData) {
 
   const accentColorRaw = (formData.get('accentColor') as string ?? '').trim()
   const accentColor = accentColorRaw && ACCENT_COLOR_PATTERN.test(accentColorRaw) ? accentColorRaw : null
+  const coverImageRaw = (formData.get('coverImage') as string ?? '').trim()
+  let coverImage: string | null = null
+  if (coverImageRaw) {
+    try {
+      const url = new URL(coverImageRaw)
+      if (url.protocol === 'https:' || url.protocol === 'http:') coverImage = url.toString()
+    } catch {
+      // invalid URL — drop it rather than save garbage
+    }
+  }
 
   const pinnedServiceId = (formData.get('pinnedServiceId') as string ?? '').trim() || null
   if (pinnedServiceId) {
@@ -41,7 +97,7 @@ export async function updateProfileCustomisation(formData: FormData) {
       .maybeSingle()
     if (!service) {
       revalidatePath('/provider-dashboard/pro')
-      return
+      redirect('/provider-dashboard/pro?profileError=service')
     }
   }
 
@@ -57,18 +113,62 @@ export async function updateProfileCustomisation(formData: FormData) {
     }
   }
 
-  await admin
+  const updatePayload = {
+    accent_color: accentColor,
+    cover_image: coverImage,
+    pinned_service_id: pinnedServiceId,
+    cta_label: ctaLabel,
+    cta_target_url: ctaTargetUrl,
+  }
+
+  const { error: updateError } = await admin
     .from('providers')
-    .update({
-      accent_color: accentColor,
-      pinned_service_id: pinnedServiceId,
-      cta_label: ctaLabel,
-      cta_target_url: ctaTargetUrl,
-    })
+    .update(updatePayload)
     .eq('id', provider.id)
+
+  if (updateError) {
+    const message = updateError.message.toLowerCase()
+    if (message.includes('cover_image')) {
+      console.error('updateProfileCustomisation providers.cover_image unavailable:', updateError.message)
+      try {
+        await upsertProfileCoverFieldValue(admin, provider.id, coverImage)
+      } catch (fallbackError) {
+        console.error('updateProfileCustomisation cover fallback:', fallbackError)
+        redirect('/provider-dashboard/pro?profileError=cover_save_failed')
+      }
+    } else {
+      console.error('updateProfileCustomisation:', updateError.message)
+      redirect('/provider-dashboard/pro?profileError=save_failed')
+    }
+    await admin
+      .from('providers')
+      .update({
+        accent_color: accentColor,
+        pinned_service_id: pinnedServiceId,
+        cta_label: ctaLabel,
+        cta_target_url: ctaTargetUrl,
+      })
+      .eq('id', provider.id)
+  } else {
+    try {
+      await upsertProfileCoverFieldValue(admin, provider.id, coverImage)
+    } catch (fallbackError) {
+      // The providers.cover_image column is the authoritative store when
+      // available, so a fallback sync failure should not block a successful save.
+      console.error('updateProfileCustomisation cover fallback sync:', fallbackError)
+    }
+  }
+
+  const { data: providerRow } = await admin
+    .from('providers')
+    .select('slug')
+    .eq('id', provider.id)
+    .maybeSingle()
 
   revalidatePath('/provider-dashboard/pro')
   revalidatePath(`/providers/${provider.id}`)
+  if (providerRow?.slug) revalidatePath(`/providers/${providerRow.slug}`)
+  redirect('/provider-dashboard/pro?profileSaved=1')
 }
 
 // ---- pro.custom_slug ----
@@ -98,7 +198,7 @@ export async function updateCustomSlug(formData: FormData) {
   const currentSlug = currentRow?.slug ?? null
   if (currentSlug === requested) {
     revalidatePath('/provider-dashboard/pro')
-    return
+    redirect('/provider-dashboard/pro?slugSaved=1')
   }
 
   // Uniqueness: not any provider's current slug, and not any provider's
@@ -133,4 +233,5 @@ export async function updateCustomSlug(formData: FormData) {
   revalidatePath('/provider-dashboard/pro')
   if (currentSlug) revalidatePath(`/providers/${currentSlug}`)
   revalidatePath(`/providers/${requested}`)
+  redirect('/provider-dashboard/pro?slugSaved=1')
 }
