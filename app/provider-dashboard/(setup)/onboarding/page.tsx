@@ -33,6 +33,8 @@ import { FaqsField } from '@/components/provider-dashboard/FaqsField'
 import { ExternalLinksField } from '@/components/provider-dashboard/ExternalLinksField'
 import { SocialLinksField } from '@/components/provider-dashboard/SocialLinksField'
 import { Icon } from '@/components/ui/Icon'
+import { hasEntitlement } from '@/lib/actions/pro-membership'
+import { ENTITLEMENT_KEYS, FREE_TIER_GALLERY_IMAGE_CAP, PRO_GALLERY_IMAGE_CAP } from '@/lib/entitlements'
 
 interface OnboardingPageProps {
   searchParams: Promise<{ step?: string; error?: string; claimed?: string }>
@@ -165,6 +167,9 @@ export default async function OnboardingPage({ searchParams }: OnboardingPagePro
   if (!provider) {
     return <TypeSelectionView error={params.error} />
   }
+
+  const galleryExpanded = await hasEntitlement(provider.id, ENTITLEMENT_KEYS.GALLERY_EXPANDED)
+  const galleryImageCap = galleryExpanded ? PRO_GALLERY_IMAGE_CAP : FREE_TIER_GALLERY_IMAGE_CAP
 
   // ── Mode B: multi-step form ──
   const providerType = Array.isArray(provider.provider_types)
@@ -507,6 +512,7 @@ export default async function OnboardingPage({ searchParams }: OnboardingPagePro
                             validatorConfig: field.validator_config as Record<string, unknown> | null,
                           }}
                           value={providerColumnValueByKey.has(field.key) ? providerColumnValueByKey.get(field.key) : valueMap.get(field.id)}
+                          galleryImageCap={galleryImageCap}
                         />
                       )
                     })}
@@ -560,6 +566,7 @@ export default async function OnboardingPage({ searchParams }: OnboardingPagePro
 function FieldInput({
   field,
   value,
+  galleryImageCap,
 }: {
   field: {
     id: string
@@ -571,6 +578,7 @@ function FieldInput({
     validatorConfig: Record<string, unknown> | null
   }
   value: unknown
+  galleryImageCap: number
 }) {
   const strVal = value != null ? String(value) : ''
   const arrVal: string[] = Array.isArray(value) ? (value as string[]) : []
@@ -783,6 +791,7 @@ function FieldInput({
           label={field.label}
           isRequired={field.isRequired}
           savedUrls={savedUrls}
+          imageCap={galleryImageCap}
         />
       )
     }

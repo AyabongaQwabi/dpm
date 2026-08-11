@@ -3,7 +3,7 @@ import Link from 'next/link'
 import { JsonLd } from '@/components/seo/JsonLd'
 import { Icon } from '@/components/ui/Icon'
 import { TIER_META, type VerificationTier } from '@/components/ui/VerifiedBadge'
-import { GUIDE_LAST_REVIEWED } from '@/lib/policy-content'
+import { VERIFICATION_LAST_REVIEWED } from '@/lib/policy-content'
 import { breadcrumbJsonLd, canonicalAlternates, defaultOpenGraph, defaultTwitter, imageObjectJsonLd, PAGE_OG_IMAGES } from '@/lib/seo'
 
 export const metadata: Metadata = {
@@ -73,6 +73,7 @@ export default function VerificationPage() {
         <nav aria-label="Jump to section" className="mt-6 flex flex-wrap gap-x-6 gap-y-2 text-sm font-medium text-primary-accent">
           <a href="#badge-order" className="hover:underline">Badge order</a>
           <a href="#badges" className="hover:underline">Badge details</a>
+          <a href="#pro-membership" className="hover:underline">Pro membership</a>
           <a href="#how-to-verify" className="hover:underline">How to get verified</a>
           <a href="#guarantees" className="hover:underline">What it guarantees</a>
         </nav>
@@ -128,6 +129,25 @@ export default function VerificationPage() {
         })}
       </section>
 
+      <section id="pro-membership" className="mt-12 scroll-mt-24 rounded-[2rem] border border-amber-500/20 bg-amber-500/5 p-8">
+        <div className="flex flex-wrap items-center gap-3">
+          <span
+            className="inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold"
+            style={{ backgroundColor: '#C8A44D26', color: '#C8A44D' }}
+          >
+            <Icon.sparkle className="h-4 w-4" weight="fill" />
+            Pro
+          </span>
+          <p className="text-sm font-semibold text-foreground">Not a verification badge</p>
+        </div>
+        <p className="mt-4 text-sm leading-7 text-muted-foreground">
+          Pro is a paid ServicePros membership. It shows a provider has invested in extra tools on the platform — expanded galleries, profile customisation, analytics, and similar features. It does not confirm anything about the business itself, and it carries none of the weight of the four badges above: it isn&apos;t checked against contact details, a business registration, or an identity document.
+        </p>
+        <p className="mt-4 text-sm leading-7 text-muted-foreground">
+          A Pro badge never replaces a verification badge on a listing — the two are shown side by side. Pro membership also has no effect on search ranking or where a provider appears in results; it only unlocks account features.
+        </p>
+      </section>
+
       <section className="mt-12 rounded-[2rem] border border-slate-200/10 bg-muted/30 p-8">
         <div className="flex items-center gap-3 text-sm font-semibold text-muted-foreground">
           <Icon.shield className="h-4 w-4" />
@@ -170,7 +190,7 @@ export default function VerificationPage() {
       </section>
 
       <p className="mt-8 text-xs text-muted-foreground">
-        Reviewed by the ServicePros marketplace team. Last updated: {GUIDE_LAST_REVIEWED}.
+        Reviewed by the ServicePros marketplace team. Last updated: {VERIFICATION_LAST_REVIEWED}.
       </p>
     </main>
   )

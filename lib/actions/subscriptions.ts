@@ -1,6 +1,8 @@
 import { createAdminClient } from '@/lib/supabase/admin'
 import { addOneMonth, buildBaseSubscriptionRow } from '@/lib/domain/subscriptions'
 import { getPackage } from '@/lib/pricing-config'
+import { grantPackageIncludedPro, lapsePackageIncludedPro } from '@/lib/actions/pro-membership'
+import { PACKAGE_NUMBERS_INCLUDING_PRO } from '@/lib/entitlements'
 
 export async function ensureBaseSubscription(providerId: string): Promise<void> {
   const admin = createAdminClient()
@@ -117,6 +119,14 @@ export async function applyProviderSubscriptionUpgrade(
   }
 
   await admin.from('providers').update({ is_published: true }).eq('id', providerId)
+
+  // Packages 2-5 include Pro automatically; downgrading to base (1) lapses a
+  // package_included membership without charging the provider (A.3).
+  if (PACKAGE_NUMBERS_INCLUDING_PRO.includes(pkg.packageNumber)) {
+    await grantPackageIncludedPro(providerId, pkg.packageNumber)
+  } else {
+    await lapsePackageIncludedPro(providerId)
+  }
 
   return { applied: true, alreadyApplied: false }
 }

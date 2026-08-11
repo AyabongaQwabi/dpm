@@ -10,6 +10,8 @@ import {
   evaluatePublishEligibility,
 } from '@/lib/domain/onboarding'
 import { generateProviderSlug } from '@/lib/domain/slug'
+import { hasEntitlement } from '@/lib/actions/pro-membership'
+import { ENTITLEMENT_KEYS, FREE_TIER_GALLERY_IMAGE_CAP, PRO_GALLERY_IMAGE_CAP } from '@/lib/entitlements'
 
 async function getAuthUserId(): Promise<string> {
   const supabase = await createClient()
@@ -129,6 +131,12 @@ export async function saveOnboardingStep(formData: FormData) {
   // provider_field_values. The completion evaluator reads them via providerColumnValues.
   const PROVIDER_COLUMN_KEYS = new Set(['business_name', 'bio', 'profile_image', 'location_city'])
 
+  // Gallery cap: free tier is capped, pro.gallery_expanded raises it (Batch B).
+  // Checked once here rather than per-field since only one field key ('gallery')
+  // can trip it.
+  const galleryExpanded = await hasEntitlement(provider.id, ENTITLEMENT_KEYS.GALLERY_EXPANDED)
+  const galleryCap = galleryExpanded ? PRO_GALLERY_IMAGE_CAP : FREE_TIER_GALLERY_IMAGE_CAP
+
   // Build upsert rows — skip provider-column fields, they go to providerColumnUpdate.
   const upsertRows = fcfRows
     .map((fcf) => {
@@ -145,7 +153,14 @@ export async function saveOnboardingStep(formData: FormData) {
             : field.input_type === 'multi_select' || field.input_type === 'tag_picker'
               ? formData.getAll(field.key)
               : field.key === 'gallery'
-                ? (() => { try { const p = JSON.parse(String(rawValue)); return Array.isArray(p) ? p : [] } catch { return [] } })()
+                ? (() => {
+                    try {
+                      const p = JSON.parse(String(rawValue))
+                      return Array.isArray(p) ? p.slice(0, galleryCap) : []
+                    } catch {
+                      return []
+                    }
+                  })()
                 : String(rawValue)
       return { provider_id: provider.id, field_id: fcf.field_id, value }
     })

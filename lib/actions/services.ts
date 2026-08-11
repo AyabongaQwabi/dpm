@@ -6,6 +6,8 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { requireProviderSession } from '@/lib/session'
 import type { DiscountType, ServiceType } from '@/lib/db'
+import { hasEntitlement } from '@/lib/actions/pro-membership'
+import { ENTITLEMENT_KEYS, FREE_TIER_SERVICE_LISTING_CAP } from '@/lib/entitlements'
 
 // ---- Service CRUD ----
 
@@ -18,6 +20,19 @@ export async function createService(formData: FormData) {
   if (!title || !description) return
 
   const admin = createAdminClient()
+
+  const unlimited = await hasEntitlement(provider.id, ENTITLEMENT_KEYS.LISTINGS_UNLIMITED)
+  if (!unlimited) {
+    const { count } = await admin
+      .from('services')
+      .select('id', { count: 'exact', head: true })
+      .eq('provider_id', provider.id)
+
+    if ((count ?? 0) >= FREE_TIER_SERVICE_LISTING_CAP) {
+      redirect('/provider-dashboard/services?limit=1')
+    }
+  }
+
   const { data: service } = await admin
     .from('services')
     .insert({

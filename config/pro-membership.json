@@ -1,0 +1,13 @@
+{
+  "pricing": {
+    "monthlyFeeCredits": 199,
+    "annualFeeCredits": 1990,
+    "currency": "credits (1 credit = R1), debited from the provider credit wallet"
+  },
+  "packageNumbersIncludingPro": [2, 3, 4, 5],
+  "caps": {
+    "freeTierGalleryImages": 8,
+    "proGalleryImages": 30,
+    "freeTierServiceListings": 5
+  }
+}

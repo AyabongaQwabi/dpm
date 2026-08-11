@@ -14,6 +14,14 @@ export type ProviderPayoutStatus = 'pending' | 'processing' | 'paid'
 export type ClaimStatus = 'unclaimed' | 'claim_pending' | 'claimed'
 export type ProfileClaimStatus = 'pending' | 'verified' | 'expired' | 'rejected'
 export type ProviderSubscriptionStatus = 'active' | 'expired' | 'cancelled'
+export type ProMembershipStatus = 'active' | 'lapsed' | 'cancelled'
+export type ProMembershipSource = 'purchased' | 'package_included' | 'granted'
+export type FeatureRequestSubmitterRole = 'customer' | 'provider' | 'agent' | 'other'
+export type FeatureRequestArea = 'search' | 'profile' | 'payments' | 'messaging' | 'reviews' | 'mobile' | 'other'
+export type FeatureRequestStatus = 'new' | 'triaged' | 'planned' | 'in_progress' | 'shipped' | 'declined'
+export type SponsoredPlacementType = 'category_city_feature' | 'floating_box' | 'search_top_slot'
+export type SponsoredPlacementSource = 'purchased' | 'rescue_grant'
+export type SponsoredPlacementStatus = 'active' | 'paused' | 'expired' | 'cancelled'
 export type InputType =
   | 'short_text'
   | 'rich_text'
@@ -105,9 +113,20 @@ export interface Provider {
   verified_cipc: boolean
   verified_fica: boolean
   verified_google: boolean
-  verified_badge_paid: boolean
+  credit_balance: number
+  accent_color: string | null
+  pinned_service_id: string | null
+  cta_label: string | null
+  cta_target_url: string | null
   created_at: string
   updated_at: string
+}
+
+export interface ProviderSlugHistory {
+  id: string
+  provider_id: string
+  slug: string
+  created_at: string
 }
 
 export interface ProviderFieldValue {
@@ -140,6 +159,46 @@ export interface ProviderSubscription {
   last_reminder_sent_at: string | null
   last_renewal_yoco_ref: string | null
   created_at: string
+}
+
+export interface ProviderCreditTransaction {
+  id: string
+  provider_id: string
+  type: CreditTransactionType
+  amount: number
+  description: string
+  yoco_ref: string | null
+  created_at: string
+}
+
+export interface ProMembership {
+  id: string
+  provider_id: string
+  status: ProMembershipStatus
+  source: ProMembershipSource
+  started_at: string
+  current_period_end: string | null
+  cancelled_at: string | null
+  notes: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface SponsoredPlacement {
+  id: string
+  provider_id: string
+  placement_type: SponsoredPlacementType
+  category_id: string | null
+  city: string | null
+  starts_at: string
+  ends_at: string
+  source: SponsoredPlacementSource
+  price_paid: number | null
+  status: SponsoredPlacementStatus
+  paused_at: string | null
+  credited_seconds: number
+  created_at: string
+  updated_at: string
 }
 
 export interface Service {
@@ -194,6 +253,24 @@ export interface Message {
   actor: MessageActor
   body: string
   created_at: string
+}
+
+export interface FeatureRequest {
+  id: string
+  created_at: string
+  user_id: string | null
+  name: string
+  email: string
+  submitter_role: FeatureRequestSubmitterRole
+  area: FeatureRequestArea
+  title: string
+  description: string
+  status: FeatureRequestStatus
+  admin_notes: string | null
+  vote_count: number
+  source_path: string | null
+  user_agent: string | null
+  ip_hash: string | null
 }
 
 export interface Tag {
@@ -290,6 +367,7 @@ export interface ContentPost {
   provider_id: string
   image_url: string | null
   body: string | null
+  body_json: unknown | null
   post_type: string
   is_seed: boolean
   created_at: string

@@ -1,6 +1,7 @@
 'use client'
 
 import { useRef, useState } from 'react'
+import { MAX_UPLOAD_FILE_SIZE_MB } from '@/lib/platform-config'
 import { uploadProviderAsset } from '@/lib/actions/upload'
 
 interface GalleryImage {
@@ -17,9 +18,11 @@ interface Props {
   label: string
   isRequired: boolean
   savedUrls: string[]
+  /** Max images this provider can upload — free-tier or pro.gallery_expanded cap, resolved by the caller via hasEntitlement(). */
+  imageCap: number
 }
 
-export function GalleryUploadField({ fieldKey, label, isRequired, savedUrls }: Props) {
+export function GalleryUploadField({ fieldKey, label, isRequired, savedUrls, imageCap }: Props) {
   const inputRef = useRef<HTMLInputElement>(null)
   const [images, setImages] = useState<GalleryImage[]>(
     savedUrls.map((url) => ({ url, status: 'done', progress: 100, preview: url, name: url.split('/').pop() ?? '' }))
@@ -60,8 +63,19 @@ export function GalleryUploadField({ fieldKey, label, isRequired, savedUrls }: P
     // Reset input so the same files can be re-selected after an error
     e.target.value = ''
 
+    const remaining = imageCap - images.length
+    const accepted = files.slice(0, Math.max(0, remaining))
+
+    if (accepted.length < files.length) {
+      // Silently truncating would look like a bug — surface it inline instead.
+      window.alert(
+        `You can upload up to ${imageCap} images${remaining > 0 ? ` — ${files.length - accepted.length} file(s) were not added` : ''}. Upgrade to Pro for a larger gallery.`,
+      )
+    }
+    if (!accepted.length) return
+
     const startIndex = images.length
-    const newImages: GalleryImage[] = files.map((file) => ({
+    const newImages: GalleryImage[] = accepted.map((file) => ({
       url: '',
       status: 'uploading',
       progress: 10,
@@ -196,7 +210,7 @@ export function GalleryUploadField({ fieldKey, label, isRequired, savedUrls }: P
           aria-label={label}
         />
         <p className="mt-1 text-xs text-muted-foreground">
-          JPEG, PNG, WebP, AVIF, GIF · up to 10 MB each · select multiple at once
+          JPEG, PNG, WebP, AVIF, GIF · up to {MAX_UPLOAD_FILE_SIZE_MB} MB each · select multiple at once
         </p>
         <p className="mt-1 text-xs text-muted-foreground">
           Real photos of finished work perform better than stock images or watermarked photos.

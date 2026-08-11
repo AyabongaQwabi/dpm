@@ -1,0 +1,99 @@
+# Claude Code — Batch A: Pro membership badge (post-Step-0 build spec)
+
+Step 0 is accepted. This supersedes Batch A in `docs/prompts/2026-08-11-pro-membership.md` where the two differ, because it is written against what you actually found.
+
+---
+
+## Decisions on your flags
+
+1. **`paid_placements`** — before anything else, run:
+   `select count(*) as total, count(*) filter (where active_until > now()) as live from paid_placements;`
+   Report the result and stop. If total is 0, `paid_placements`, `applyBoost()` and its call site in `lib/domain/ranking.ts` get deleted in Batch C. If there are live rows, they are honoured to `active_until`, new inserts are blocked, and the code is removed after the last expires. It is not extended either way. A hidden score multiplier cannot coexist with labelled sponsored slots on the same page.
+2. **Wallet identity** — `credit_wallet_spend` takes `p_customer_id`, and `credit_balance` sits on `customers`. That is a customer-side construct for bookings. **Do not reuse it for Pro.** Providers pay through a provider-side path — see A.3.
+3. **`providers.verified_badge_paid`** — check for any read or write of this column. If unused, drop it in this batch's migration. If used, report where before touching it. Pro state lives in `pro_memberships` only, and no Pro field carries a `verified_` prefix.
+4. **Badge visual** — keep the existing pill. Differentiate by colour, icon and label, not shape. Details in A.4.
+5. **Hardcoded rands in `ProviderPricingContent.tsx`** — out of scope. Add to a follow-up list, do not fix here.
+
+---
+
+## A.1 `pro_memberships`
+
+Mirror the shape of `provider_subscriptions` (`…20260705000000_scraped_claims_billing.sql`) so the two read consistently — same timestamp naming, same status vocabulary where it applies.
+
+| column | type | notes |
+|---|---|---|
+| `id` | uuid | pk |
+| `provider_id` | uuid | FK providers, not null |
+| `status` | text + check | `active`, `lapsed`, `cancelled` — matches `provider_subscriptions`' vocabulary, minus `expired` |
+| `source` | text + check | `purchased`, `package_included`, `granted` |
+| `started_at` | timestamptz | not null |
+| `current_period_end` | timestamptz | not null |
+| `cancelled_at` | timestamptz | nullable |
+| `price_paid` | numeric | nullable — null for `package_included` and `granted` |
+| `yoco_ref` | text | nullable, follows the `yoco_ref` naming already established in `…20260804000000_yoco_payments.sql` |
+| `notes` | text | nullable |
+| `created_at` / `updated_at` | timestamptz | repo convention |
+
+Partial unique index enforcing **one active row per provider**, exactly as `provider_subscriptions` does.
+
+RLS following the pattern of `provider_subscriptions`: a provider reads their own row, writes are service-role only.
+
+## A.2 Entitlements
+
+- Config map in `lib/pricing-config.ts` alongside `PACKAGES`: entitlement key → the set of sources that grant it. Mirror it into `PLATFORM_CONFIG_SEED` if that is how `lib/domain/payments.ts` expects to read runtime values — follow the existing pattern, do not invent a second one.
+- One server-side helper, `hasEntitlement(providerId, key)`, in `lib/domain/`. It is the only way anything checks Pro. No component queries `pro_memberships` directly.
+- Batch B consumes only this helper.
+
+## A.3 Purchase
+
+**Gate:** `providers.verified_contact === true`. That is the only requirement. Enforce server-side in the purchase action, not just in the UI.
+
+**Payment path:** a Yoco checkout for the Pro amount via `lib/payments/yoco.ts`, activated by the existing webhook at `app/api/webhooks/yoco/route.ts`. The membership row is created or extended **only on confirmed webhook receipt**, never optimistically on redirect. Store the `yoco_ref` for reconciliation.
+
+**Isolation rule stands:** the purchase *action* must not import Yoco. It calls an internal `chargeProvider`-style function; only that function knows the provider exists. This is what keeps the future PayFast/Paystack switch a one-file change — and `…20260804000000_yoco_payments.sql` already shows the rename pattern works.
+
+**Price:** config only, in `lib/pricing-config.ts`. Proposed R249/month and R2,490/year — **leave these as `TODO(aya): confirm` and refuse to sell until set.**
+
+**Packages 2–5 include Pro** at `source = package_included`, `price_paid = null`. Derive this from `PACKAGES`, do not hardcode the package numbers. On downgrade to Package 1, the membership goes `lapsed` and the provider is offered standalone purchase — never charged silently.
+
+**Lapse:** status `lapsed` drops every entitlement immediately. The badge must not render for a lapsed or cancelled membership.
+
+## A.4 Display
+
+New component `components/ui/ProBadge.tsx`. **Do not extend `VerifiedBadge.tsx`, do not add a tier to `TIER_META`, and do not touch `latestTier()`.** Keeping these files separate is the point — it is what stops Pro reading as a fifth verification tier.
+
+- Same pill geometry (`rounded-full`), same Phosphor icon convention, so it sits naturally beside a verification badge.
+- Gold `#C8A44D`, distinct from every colour in `TIER_META`. Add it as a named token if the Tailwind config has one; report if it does not.
+- Label reads **Pro**. Icon should not be a check, shield, seal or anything else in the verification vocabulary — a star or lightning mark is fine. Show me your choice.
+- Tooltip copy: draft it, show me, do not ship unreviewed. It must state that this is a paid ServicePros Pro membership and that it is not a verification badge.
+- Renders **alongside** the strongest verification badge, never instead of it.
+- **No ranking effect anywhere.** You confirmed `ranking.ts` and `search.ts` have zero membership references — keep it that way, and confirm in your report that nothing you added changes it.
+
+## A.5 `/verification` page
+
+Add a short section to `app/(public)/verification/page.tsx`, placed **after** the four badge explainers and visually separated from them, saying plainly what Pro is and that it proves payment rather than a checked fact. Draft the copy for review. Update the page's `Last updated` date.
+
+## A.6 Tests
+
+Vitest, matching existing conventions:
+
+- Purchase blocked when `verified_contact` is false.
+- Membership created only on webhook confirmation, not on redirect.
+- Partial unique index rejects a second active row.
+- Package 2–5 provider gets `package_included` and is never charged.
+- Downgrade to Package 1 sets `lapsed`.
+- `hasEntitlement` returns false for `lapsed` and `cancelled`.
+- Ranking output is byte-identical for a Pro and a non-Pro provider with the same profile.
+
+## Acceptance criteria
+
+- [ ] `paid_placements` count reported before any other work.
+- [ ] Migration applies and rolls back cleanly.
+- [ ] `verified_badge_paid` dropped, or its usage reported.
+- [ ] No Yoco import outside the payments layer.
+- [ ] No rand literal anywhere in the new code.
+- [ ] `VerifiedBadge.tsx` unchanged.
+- [ ] All copy drafted for review, none shipped unreviewed.
+- [ ] Tests, typecheck and lint pass.
+
+Stop and report at the end of Batch A. Do not start Batch B.

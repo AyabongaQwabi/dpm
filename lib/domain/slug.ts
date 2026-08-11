@@ -32,6 +32,32 @@ function isGenericSlug(slug: string): boolean {
   return GENERIC_SLUG_SUFFIXES.has(last) || parts.length <= 2
 }
 
+// Reserved — a custom slug matching one of these would be shadowed by (or
+// shadow) a real route under /providers/, since the profile route is
+// /providers/[slug] and these are sibling static segments.
+const RESERVED_SLUGS = new Set([
+  'category',
+  'in',
+  'top-rated',
+  'service',
+  'new',
+  'edit',
+  'settings',
+  'admin',
+  'api',
+])
+
+export function isReservedSlug(slug: string): boolean {
+  return RESERVED_SLUGS.has(slug.toLowerCase())
+}
+
+const CUSTOM_SLUG_PATTERN = /^[a-z0-9]+(-[a-z0-9]+)*$/
+
+/** Format/length validation only — uniqueness and reserved-word checks happen server-side. */
+export function isValidCustomSlugFormat(slug: string): boolean {
+  return slug.length >= 3 && slug.length <= 60 && CUSTOM_SLUG_PATTERN.test(slug)
+}
+
 export interface GenerateProviderSlugInput {
   businessName: string
   city?: string | null
