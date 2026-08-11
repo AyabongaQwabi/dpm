@@ -16,12 +16,15 @@ export type ProfileClaimStatus = 'pending' | 'verified' | 'expired' | 'rejected'
 export type ProviderSubscriptionStatus = 'active' | 'expired' | 'cancelled'
 export type ProMembershipStatus = 'active' | 'lapsed' | 'cancelled'
 export type ProMembershipSource = 'purchased' | 'package_included' | 'granted'
+export type ProviderCreditTransactionType = 'topup' | 'debit' | 'refund' | 'adjustment'
 export type FeatureRequestSubmitterRole = 'customer' | 'provider' | 'agent' | 'other'
 export type FeatureRequestArea = 'search' | 'profile' | 'payments' | 'messaging' | 'reviews' | 'mobile' | 'other'
 export type FeatureRequestStatus = 'new' | 'triaged' | 'planned' | 'in_progress' | 'shipped' | 'declined'
 export type SponsoredPlacementType = 'category_city_feature' | 'floating_box' | 'search_top_slot'
 export type SponsoredPlacementSource = 'purchased' | 'rescue_grant'
 export type SponsoredPlacementStatus = 'active' | 'paused' | 'expired' | 'cancelled'
+export type NurtureEmailAudience = 'provider' | 'customer'
+export type NurtureEmailStatus = 'queued' | 'sending' | 'sent' | 'skipped' | 'failed'
 export type InputType =
   | 'short_text'
   | 'rich_text'
@@ -113,8 +116,8 @@ export interface Provider {
   verified_cipc: boolean
   verified_fica: boolean
   verified_google: boolean
-  credit_balance: number
   accent_color: string | null
+  cover_image: string | null
   pinned_service_id: string | null
   cta_label: string | null
   cta_target_url: string | null
@@ -164,11 +167,20 @@ export interface ProviderSubscription {
 export interface ProviderCreditTransaction {
   id: string
   provider_id: string
-  type: CreditTransactionType
+  type: ProviderCreditTransactionType
   amount: number
-  description: string
+  balance_after: number
+  reference_type: string
+  reference_id: string | null
   yoco_ref: string | null
+  notes: string | null
   created_at: string
+}
+
+export interface ProviderCreditWallet {
+  provider_id: string
+  balance: number
+  updated_at: string
 }
 
 export interface ProMembership {
@@ -197,6 +209,26 @@ export interface SponsoredPlacement {
   status: SponsoredPlacementStatus
   paused_at: string | null
   credited_seconds: number
+  created_at: string
+  updated_at: string
+}
+
+export interface NurtureEmailQueue {
+  id: string
+  audience: NurtureEmailAudience
+  recipient_id: string
+  to_email: string
+  recipient_name: string | null
+  sequence_key: string
+  step_key: string
+  step_index: number
+  scheduled_for: string
+  status: NurtureEmailStatus
+  attempts: number
+  sent_at: string | null
+  last_error: string | null
+  idempotency_key: string
+  metadata: Record<string, unknown>
   created_at: string
   updated_at: string
 }

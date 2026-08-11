@@ -1,0 +1,58 @@
+{
+  "profileImage": {
+    "label": "Profile logo or avatar",
+    "recommendedSize": "800 x 800 px",
+    "aspectRatio": "1:1",
+    "usage": "Provider logo/avatar on provider profiles, cards, dashboards, messages, and bookings.",
+    "guidance": "Use a square logo or clear headshot. Keep important text or marks centered."
+  },
+  "profileCover": {
+    "label": "Profile cover image",
+    "recommendedSize": "2400 x 900 px",
+    "aspectRatio": "8:3",
+    "usage": "Wide Pro cover image at the top of provider profiles.",
+    "guidance": "Use a wide brand or work image. Keep important details near the center because mobile crops the sides."
+  },
+  "serviceImage": {
+    "label": "Service image",
+    "recommendedSize": "1600 x 1000 px",
+    "aspectRatio": "8:5",
+    "usage": "Service cards on provider profiles and service detail pages.",
+    "guidance": "Use a real photo of the finished work, team, or outcome. Avoid text-heavy posters."
+  },
+  "galleryImage": {
+    "label": "Gallery image",
+    "recommendedSize": "1200 x 1200 px",
+    "aspectRatio": "1:1",
+    "usage": "Provider profile gallery grid.",
+    "guidance": "Square images display most predictably in the profile gallery."
+  },
+  "portfolioImage": {
+    "label": "Portfolio image",
+    "recommendedSize": "1600 x 1000 px",
+    "aspectRatio": "8:5",
+    "usage": "Portfolio project cards on provider profiles.",
+    "guidance": "Use a clear project/result image with the subject centered."
+  },
+  "postImage": {
+    "label": "Post image",
+    "recommendedSize": "1600 x 900 px",
+    "aspectRatio": "16:9",
+    "usage": "Provider posts in the public feed, provider profile posts, and post detail pages.",
+    "guidance": "Landscape images work best for posts and feed cards."
+  },
+  "storyImage": {
+    "label": "Story image",
+    "recommendedSize": "1080 x 1920 px",
+    "aspectRatio": "9:16",
+    "usage": "Provider story cards, story tray previews, and full-screen story viewer.",
+    "guidance": "Use portrait images. If you upload a poster or landscape image, ServicePros fits the full image inside the story box with a blurred backdrop."
+  },
+  "articleImage": {
+    "label": "Article image",
+    "recommendedSize": "1600 x 900 px",
+    "aspectRatio": "16:9",
+    "usage": "Images embedded inside service articles.",
+    "guidance": "Use wide explanatory images that support the article."
+  }
+}

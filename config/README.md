@@ -57,6 +57,24 @@ Public feature-request page configuration for `/feature-requests`.
 
 Imported by `lib/feature-requests-config.ts`, then used by the form, server action, pure validation helpers, and tests.
 
+## `image-upload-guidelines.json`
+
+Recommended dimensions and aspect ratios for provider-uploaded images.
+
+- `profileImage`: square provider logo/avatar guidance for profile headers, cards, dashboards, messages, and bookings.
+- `profileCover`: wide Pro profile cover guidance for the public provider profile hero.
+- `serviceImage`: service card/detail image guidance.
+- `galleryImage`: square profile gallery grid guidance.
+- `portfolioImage`: portfolio project card image guidance.
+- `postImage`: provider post/feed image guidance.
+- `storyImage`: portrait story guidance for story trays and full-screen story viewers.
+- `articleImage`: embedded service article image guidance.
+- Each entry includes `label`, `recommendedSize`, `aspectRatio`, `usage`, and `guidance`.
+
+Imported by `lib/image-upload-guidelines.ts`, then used by provider dashboard upload controls and composer copy. It does not enforce validation; it gives providers upfront sizing guidance so uploaded images fit their profile and card surfaces predictably.
+
+No database mirror.
+
 ## `platform-config.json`
 
 JSON-backed replacement for the old `platform_config` database table.
@@ -94,6 +112,20 @@ Imported by `lib/entitlements.ts`, then used by Pro purchase, package-included P
 
 Mirrors the Pro membership migration’s intended commercial values; keep migration comments/seeds aligned if that migration changes.
 
+## `provider-wallet.json`
+
+Provider credit-wallet top-up configuration.
+
+- `topUpPresets`: quick top-up amounts shown on `/provider-dashboard/wallet`.
+- `minTopUpCredits`: minimum custom provider wallet top-up.
+- `maxTopUpCredits`: maximum single provider wallet top-up.
+- `currency`: payment currency used by the Yoco top-up checkout.
+- `creditValue`: explanatory copy for the provider wallet exchange rate.
+
+Imported by `lib/provider-wallet-config.ts`, then used by the provider wallet dashboard page and provider wallet top-up API route.
+
+Mirrors the provider wallet migration convention that 1 provider credit equals R1. It does not mirror database seed rows.
+
 ## `publishing-limits.json`
 
 Provider posts and stories limits. Publishing is free for all providers; Pro only raises caps.
@@ -102,10 +134,14 @@ Provider posts and stories limits. Publishing is free for all providers; Pro onl
 - `free.storiesLiveAtOnce`: free-tier live story cap.
 - `free.imagesPerPost`: free-tier media cap per post/story.
 - `free.bodyMaxChars`: free-tier body text cap.
+- `free.storyTextMaxChars`: free-tier text-only story cap.
+- `free.storyCaptionMaxChars`: free-tier story caption cap when an image is attached.
 - `pro.postsPerMonth`: Pro monthly post cap.
 - `pro.storiesLiveAtOnce`: Pro live story cap.
 - `pro.imagesPerPost`: Pro media cap per post/story.
 - `pro.bodyMaxChars`: Pro body text cap.
+- `pro.storyTextMaxChars`: Pro text-only story cap.
+- `pro.storyCaptionMaxChars`: Pro story caption cap when an image is attached.
 - `storyLifetimeHours`: how long a published story stays live.
 - `expiredStoryMediaRetentionDays`: how long expired story media should be retained before any future purge.
 
@@ -120,6 +156,10 @@ Sponsored placement pricing and eligibility controls.
 - `pricing[].placementType`: sponsored inventory type.
 - `pricing[].priceRands`: flat price for the placement; `null` means not available for purchase.
 - `pricing[].billingUnit`: billing unit for the flat price.
+- `visibleSlots`: how many sponsored items are visible at once per placement surface.
+- `slotInventoryPerScope`: how many active reservations can exist per placement/scope before reserve rules block paid purchase.
+- `floatingBoxDismissalHours`: how long a visitor dismissal hides the floating sponsored box in that browser.
+- `rotationWindowHours`: how often active sponsored reservations rotate through visible slots.
 - `rescueGrantReservePct`: percent of slot inventory reserved for non-sellable rescue grants.
 - `densityCapPerTen`: max sponsored slots per ten organic results.
 - `minRatingThreshold`: minimum average rating for sponsored placement eligibility.
@@ -127,3 +167,34 @@ Sponsored placement pricing and eligibility controls.
 Imported by `lib/sponsored-config.ts`, then used by sponsored placement purchase, rendering, and eligibility checks.
 
 Should mirror sponsored placement migration comments/schema assumptions. Sponsored placement must never affect organic ranking.
+
+## `service-package-rules.json`
+
+Validation and display guidance for service pricing packages.
+
+- `title.minChars`: shortest accepted package name.
+- `title.maxChars`: longest accepted package name.
+- `title.maxWords`: maximum word count for package names, keeping public selectors readable.
+- `title.allowedPattern`: server/client validation pattern for package names.
+- `title.guidance`: provider-facing helper copy in package forms.
+- `offerings.maxItems`: maximum included-items stored from package forms.
+- `offerings.maxItemChars`: max stored length for each included item.
+
+Imported by `lib/service-package-rules.ts`, then used by `lib/actions/services.ts` and `components/provider-dashboard/PackageFormClient.tsx`.
+
+No database mirror. This is application validation and UI guidance for package creation/editing.
+
+## `nurture-emails.json`
+
+New provider and customer onboarding email sequence configuration.
+
+- `batchSize`: max due queued emails the daily cron processes in one run; kept small for Vercel Hobby function duration.
+- `maxAttempts`: retry ceiling before a queued email is marked failed.
+- `provider.sequenceKey` / `customer.sequenceKey`: versioned sequence identifiers used in queue idempotency keys.
+- `steps[].stepKey`: stable step identifier.
+- `steps[].offsetDays`: day offset from enrollment; designed for once-daily Vercel Hobby cron precision.
+- `steps[].subject`, `heading`, `body`, `bullets`, `ctaLabel`, `ctaPath`: email copy and CTA destination.
+
+Imported by `lib/nurture-emails-config.ts`, then used by `lib/actions/nurture-emails.ts`.
+
+Delivery state lives in `nurture_email_queue`; the config owns sequence copy and timing. Signup hooks enqueue the full sequence once, then send the day-0 welcome immediately. `/api/cron/nurture-emails` drains later due rows once per day.

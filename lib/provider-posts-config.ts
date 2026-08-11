@@ -15,6 +15,8 @@ export interface PublishingLimits {
   storiesLiveAtOnce: number
   imagesPerPost: number
   bodyMaxChars: number
+  storyTextMaxChars: number
+  storyCaptionMaxChars: number
 }
 
 export const FREE_TIER_PUBLISHING_LIMITS: PublishingLimits = publishingLimitsConfig.free

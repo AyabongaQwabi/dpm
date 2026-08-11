@@ -1,0 +1,7 @@
+{
+  "topUpPresets": [100, 300, 500, 1000],
+  "minTopUpCredits": 50,
+  "maxTopUpCredits": 10000,
+  "currency": "ZAR",
+  "creditValue": "1 provider credit = R1"
+}

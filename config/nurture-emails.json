@@ -1,0 +1,174 @@
+{
+  "batchSize": 40,
+  "maxAttempts": 5,
+  "provider": {
+    "sequenceKey": "provider_onboarding_v1",
+    "steps": [
+      {
+        "stepKey": "welcome",
+        "offsetDays": 0,
+        "subject": "Welcome to ServicePros. Let's get your business ready.",
+        "heading": "Welcome to ServicePros",
+        "body": "Your provider account is ready. Start with the basics so customers can understand what you offer and where you work.",
+        "bullets": ["Choose your category", "Add your business details", "Create your first service listing"],
+        "ctaLabel": "Complete Your Profile",
+        "ctaPath": "/provider-dashboard/onboarding"
+      },
+      {
+        "stepKey": "contact_verification",
+        "offsetDays": 1,
+        "subject": "Verify your contact details so customers can trust your profile",
+        "heading": "Confirm your contact details",
+        "body": "Contact verification is free and takes a few minutes. It also unlocks Pro and sponsored placement purchase eligibility.",
+        "bullets": ["Confirm your account email", "Keep your trust signals clear", "Use Billing and Pro when you are ready"],
+        "ctaLabel": "Verify Contact Details",
+        "ctaPath": "/provider-dashboard/verification"
+      },
+      {
+        "stepKey": "profile_quality",
+        "offsetDays": 3,
+        "subject": "Small profile updates that make your business easier to choose",
+        "heading": "Make your profile easier to compare",
+        "body": "Customers scan profiles quickly. Clear copy, real images, and specific services help them decide whether you are the right fit.",
+        "bullets": ["Write a short business bio", "Add useful service details", "Upload profile and gallery images"],
+        "ctaLabel": "Improve Your Profile",
+        "ctaPath": "/provider-dashboard/onboarding"
+      },
+      {
+        "stepKey": "services",
+        "offsetDays": 5,
+        "subject": "Show customers exactly what they can book",
+        "heading": "Add services customers can understand",
+        "body": "Service listings work best when each offer has a clear title, price, description, and image.",
+        "bullets": ["Name each service clearly", "Explain what is included", "Keep pricing easy to understand"],
+        "ctaLabel": "Add Services",
+        "ctaPath": "/provider-dashboard/services"
+      },
+      {
+        "stepKey": "posts",
+        "offsetDays": 7,
+        "subject": "Keep your profile active with posts and stories",
+        "heading": "Share recent work from your dashboard",
+        "body": "Posts and stories give customers fresh context when they visit your profile.",
+        "bullets": ["Share recent work", "Post availability updates", "Use stories for short-lived updates"],
+        "ctaLabel": "Create a Post",
+        "ctaPath": "/provider-dashboard/posts"
+      },
+      {
+        "stepKey": "billing_wallet",
+        "offsetDays": 10,
+        "subject": "Your provider wallet: how credits work",
+        "heading": "Understand your provider wallet",
+        "body": "Billing keeps your wallet, Pro membership, plan, and transaction history in one place.",
+        "bullets": ["View your wallet balance", "Top up when needed", "Download transaction history"],
+        "ctaLabel": "View Billing",
+        "ctaPath": "/provider-dashboard/billing"
+      },
+      {
+        "stepKey": "pro",
+        "offsetDays": 14,
+        "subject": "What ServicePros Pro unlocks, and what it does not",
+        "heading": "Learn what Pro is for",
+        "body": "Pro unlocks provider tools. It is not a verification badge, and it does not change organic ranking.",
+        "bullets": ["Expanded gallery", "Custom profile tools", "Raised publishing limits"],
+        "ctaLabel": "View Pro",
+        "ctaPath": "/pro"
+      },
+      {
+        "stepKey": "sponsored",
+        "offsetDays": 21,
+        "subject": "How sponsored placements work on ServicePros",
+        "heading": "Reserve labelled placement time",
+        "body": "Sponsored placements are flat-rate, time-boxed slots. They are labelled clearly and never reorder organic results.",
+        "bullets": ["No bidding", "No per-lead pricing", "Wallet-backed purchase"],
+        "ctaLabel": "View Sponsored Placements",
+        "ctaPath": "/provider-dashboard/sponsored"
+      }
+    ]
+  },
+  "customer": {
+    "sequenceKey": "customer_onboarding_v1",
+    "steps": [
+      {
+        "stepKey": "welcome",
+        "offsetDays": 0,
+        "subject": "Welcome to ServicePros. Find the right provider faster.",
+        "heading": "Welcome to ServicePros",
+        "body": "Your account is ready. You can search by category, city, provider name, or service.",
+        "bullets": ["Browse real provider profiles", "Compare reviews and services", "Save time with clear filters"],
+        "ctaLabel": "Search Providers",
+        "ctaPath": "/search"
+      },
+      {
+        "stepKey": "verification",
+        "offsetDays": 1,
+        "subject": "What provider verification means on ServicePros",
+        "heading": "Know what each badge means",
+        "body": "Verification badges explain what has been checked, from basic contact confirmation to business or identity checks.",
+        "bullets": ["Contact verification", "Google listing signals", "CIPC and FICA checks when available"],
+        "ctaLabel": "Read About Verification",
+        "ctaPath": "/verification"
+      },
+      {
+        "stepKey": "credits",
+        "offsetDays": 3,
+        "subject": "How ServicePros credits help you book services",
+        "heading": "Understand your credits",
+        "body": "Credits are your customer wallet balance. You top up once, then use credits when booking services.",
+        "bullets": ["View your balance", "Top up securely", "Track booking payments"],
+        "ctaLabel": "View Credits",
+        "ctaPath": "/customer-account/credits"
+      },
+      {
+        "stepKey": "compare",
+        "offsetDays": 5,
+        "subject": "A simple way to compare service providers",
+        "heading": "Compare before you choose",
+        "body": "Provider profiles bring together services, prices, reviews, location, and verification signals.",
+        "bullets": ["Check service details", "Read reviews", "Look for relevant verification"],
+        "ctaLabel": "Browse Providers",
+        "ctaPath": "/search"
+      },
+      {
+        "stepKey": "first_booking",
+        "offsetDays": 7,
+        "subject": "Ready to contact a provider?",
+        "heading": "Find a provider for the job",
+        "body": "When you are ready, open a provider profile and choose the service that fits what you need.",
+        "bullets": ["Search by category or city", "Open a provider profile", "Start from the service listing"],
+        "ctaLabel": "Find a Provider",
+        "ctaPath": "/search"
+      },
+      {
+        "stepKey": "trust_safety",
+        "offsetDays": 10,
+        "subject": "Before you book: what to check on a provider profile",
+        "heading": "Book with clearer context",
+        "body": "A good profile should help you understand the provider before you commit.",
+        "bullets": ["Review verification badges", "Compare service descriptions", "Check recent work and ratings"],
+        "ctaLabel": "Search Verified Providers",
+        "ctaPath": "/search"
+      },
+      {
+        "stepKey": "local_recommendations",
+        "offsetDays": 14,
+        "subject": "Popular services near you",
+        "heading": "Explore local providers",
+        "body": "Browse providers by city and category when you want a quicker starting point.",
+        "bullets": ["Find nearby services", "Compare profile details", "Shortlist providers that fit"],
+        "ctaLabel": "Explore Local Providers",
+        "ctaPath": "/search"
+      },
+      {
+        "stepKey": "reactivation",
+        "offsetDays": 21,
+        "subject": "Still looking for help with a service?",
+        "heading": "Pick up where you left off",
+        "body": "Your account is ready whenever you need a local provider.",
+        "bullets": ["Search again", "Compare a few profiles", "Book when you are ready"],
+        "ctaLabel": "Continue Searching",
+        "ctaPath": "/search"
+      }
+    ]
+  }
+}

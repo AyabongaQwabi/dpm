@@ -1,9 +1,21 @@
 {
   "pricing": [
     { "placementType": "category_city_feature", "priceRands": 74, "billingUnit": "week" },
-    { "placementType": "floating_box", "priceRands": null, "billingUnit": "month" },
+    { "placementType": "floating_box", "priceRands": 99, "billingUnit": "month" },
     { "placementType": "search_top_slot", "priceRands": 149, "billingUnit": "month" }
   ],
+  "visibleSlots": {
+    "category_city_feature": 1,
+    "floating_box": 1,
+    "search_top_slot": 1
+  },
+  "slotInventoryPerScope": {
+    "category_city_feature": 10,
+    "floating_box": 10,
+    "search_top_slot": 10
+  },
+  "floatingBoxDismissalHours": 24,
+  "rotationWindowHours": 1,
   "rescueGrantReservePct": 30,
   "densityCapPerTen": 1,
   "minRatingThreshold": 3.5

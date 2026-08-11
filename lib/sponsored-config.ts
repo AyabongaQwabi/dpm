@@ -7,10 +7,10 @@
  * does NOT mirror anything in the platform_config DB table — there is no
  * corresponding entry there; the JSON file is the only source of truth.
  *
- * floating_box pricing is deliberately null. C.3 open questions (box count,
- * rotation method, dismissibility, screen placement) are still unanswered
- * — see SPONSORED_OPEN_QUESTIONS. category_city_feature and search_top_slot
- * pricing is confirmed (not a placeholder).
+ * Open-question decisions now live here too: one visible slot per placement
+ * surface, hourly deterministic rotation, one-day visitor dismissal for the
+ * floating box, and a 10-reservation inventory pool per scope so the 30%
+ * rescue reserve does not make a one-visible-slot surface unsellable.
  */
 
 import sponsoredConfig from '@/config/sponsored-placements.json'
@@ -44,27 +44,20 @@ export function isSponsoredPlacementPurchasable(placementType: SponsoredPlacemen
 export const SPONSORED_RESCUE_GRANT_RESERVE_PCT = sponsoredConfig.rescueGrantReservePct
 export const SPONSORED_DENSITY_CAP_PER_TEN = sponsoredConfig.densityCapPerTen
 export const SPONSORED_MIN_RATING_THRESHOLD = sponsoredConfig.minRatingThreshold
+export const SPONSORED_VISIBLE_SLOTS: Record<SponsoredPlacementType, number> = sponsoredConfig.visibleSlots
+export const SPONSORED_SLOT_INVENTORY_PER_SCOPE: Record<SponsoredPlacementType, number> =
+  sponsoredConfig.slotInventoryPerScope
+export const SPONSORED_FLOATING_BOX_DISMISSAL_HOURS = sponsoredConfig.floatingBoxDismissalHours
+export const SPONSORED_ROTATION_WINDOW_HOURS = sponsoredConfig.rotationWindowHours
 
 /**
- * C.3 open questions — not answered by the prior lifecycle spec, and not
- * guessed at here. Each of these gates a piece of floating_box behavior
- * that isn't built until answered:
- *
- * 1. How many sponsored providers appear at once in the floating box?
- * 2. Rotation method — random, round-robin, or weighted?
- * 3. Can a visitor dismiss the floating box, and does the dismissal persist?
- * 4. Where on screen does it sit, and what happens on mobile?
- * 5. Pricing for floating_box specifically (category_city_feature and
- *    search_top_slot pricing is confirmed — see config/sponsored-placements.json).
- *
- * The floating_box UI component is intentionally NOT built in this batch —
- * see the Batch C report. category_city_feature and search_top_slot don't
- * depend on these open questions and are built.
+ * C.3 open-question answers, kept as data so product decisions are visible
+ * and testable instead of buried in component copy.
  */
-export const SPONSORED_OPEN_QUESTIONS = [
-  'floating_box: concurrent slot count',
-  'floating_box: rotation method',
-  'floating_box: dismissibility + persistence',
-  'floating_box: screen placement + mobile behavior',
-  'floating_box: pricing',
-] as const
+export const SPONSORED_FLOATING_BOX_DECISIONS = {
+  visibleProviders: sponsoredConfig.visibleSlots.floating_box,
+  rotation: 'deterministic_hourly',
+  dismissal: 'visitor_can_dismiss_for_current_day',
+  placement: 'bottom_right_desktop_bottom_sheet_mobile',
+  priceSource: 'config/sponsored-placements.json',
+} as const

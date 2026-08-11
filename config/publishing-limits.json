@@ -3,13 +3,17 @@
     "postsPerMonth": 2,
     "storiesLiveAtOnce": 1,
     "imagesPerPost": 1,
-    "bodyMaxChars": 1500
+    "bodyMaxChars": 1500,
+    "storyTextMaxChars": 280,
+    "storyCaptionMaxChars": 120
   },
   "pro": {
     "postsPerMonth": 20,
     "storiesLiveAtOnce": 5,
     "imagesPerPost": 10,
-    "bodyMaxChars": 5000
+    "bodyMaxChars": 5000,
+    "storyTextMaxChars": 280,
+    "storyCaptionMaxChars": 120
   },
   "storyLifetimeHours": 24,
   "expiredStoryMediaRetentionDays": 30

@@ -1,0 +1,13 @@
+{
+  "title": {
+    "minChars": 2,
+    "maxChars": 42,
+    "maxWords": 5,
+    "allowedPattern": "^[A-Za-z0-9][A-Za-z0-9 &+/'().,-]*$",
+    "guidance": "Use a short customer-facing package name, ideally 1-4 words, such as Business Website or Monthly Support."
+  },
+  "offerings": {
+    "maxItems": 18,
+    "maxItemChars": 120
+  }
+}
