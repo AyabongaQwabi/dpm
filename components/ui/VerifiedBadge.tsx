@@ -25,7 +25,7 @@ const TIER_META: Record<
   contact: {
     label: 'Contact verified',
     short: 'Contact',
-    description: 'Cell number and email address confirmed.',
+    description: 'Account email address confirmed.',
     icon: Icon.chat,
     className: 'bg-primary/10 text-primary',
   },
@@ -88,7 +88,7 @@ const CARD_BADGE: Record<
   contact: {
     icon: Icon.chat,
     className: 'bg-primary/10 text-primary',
-    tooltip: 'Contact verified — we confirmed this provider’s cell number and email address before listing them.',
+    tooltip: 'Contact verified — we confirmed this provider’s account email address.',
   },
   google: {
     icon: Icon.pin,

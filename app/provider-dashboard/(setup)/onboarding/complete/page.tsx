@@ -38,6 +38,10 @@ export default async function OnboardingCompletePage({ searchParams }: Onboardin
         <p className="mt-3 text-muted-foreground">
           Payment received — you&apos;re on the <strong>{selectedPlan.name} Plan</strong> (R{selectedPlan.monthlyFee}/month).
         </p>
+      ) : isPaidCheckoutReturn ? (
+        <p className="mt-3 text-muted-foreground">
+          Confirming your payment for the <strong>{selectedPlan.name} Plan</strong> (R{selectedPlan.monthlyFee}/month) — this page will update automatically once it&apos;s through.
+        </p>
       ) : (
         <p className="mt-3 text-muted-foreground">
           You&apos;re on the <strong>{basePlan.name} Plan</strong> (R{basePlan.monthlyFee}/month).

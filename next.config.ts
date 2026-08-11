@@ -13,6 +13,14 @@ const securityHeaders = [
 ]
 
 const nextConfig: NextConfig = {
+  experimental: {
+    serverActions: {
+      // Matches the 10MB cap enforced in lib/actions/upload.ts — the
+      // Next.js default of 1MB was silently truncating larger image/gallery
+      // uploads mid-request (they'd stall around 80% and 500).
+      bodySizeLimit: '12mb',
+    },
+  },
   images: {
     remotePatterns: [
       {

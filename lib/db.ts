@@ -100,6 +100,12 @@ export interface Provider {
   portfolio: { title: string; description: string; image_url: string }[]
   onboarding_step: number
   is_published: boolean
+  business_type: 'entrepreneur' | 'co_op' | 'company' | 'non_profit' | null
+  verified_contact: boolean
+  verified_cipc: boolean
+  verified_fica: boolean
+  verified_google: boolean
+  verified_badge_paid: boolean
   created_at: string
   updated_at: string
 }

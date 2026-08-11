@@ -58,6 +58,27 @@ export async function sendClaimVerificationEmail({
   })
 }
 
+export async function sendContactVerificationEmail({
+  to,
+  code,
+  businessName,
+}: {
+  to: string
+  code: string
+  businessName: string
+}) {
+  return sendEmail({
+    to,
+    subject: 'Confirm your ServicePros contact email',
+    html: `
+      <p>Confirm the contact email for <strong>${businessName}</strong> on ServicePros.</p>
+      <p>Your verification code is:</p>
+      <p style="font-size:24px;font-weight:bold;letter-spacing:4px">${code}</p>
+      <p>Enter this code on your dashboard's verification page. This code expires in 24 hours.</p>
+    `,
+  })
+}
+
 export async function sendSubscriptionExpiryEmail({
   to,
   businessName,

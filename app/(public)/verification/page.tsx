@@ -30,10 +30,10 @@ const TIER_ORDER: VerificationTier[] = ['fica', 'cipc', 'google', 'contact']
 
 const TIER_DETAIL: Record<
   VerificationTier,
-  { submitted: string; customerCanRely: string }
+  { submitted: string; customerCanRely: string; comingSoon?: boolean }
 > = {
   contact: {
-    submitted: 'Confirmed their cell number and email address.',
+    submitted: 'Confirmed their account email address via a one-time code.',
     customerCanRely: 'This provider is reachable at the contact details on their profile.',
   },
   google: {
@@ -43,10 +43,12 @@ const TIER_DETAIL: Record<
   cipc: {
     submitted: 'Verified their registered CIPC business details.',
     customerCanRely: 'This provider is registered with the Companies and Intellectual Property Commission (CIPC) as a real business.',
+    comingSoon: true,
   },
   fica: {
     submitted: 'Submitted FICA documents — a valid ID and proof of address.',
     customerCanRely: 'This provider’s identity and address have been checked against FICA requirements.',
+    comingSoon: true,
   },
 }
 
@@ -97,8 +99,20 @@ export default function VerificationPage() {
                   <Glyph className="h-4 w-4" weight="fill" />
                   {meta.label}
                 </span>
+                {detail.comingSoon && (
+                  <span className="inline-flex items-center rounded-full bg-amber-500/10 px-3 py-1 text-xs font-semibold text-amber-700 dark:text-amber-300">
+                    Coming soon
+                  </span>
+                )}
                 <p className="text-sm text-muted-foreground">{meta.description}</p>
               </div>
+              {detail.comingSoon && (
+                <p className="mt-3 text-sm leading-7 text-muted-foreground">
+                  We&apos;re building an in-dashboard submission and review flow for this badge. In the meantime,{' '}
+                  <Link href="/contact" className="text-primary hover:underline">contact support</Link>{' '}
+                  if you&apos;d like to start the process early.
+                </p>
+              )}
               <div className="mt-6 grid gap-6 sm:grid-cols-2">
                 <div>
                   <dt className="text-sm font-medium text-foreground">What the provider submitted</dt>
@@ -128,7 +142,7 @@ export default function VerificationPage() {
         <h2 className="text-2xl font-semibold tracking-tight">How providers get verified</h2>
         <div className="mt-6 space-y-4 text-sm leading-7 text-muted-foreground">
           <p>
-            Contact, CIPC and FICA verification are managed from the provider dashboard. Contact verification confirms the provider&apos;s phone number and email. CIPC verification checks registered business details. FICA verification validates identity and proof of address.
+            Contact verification is self-service from the provider dashboard — we send a code to the provider&apos;s account email to confirm it&apos;s live. CIPC and FICA verification (registered business details, and identity plus proof of address) are reviewed by the ServicePros team; providers can currently start these by contacting support, with an in-dashboard submission flow coming soon.
           </p>
           <p>
             Google verification is added automatically when ServicePros matches a profile to an existing Google Places business listing. Providers do not apply for Google verification directly on our platform.
