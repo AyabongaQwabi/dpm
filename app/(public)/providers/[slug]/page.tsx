@@ -9,16 +9,19 @@ import {
   Languages,
   Star,
   Briefcase,
-  MessageSquare,
   FileText,
   Image as ImageIcon,
   ChevronRight,
 } from 'lucide-react'
-import { ServiceCard } from '@/components/ServiceCard'
 import { Avatar } from '@/components/ui/Avatar'
-import { BadgeList } from '@/components/ui/badge'
 import { StarRating } from '@/components/ui/StarRating'
 import { GoogleRatingBadge } from '@/components/ui/GoogleRatingBadge'
+import {
+  ProviderVerificationBadge,
+  VerifiedBadgeRow,
+  type BusinessType,
+  type VerificationState,
+} from '@/components/ui/VerifiedBadge'
 import { ViewOnGoogleButton } from '@/components/providers/ViewOnGoogleButton'
 import { RecommendedServices } from '@/components/home/RecommendedServices'
 import type { DiscountType } from '@/lib/db'
@@ -34,6 +37,7 @@ import {
 import { JsonLd } from '@/components/seo/JsonLd'
 import { UnclaimedProfileBanner } from '@/components/providers/UnclaimedProfileBanner'
 import { StoriesStrip } from '@/components/providers/StoriesStrip'
+import { ProviderTagScroller } from '@/components/providers/ProviderTagScroller'
 
 const RECOMMENDATION_DEFAULTS: Record<string, number> = {
   min_reviews_for_recommendation: 5,
@@ -87,9 +91,18 @@ async function getProvider(slug: string) {
       google_place_id,
       google_rating,
       google_rating_count,
+      business_type,
+      verified_contact,
+      verified_cipc,
+      verified_fica,
+      verified_google,
+      accent_color,
+      pinned_service_id,
+      cta_label,
+      cta_target_url,
       provider_types!inner(name, slug, provider_categories(name, slug)),
       provider_tags(tag:tags(name)),
-      services(id, title, description, image, is_published, service_type,
+      services:services!services_provider_id_fkey(id, title, description, image, is_published, service_type,
         service_packages(id, name, price, discount_type, discount_amount, is_default, delivery_time, display_order)),
       reviews(id, rating, comment, created_at, package_id,
         customer:customers(name),
@@ -133,6 +146,29 @@ const SOCIAL_ICONS: Record<string, string> = {
   whatsapp: 'M17.498 14.382c-.301-.15-1.767-.867-2.04-.966-.273-.101-.473-.15-.673.15-.197.295-.771.964-.944 1.162-.175.195-.349.21-.646.075-.3-.15-1.263-.465-2.403-1.485-.888-.795-1.484-1.77-1.66-2.07-.174-.3-.019-.465.13-.615.136-.135.301-.345.451-.523.146-.181.194-.301.297-.496.1-.21.049-.375-.025-.524-.075-.15-.672-1.62-.922-2.206-.24-.584-.487-.51-.672-.51-.172-.015-.371-.015-.571-.015-.2 0-.523.074-.797.359-.273.3-1.045 1.02-1.045 2.475s1.07 2.865 1.219 3.075c.149.195 2.105 3.195 5.1 4.485.714.3 1.27.48 1.704.629.714.227 1.365.195 1.88.121.574-.091 1.767-.721 2.016-1.426.255-.705.255-1.29.18-1.425-.074-.135-.27-.21-.57-.345z M12 2a10 10 0 1 0 0 20A10 10 0 0 0 12 2z',
 }
 
+function tagNamesFromValue(value: unknown): string[] {
+  if (Array.isArray(value)) {
+    return value
+      .flatMap((item) => {
+        if (typeof item === 'string') return item
+        if (item && typeof item === 'object' && 'name' in item) return String((item as { name: unknown }).name)
+        return []
+      })
+      .filter((tag) => tag.trim().length > 0)
+  }
+  if (typeof value === 'string') {
+    try {
+      return tagNamesFromValue(JSON.parse(value))
+    } catch {
+      return value
+        .split(',')
+        .map((tag) => tag.trim())
+        .filter(Boolean)
+    }
+  }
+  return []
+}
+
 export default async function ProviderProfilePage({ params }: ProfilePageProps) {
   const { slug } = await params
   const supabase = await createClient()
@@ -153,6 +189,11 @@ export default async function ProviderProfilePage({ params }: ProfilePageProps) 
   }
 
   const { data: configRows } = await supabase.from('platform_config').select('key, value')
+  const { data: coverRow } = await supabase
+    .from('providers')
+    .select('cover_image')
+    .eq('id', provider.id)
+    .maybeSingle()
   const config = new InMemoryConfigStore({
     ...RECOMMENDATION_DEFAULTS,
     ...Object.fromEntries((configRows ?? []).map((r) => [r.key, r.value])),
@@ -172,6 +213,11 @@ export default async function ProviderProfilePage({ params }: ProfilePageProps) 
     value: unknown
     field: { key: string }[] | { key: string } | null
   }[]
+  const fieldTags = fieldValues.flatMap((fv) => {
+    const f = first(fv.field)
+    return f?.key === 'tags' || f?.key === 'f-tags' ? tagNamesFromValue(fv.value) : []
+  })
+  const displayTags = [...new Set([...tags, ...fieldTags])]
   const galleryFieldValue = fieldValues.find((fv) => {
     const f = first(fv.field)
     return f?.key === 'gallery'
@@ -229,6 +275,28 @@ export default async function ProviderProfilePage({ params }: ProfilePageProps) 
     }[]
   }[]
   const publishedServices = services.filter((s) => s.is_published)
+  const pinnedServiceId = (provider.pinned_service_id as string | null) ?? null
+  const pinnedService = pinnedServiceId
+    ? publishedServices.find((service) => service.id === pinnedServiceId) ?? null
+    : null
+  const displayServices = pinnedService
+    ? [pinnedService, ...publishedServices.filter((service) => service.id !== pinnedService.id)]
+    : publishedServices
+  const accentColorRaw = (provider.accent_color as string | null) ?? null
+  const accentColor = accentColorRaw && /^#[0-9a-fA-F]{6}$/.test(accentColorRaw) ? accentColorRaw : null
+  const coverFieldValue = fieldValues.find((fv) => first(fv.field)?.key === 'profile_cover_image')?.value
+  const coverImage = ((coverRow as { cover_image?: string | null } | null)?.cover_image as string | null)
+    ?? (typeof coverFieldValue === 'string' ? coverFieldValue : null)
+  const ctaLabel = ((provider.cta_label as string | null) ?? '').trim()
+  const ctaTargetUrl = ((provider.cta_target_url as string | null) ?? '').trim()
+  const hasCustomCta = ctaLabel.length > 0 && ctaTargetUrl.length > 0
+  const verification: VerificationState = {
+    contact: Boolean(provider.verified_contact),
+    google: Boolean(provider.verified_google),
+    cipc: Boolean(provider.verified_cipc),
+    fica: Boolean(provider.verified_fica),
+  }
+  const hasVerificationBadge = Object.values(verification).some(Boolean)
   const allContentPosts = (provider.content_posts ?? []) as {
     id: string
     title: string | null
@@ -314,10 +382,21 @@ export default async function ProviderProfilePage({ params }: ProfilePageProps) 
       />
       {/* ── Hero / Header ──────────────────────────────────────────────── */}
       <section className="relative border-b bg-muted/30 overflow-hidden">
+        {coverImage && (
+          <>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={coverImage} alt="" className="absolute inset-0 h-full w-full object-cover" />
+            <div className="absolute inset-0 bg-background/70 backdrop-blur-[1px]" aria-hidden="true" />
+          </>
+        )}
         {/* Craft pattern accent bar */}
-        <div className="craft-rule w-full" aria-hidden="true" />
+        <div
+          className="craft-rule w-full"
+          style={accentColor ? { background: accentColor } : undefined}
+          aria-hidden="true"
+        />
 
-        <div className="mx-auto max-w-7xl px-4 py-10">
+        <div className="relative z-10 mx-auto max-w-7xl px-4 py-10">
           {isClaimable && (
             <div className="mb-6">
               <UnclaimedProfileBanner
@@ -337,12 +416,12 @@ export default async function ProviderProfilePage({ params }: ProfilePageProps) 
                   shape="rounded"
                   className="h-28 w-28 ring-4 ring-background shadow-lg"
                 />
-                {provider.profile_image && (
-                  <span className="absolute -bottom-1 -right-1 h-5 w-5 rounded-full bg-primary border-2 border-background" aria-hidden="true" />
-                )}
               </div>
               <div className="min-w-0">
-                <p className="text-xs font-semibold uppercase tracking-widest text-primary-accent mb-1">
+                <p
+                  className="text-xs font-semibold uppercase tracking-widest text-primary-accent mb-1"
+                  style={accentColor ? { color: accentColor } : undefined}
+                >
                   {category?.name ?? providerType?.name}
                 </p>
                 <h1 className="font-display text-3xl sm:text-4xl font-bold tracking-tight text-foreground leading-tight">
@@ -353,6 +432,16 @@ export default async function ProviderProfilePage({ params }: ProfilePageProps) 
                     Unverified listing
                   </span>
                 )}
+                <div className="mt-3 flex flex-wrap items-center gap-2">
+                  {hasVerificationBadge ? (
+                    <VerifiedBadgeRow state={verification} size="sm" />
+                  ) : (
+                    <ProviderVerificationBadge
+                      state={verification}
+                      businessType={(provider.business_type as BusinessType) ?? null}
+                    />
+                  )}
+                </div>
                 <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-muted-foreground">
                   {providerType?.name && (
                     <span className="inline-flex items-center gap-1.5">
@@ -382,11 +471,7 @@ export default async function ProviderProfilePage({ params }: ProfilePageProps) 
                     />
                   )}
                 </div>
-                {tags.length > 0 && (
-                  <div className="mt-4">
-                    <BadgeList tags={tags} max={tags.length} />
-                  </div>
-                )}
+                <ProviderTagScroller tags={displayTags} />
                 {socialLinks.length > 0 && (
                   <div className="mt-4 flex items-center gap-2 flex-wrap">
                     {socialLinks.map((link, i) => {
@@ -443,15 +528,33 @@ export default async function ProviderProfilePage({ params }: ProfilePageProps) 
                   'Chat opens in your dashboard',
                 ].map((step, i) => (
                   <li key={i} className="flex items-center gap-3 text-sm">
-                    <span className="flex-shrink-0 h-6 w-6 rounded-full bg-primary-accent/15 border border-primary-accent/30 flex items-center justify-center text-xs font-bold text-primary-accent">{i + 1}</span>
+                    <span
+                      className="flex-shrink-0 h-6 w-6 rounded-full bg-primary-accent/15 border border-primary-accent/30 flex items-center justify-center text-xs font-bold text-primary-accent"
+                      style={accentColor ? { borderColor: `${accentColor}55`, color: accentColor } : undefined}
+                    >
+                      {i + 1}
+                    </span>
                     <span className="text-muted-foreground">{step}</span>
                   </li>
                 ))}
               </ol>
+              {hasCustomCta && (
+                <a
+                  href={ctaTargetUrl}
+                  target="_blank"
+                  rel="noreferrer noopener"
+                  className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-[var(--radius)] bg-primary-accent px-4 py-3 text-sm font-semibold text-primary-accent-foreground hover:opacity-90 transition-opacity cursor-pointer focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                  style={accentColor ? { backgroundColor: accentColor, color: '#fff' } : undefined}
+                >
+                  <ExternalLink className="h-4 w-4" />
+                  {ctaLabel}
+                </a>
+              )}
               {!isClaimable ? (
                 <Link
                   href={services.length ? '#services' : `/sign-in?next=/providers/${profilePath}`}
-                  className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-[var(--radius)] bg-primary-accent px-4 py-3 text-sm font-semibold text-primary-accent-foreground hover:opacity-90 transition-opacity cursor-pointer focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                  className={`${hasCustomCta ? 'mt-3 border border-border bg-card text-foreground hover:bg-muted/50' : 'mt-5 bg-primary-accent text-primary-accent-foreground'} inline-flex w-full items-center justify-center gap-2 rounded-[var(--radius)] px-4 py-3 text-sm font-semibold transition-opacity cursor-pointer focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2`}
+                  style={!hasCustomCta && accentColor ? { backgroundColor: accentColor, color: '#fff' } : undefined}
                 >
                   <CalendarDays className="h-4 w-4" />
                   Request a service
@@ -630,12 +733,17 @@ export default async function ProviderProfilePage({ params }: ProfilePageProps) 
               </div>
             </div>
             <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-              {publishedServices.map((service) => {
+              {displayServices.map((service) => {
                 const packages = Array.isArray(service.service_packages) ? service.service_packages : []
                 const defaultPkg = packages.find((p) => p.is_default) ?? packages[0]
-                const ctaLabel = service.service_type === 'time_based' ? 'Book' : 'Order'
+                const isPinned = service.id === pinnedService?.id
                 return (
-                  <div key={service.id} className="rounded-2xl border border-border bg-card overflow-hidden flex flex-col hover:shadow-md hover:border-primary-accent/30 transition-all duration-200 cursor-pointer">
+                  <Link
+                    key={service.id}
+                    href={`/services/${service.id}`}
+                    className="rounded-2xl border border-border bg-card overflow-hidden flex flex-col hover:shadow-md hover:border-primary-accent/30 transition-all duration-200 cursor-pointer"
+                    style={isPinned && accentColor ? { borderColor: `${accentColor}88` } : undefined}
+                  >
                     {service.image ? (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img src={service.image} alt={`${service.title} from ${provider.business_name}`} className="h-44 w-full object-cover" />
@@ -645,6 +753,14 @@ export default async function ProviderProfilePage({ params }: ProfilePageProps) 
                       </div>
                     )}
                     <div className="flex flex-col flex-1 p-5">
+                      {isPinned && (
+                        <span
+                          className="mb-3 inline-flex w-fit rounded-full bg-primary-accent/10 px-2.5 py-1 text-xs font-semibold text-primary-accent"
+                          style={accentColor ? { color: accentColor, backgroundColor: `${accentColor}18` } : undefined}
+                        >
+                          Pinned service
+                        </span>
+                      )}
                       <h3 className="font-display font-semibold text-base text-foreground">{service.title}</h3>
                       <p className="text-sm text-muted-foreground mt-1 line-clamp-2 flex-1 leading-relaxed">{service.description}</p>
                       {packages.length > 0 && (
@@ -674,16 +790,16 @@ export default async function ProviderProfilePage({ params }: ProfilePageProps) 
                           </div>
                         )}
                         {!isClaimable && (
-                          <Link
-                            href={`/sign-in?next=/providers/${profilePath}`}
+                          <span
                             className="inline-flex items-center gap-1.5 rounded-[var(--radius)] bg-primary-accent px-4 py-2 text-sm font-semibold text-primary-accent-foreground hover:opacity-90 transition-opacity cursor-pointer flex-shrink-0"
+                            style={accentColor ? { backgroundColor: accentColor, color: '#fff' } : undefined}
                           >
-                            {ctaLabel}
-                          </Link>
+                            View service
+                          </span>
                         )}
                       </div>
                     </div>
-                  </div>
+                  </Link>
                 )
               })}
             </div>

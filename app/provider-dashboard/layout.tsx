@@ -24,7 +24,7 @@ export default async function ProviderDashboardLayout({
 
   const { data: provider } = await supabase
     .from('providers')
-    .select('id, business_name, is_published, profile_image')
+    .select('id, business_name, slug, is_published, profile_image')
     .eq('auth_provider_id', user.id)
     .single()
 
@@ -73,7 +73,7 @@ export default async function ProviderDashboardLayout({
           <div className="ml-auto flex items-center gap-3">
             {provider?.is_published && (
               <Link
-                href={`/providers/${provider.id}`}
+                href={`/providers/${provider.slug ?? provider.id}`}
                 target="_blank"
                 className="hidden sm:inline-flex text-xs border rounded-lg px-3 py-1.5 hover:bg-accent transition-colors"
               >
