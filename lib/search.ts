@@ -53,7 +53,6 @@ export async function searchProviders(params: {
   // once and paginates by slicing the ranked list — not by re-querying per page.
   const candidatePoolSize = 300
   const supabase = await createClient()
-  const now = new Date().toISOString()
 
   // Build provider type filter: resolve slug → id if needed, scoped to category.
   let providerTypeIds: string[] | null = null
@@ -104,8 +103,7 @@ export async function searchProviders(params: {
       verified_fica,
       provider_types!inner(id, name, slug, category_id),
       provider_tags(tag:tags(name)),
-      reviews(rating),
-      paid_placements(boost_factor, active_from, active_until)
+      reviews(rating)
     `)
     .eq('is_published', true)
     .limit(candidatePoolSize)
@@ -146,12 +144,6 @@ export async function searchProviders(params: {
       .map((pt) => pt.tag?.[0]?.name)
       .filter((n): n is string => !!n)
 
-    const activePlacements = ((row.paid_placements as { boost_factor: number; active_from: string; active_until: string }[] | null) ?? [])
-      .filter((p) => p.active_from <= now && p.active_until >= now)
-      .sort((a, b) => b.boost_factor - a.boost_factor)
-
-    const boost = activePlacements.length > 0 ? activePlacements[0].boost_factor : null
-
     const textMatch = scoreTextMatch(row.business_name, row.bio, query)
     const tagMatch = scoreTagMatch(tags, tagNames)
     const reviewQuality = avgRating / 5
@@ -160,8 +152,6 @@ export async function searchProviders(params: {
     return {
       providerId: row.id,
       isPublished: row.is_published,
-      activeBoostFactor: boost,
-      reliabilityPenaltyScore: 0, // placeholder — no reliability data in v1
       signals: {
         textMatch,
         location: 0, // no location data in v1

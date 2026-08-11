@@ -397,6 +397,27 @@ export type PriceChangeBand =
   | "band_50_plus"     // ≥ 50% — not eligible, always flagged, held for review
   | "no_prior_sale";   // no sale ever — not eligible, not flagged
 
+export interface PriceChangeBands {
+  band1MaxPct: number;
+  band2MaxPct: number;
+  band3MaxPct: number;
+  band4MaxPct: number;
+  highDemandThreshold: number;
+}
+
+// Defaults mirror config/platform-config.json's priceChangeBands — kept here
+// so this stays a pure function callable without a ConfigStore round trip
+// (matching the pattern used by lib/domain/content-moderation.ts and
+// lib/domain/provider-posts.ts). Callers that need the configured value
+// pass it explicitly; see lib/actions/pricing.ts.
+export const DEFAULT_PRICE_CHANGE_BANDS: PriceChangeBands = {
+  band1MaxPct: 5.0,
+  band2MaxPct: 9.5,
+  band3MaxPct: 25.0,
+  band4MaxPct: 50.0,
+  highDemandThreshold: 3,
+};
+
 export interface PriceChangeInput {
   currentListPrice: number;
   lastSalePrice: number | null;   // null = no prior sale
@@ -415,6 +436,7 @@ export interface PriceChangeResult {
 
 export function evaluatePriceChange(
   input: PriceChangeInput,
+  bands: PriceChangeBands = DEFAULT_PRICE_CHANGE_BANDS,
 ): PriceChangeResult {
   const { currentListPrice, lastSalePrice, completedSalesInQualifyingBand } =
     input;
@@ -433,8 +455,8 @@ export function evaluatePriceChange(
   const increasePercent =
     ((currentListPrice - lastSalePrice) / lastSalePrice) * 100;
 
-  // Band 1: ≤ 5.0% — eligible
-  if (increasePercent <= 5.0) {
+  // Band 1: ≤ band1MaxPct — eligible
+  if (increasePercent <= bands.band1MaxPct) {
     return {
       band: "within_5",
       discountEligible: true,
@@ -444,8 +466,8 @@ export function evaluatePriceChange(
     };
   }
 
-  // Band 2: 5.0001% to 9.4999% — not eligible, not flagged
-  if (increasePercent < 9.5) {
+  // Band 2: band1MaxPct to band2MaxPct (exclusive) — not eligible, not flagged
+  if (increasePercent < bands.band2MaxPct) {
     return {
       band: "band_5_to_9_5",
       discountEligible: false,
@@ -455,10 +477,10 @@ export function evaluatePriceChange(
     };
   }
 
-  // Band 3: 9.5% to 24.9999% — flagged only if demand NOT met
-  // PRICE-LOGIC-004/005: high demand = 3+ completed sales in qualifying band
-  if (increasePercent < 25.0) {
-    const highDemand = completedSalesInQualifyingBand >= 3;
+  // Band 3: band2MaxPct to band3MaxPct (exclusive) — flagged only if demand NOT met
+  // PRICE-LOGIC-004/005: high demand = highDemandThreshold+ completed sales in qualifying band
+  if (increasePercent < bands.band3MaxPct) {
+    const highDemand = completedSalesInQualifyingBand >= bands.highDemandThreshold;
     return {
       band: "band_9_5_to_25",
       discountEligible: false,
@@ -468,8 +490,8 @@ export function evaluatePriceChange(
     };
   }
 
-  // Band 4: 25% to 49.9999% — always flagged, price goes live (PRICE-LOGIC-007)
-  if (increasePercent < 50.0) {
+  // Band 4: band3MaxPct to band4MaxPct (exclusive) — always flagged, price goes live (PRICE-LOGIC-007)
+  if (increasePercent < bands.band4MaxPct) {
     return {
       band: "band_25_to_50",
       discountEligible: false,
@@ -479,7 +501,7 @@ export function evaluatePriceChange(
     };
   }
 
-  // Band 5: ≥ 50% — always flagged, new price HELD (PRICE-LOGIC-006)
+  // Band 5: ≥ band4MaxPct — always flagged, new price HELD (PRICE-LOGIC-006)
   return {
     band: "band_50_plus",
     discountEligible: false,
@@ -502,14 +524,15 @@ export interface DiscountEligibilityInput {
 
 export function checkDiscountEligibility(
   input: DiscountEligibilityInput,
+  bands: PriceChangeBands = DEFAULT_PRICE_CHANGE_BANDS,
 ): boolean {
   const { currentListPrice, lastSalePrice } = input;
 
   // PRICE-LOGIC-003: no prior sale → not eligible
   if (lastSalePrice === null) return false;
 
-  // Qualifying band: current list price down to (current list price × 0.95)
-  const bandLower = currentListPrice * 0.95;
+  // Qualifying band: current list price down to (current list price × (1 - band1MaxPct%))
+  const bandLower = currentListPrice * (1 - bands.band1MaxPct / 100);
   return lastSalePrice >= bandLower && lastSalePrice <= currentListPrice;
 }
 
@@ -541,6 +564,7 @@ export interface PriceEditCheckInput {
 
 export function evaluatePriceEdit(
   input: PriceEditCheckInput,
+  bands: PriceChangeBands = DEFAULT_PRICE_CHANGE_BANDS,
 ): PricingNotification[] {
   const notifications: PricingNotification[] = [];
 
@@ -552,12 +576,12 @@ export function evaluatePriceEdit(
     currentListPrice,
     lastSalePrice,
     completedSalesInQualifyingBand,
-  });
+  }, bands);
 
   const discountEligible = checkDiscountEligibility({
     currentListPrice,
     lastSalePrice,
-  });
+  }, bands);
 
   // Discount bonus notification (Section 5.6 condition 1)
   const isExactly10Percent =

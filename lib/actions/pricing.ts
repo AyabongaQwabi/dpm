@@ -10,6 +10,7 @@ import {
   type PriceEditCheckInput,
   type PricingNotification,
 } from '@/lib/domain/payments'
+import { PRICE_CHANGE_BANDS } from '@/lib/platform-config'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // updatePackagePrice
@@ -76,11 +77,12 @@ export async function updatePackagePrice(
 
   const lastSalePrice = lastSaleRow ? Number(lastSaleRow.sale_price) : null
 
-  // Count completed sales in the qualifying band (current list price × 0.95 to current list price)
-  // This is what the anti-gaming check uses — sales history, NOT price edit history.
+  // Count completed sales in the qualifying band (current list price minus
+  // band1MaxPct% to current list price). This is what the anti-gaming check
+  // uses — sales history, NOT price edit history.
   let completedSalesInQualifyingBand = 0
   if (lastSalePrice !== null) {
-    const bandLower = newPrice * 0.95
+    const bandLower = newPrice * (1 - PRICE_CHANGE_BANDS.band1MaxPct / 100)
     const { count } = await supabase
       .from('service_sale_prices')
       .select('id', { count: 'exact', head: true })
@@ -112,7 +114,7 @@ export async function updatePackagePrice(
     completedSalesInQualifyingBand,
     ceilingRate,
   }
-  const notifications = evaluatePriceEdit(checkInput)
+  const notifications = evaluatePriceEdit(checkInput, PRICE_CHANGE_BANDS)
 
   const priceHeld = notifications.some((n) => n.type === 'price_held_for_review')
 

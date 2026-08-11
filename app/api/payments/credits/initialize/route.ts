@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { loadConfigStore } from '@/lib/config-store'
+import { loadPlatformConfig } from '@/lib/platform-config'
 import { getConfigNumber, CONFIG_KEYS } from '@/lib/domain/config'
 import { assertPositiveCredits } from '@/lib/domain/credits'
 import { calculatePurchaseCredits } from '@/lib/credit-promotions'
@@ -47,7 +47,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Amount must be positive' }, { status: 400 })
   }
 
-  const config = await loadConfigStore(supabase)
+  const config = await loadPlatformConfig()
   const [minAmount, maxAmount] = await Promise.all([
     getConfigNumber(config, CONFIG_KEYS.CREDIT_PURCHASE_MIN),
     getConfigNumber(config, CONFIG_KEYS.CREDIT_PURCHASE_MAX),

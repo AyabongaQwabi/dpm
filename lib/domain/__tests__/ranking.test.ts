@@ -1,7 +1,6 @@
 import { describe, it, expect } from "vitest";
 import {
   computeRelevanceScore,
-  applyBoost,
   rankProviders,
   type RelevanceSignals,
   type RankingWeights,
@@ -50,9 +49,6 @@ function makeConfig(overrides: Record<string, number> = {}) {
     [CONFIG_KEYS.RANKING_WEIGHT_COMPLETED_BOOKINGS]: 0.1,
     [CONFIG_KEYS.RANKING_WEIGHT_PROFILE_COMPLETENESS]: 0.1,
     [CONFIG_KEYS.RANKING_WEIGHT_RELIABILITY_PENALTY]: 0.5,
-    [CONFIG_KEYS.RANKING_BOOST_CAP]: 0.5,
-    [CONFIG_KEYS.RANKING_NEAR_ZERO_THRESHOLD]: 0.05,
-    [CONFIG_KEYS.RANKING_RELIABILITY_PENALTY_THRESHOLD]: 0.7,
     ...overrides,
   });
 }
@@ -90,49 +86,17 @@ describe("computeRelevanceScore", () => {
   });
 });
 
-// ---------- applyBoost ----------
-
-describe("applyBoost", () => {
-  const CAP = 0.5;
-  const NEAR_ZERO = 0.05;
-
-  it("applies boost as a multiplier (RANK-LOGIC-003)", () => {
-    // 0.71 * (1 + 0.5) = 1.065 — matches doc worked example for Provider B
-    expect(applyBoost(0.71, 0.5, CAP, NEAR_ZERO)).toBeCloseTo(1.065, 3);
-  });
-
-  it("caps boost at the configured maximum (RANK-LOGIC-005)", () => {
-    const uncapped = applyBoost(0.71, 2.0, CAP, NEAR_ZERO);
-    const capped = applyBoost(0.71, 0.5, CAP, NEAR_ZERO);
-    expect(uncapped).toBe(capped); // 2.0 is capped to 0.5
-  });
-
-  it("does NOT elevate a near-zero relevance score (RANK-LOGIC-004)", () => {
-    // Provider C from the doc: relevance_score=0.04, below threshold of 0.05
-    const score = applyBoost(0.04, 0.5, CAP, NEAR_ZERO);
-    expect(score).toBe(0.04); // boost has zero effect
-  });
-
-  it("applies boost normally when relevance is above the near-zero threshold", () => {
-    const score = applyBoost(0.06, 0.5, CAP, NEAR_ZERO); // just above threshold
-    expect(score).toBeGreaterThan(0.06);
-  });
-});
-
-// ---------- rankProviders — doc worked example (Section 4.2) ----------
+// ---------- rankProviders ----------
+//
+// Paid ranking boost (applyBoost, RANK-LOGIC-003/004/005/006) was removed —
+// the paid_placements table it read from had zero rows in production and
+// contradicted the platform rule that sponsored placement is bought time,
+// never bought rank (see lib/domain/ranking.ts).
 
 describe("rankProviders", () => {
-  // Providers from the doc's worked example:
-  // A: relevance=0.92, no boost   → final=0.92
-  // B: relevance=0.71, boost=0.5  → final=1.065
-  // C: relevance=0.04, boost=0.5  → final≈0.04 (near-zero, boost suppressed)
-  //
-  // Expected order: B, A, C
-
   function makeProviderWithRelevance(
     id: string,
     textMatch: number,
-    boost: number | null,
   ): ScoredProvider {
     return {
       providerId: id,
@@ -146,55 +110,8 @@ describe("rankProviders", () => {
         profileCompleteness: 0,
         reliabilityPenalty: 0,
       },
-      activeBoostFactor: boost,
-      reliabilityPenaltyScore: 0,
     };
   }
-
-  it("matches the doc worked example: B > A > C (RANK-LOGIC-003/004)", async () => {
-    // We drive text_match as the single signal with weight=1 to replicate the
-    // doc's raw relevance numbers (A=0.92, B=0.71, C=0.04).
-    const config = makeConfig({
-      [CONFIG_KEYS.RANKING_WEIGHT_TEXT_MATCH]: 1,
-      [CONFIG_KEYS.RANKING_WEIGHT_LOCATION]: 0,
-      [CONFIG_KEYS.RANKING_WEIGHT_TAGS]: 0,
-      [CONFIG_KEYS.RANKING_WEIGHT_REVIEW_QUALITY]: 0,
-      [CONFIG_KEYS.RANKING_WEIGHT_COMPLETED_BOOKINGS]: 0,
-      [CONFIG_KEYS.RANKING_WEIGHT_PROFILE_COMPLETENESS]: 0,
-      [CONFIG_KEYS.RANKING_WEIGHT_RELIABILITY_PENALTY]: 0,
-    });
-
-    const providers: ScoredProvider[] = [
-      makeProviderWithRelevance("A", 0.92, null),
-      makeProviderWithRelevance("B", 0.71, 0.5),
-      makeProviderWithRelevance("C", 0.04, 0.5),
-    ];
-
-    const ranked = await rankProviders(providers, config);
-    expect(ranked.map((r) => r.providerId)).toEqual(["B", "A", "C"]);
-  });
-
-  it("a boosted irrelevant provider (C) cannot outrank a relevant unpaid one (A) — RANK-LOGIC-004 guardrail", async () => {
-    const config = makeConfig({
-      [CONFIG_KEYS.RANKING_WEIGHT_TEXT_MATCH]: 1,
-      [CONFIG_KEYS.RANKING_WEIGHT_LOCATION]: 0,
-      [CONFIG_KEYS.RANKING_WEIGHT_TAGS]: 0,
-      [CONFIG_KEYS.RANKING_WEIGHT_REVIEW_QUALITY]: 0,
-      [CONFIG_KEYS.RANKING_WEIGHT_COMPLETED_BOOKINGS]: 0,
-      [CONFIG_KEYS.RANKING_WEIGHT_PROFILE_COMPLETENESS]: 0,
-      [CONFIG_KEYS.RANKING_WEIGHT_RELIABILITY_PENALTY]: 0,
-    });
-
-    const providers: ScoredProvider[] = [
-      makeProviderWithRelevance("A", 0.92, null),   // relevant, unpaid
-      makeProviderWithRelevance("C", 0.04, 0.5),    // irrelevant, paid
-    ];
-
-    const ranked = await rankProviders(providers, config);
-    const aRank = ranked.findIndex((r) => r.providerId === "A");
-    const cRank = ranked.findIndex((r) => r.providerId === "C");
-    expect(aRank).toBeLessThan(cRank); // A must rank above C
-  });
 
   it("excludes unpublished providers (RANK-LOGIC-001)", async () => {
     const config = makeConfig();
@@ -203,48 +120,10 @@ describe("rankProviders", () => {
         providerId: "unpublished",
         isPublished: false,
         signals: FULL_SIGNALS,
-        activeBoostFactor: null,
-        reliabilityPenaltyScore: 0,
       },
     ];
     const ranked = await rankProviders(providers, config);
     expect(ranked).toHaveLength(0);
-  });
-
-  it("suppresses boost for providers above the reliability penalty threshold (RANK-LOGIC-006)", async () => {
-    const config = makeConfig({
-      [CONFIG_KEYS.RANKING_WEIGHT_TEXT_MATCH]: 1,
-      [CONFIG_KEYS.RANKING_WEIGHT_LOCATION]: 0,
-      [CONFIG_KEYS.RANKING_WEIGHT_TAGS]: 0,
-      [CONFIG_KEYS.RANKING_WEIGHT_REVIEW_QUALITY]: 0,
-      [CONFIG_KEYS.RANKING_WEIGHT_COMPLETED_BOOKINGS]: 0,
-      [CONFIG_KEYS.RANKING_WEIGHT_PROFILE_COMPLETENESS]: 0,
-      [CONFIG_KEYS.RANKING_WEIGHT_RELIABILITY_PENALTY]: 0,
-    });
-
-    const providers: ScoredProvider[] = [
-      {
-        providerId: "bad-actor",
-        isPublished: true,
-        signals: { ...ZERO_SIGNALS, textMatch: 0.5 },
-        activeBoostFactor: 0.5,
-        reliabilityPenaltyScore: 0.9, // above threshold of 0.7
-      },
-      {
-        providerId: "good-provider",
-        isPublished: true,
-        signals: { ...ZERO_SIGNALS, textMatch: 0.5 },
-        activeBoostFactor: null,
-        reliabilityPenaltyScore: 0,
-      },
-    ];
-
-    const ranked = await rankProviders(providers, config);
-    const badActor = ranked.find((r) => r.providerId === "bad-actor")!;
-    expect(badActor.boostFactor).toBe(0); // boost was suppressed
-    // Both should end up with the same finalScore (same relevance, no boost for either)
-    const goodProvider = ranked.find((r) => r.providerId === "good-provider")!;
-    expect(badActor.finalScore).toBeCloseTo(goodProvider.finalScore, 5);
   });
 
   it("sorts results descending by finalScore", async () => {
@@ -259,13 +138,43 @@ describe("rankProviders", () => {
     });
 
     const providers: ScoredProvider[] = [
-      makeProviderWithRelevance("low", 0.3, null),
-      makeProviderWithRelevance("mid", 0.6, null),
-      makeProviderWithRelevance("high", 0.9, null),
+      makeProviderWithRelevance("low", 0.3),
+      makeProviderWithRelevance("mid", 0.6),
+      makeProviderWithRelevance("high", 0.9),
     ];
 
     const ranked = await rankProviders(providers, config);
     expect(ranked[0].finalScore).toBeGreaterThanOrEqual(ranked[1].finalScore);
     expect(ranked[1].finalScore).toBeGreaterThanOrEqual(ranked[2].finalScore);
+  });
+
+  it("produces a byte-identical result for a Pro and a non-Pro provider with the same profile signals", async () => {
+    // ScoredProvider has no membership/subscription/package field at all —
+    // there is nowhere for Pro status to enter this function. This test
+    // proves it at the call level: two providers with identical signals
+    // (one hypothetically Pro, one not — the type has no way to say which)
+    // produce identical output.
+    const config = makeConfig();
+    const signals: RelevanceSignals = {
+      textMatch: 0.6,
+      location: 0.4,
+      tags: 0.5,
+      reviewQuality: 0.8,
+      completedBookings: 0.3,
+      profileCompleteness: 0.7,
+      reliabilityPenalty: 0.1,
+    };
+
+    const providers: ScoredProvider[] = [
+      { providerId: "non-pro-provider", isPublished: true, signals },
+      { providerId: "pro-provider", isPublished: true, signals },
+    ];
+
+    const ranked = await rankProviders(providers, config);
+    const nonPro = ranked.find((r) => r.providerId === "non-pro-provider")!;
+    const pro = ranked.find((r) => r.providerId === "pro-provider")!;
+
+    expect(pro.relevanceScore).toBe(nonPro.relevanceScore);
+    expect(pro.finalScore).toBe(nonPro.finalScore);
   });
 });

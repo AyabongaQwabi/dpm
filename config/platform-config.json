@@ -1,0 +1,129 @@
+{
+  "commission": {
+    "brackets": [
+      { "min": 0, "max": 999, "rate": 0.075, "label": "R0 – R999" },
+      { "min": 1000, "max": 4999, "rate": 0.085, "label": "R1,000 – R4,999" },
+      { "min": 5000, "max": 9999, "rate": 0.095, "label": "R5,000 – R9,999" },
+      { "min": 10000, "max": 49999, "rate": 0.10, "label": "R10,000 – R49,999" },
+      { "min": 50000, "max": null, "rate": 0.1275, "label": "R50,000+" }
+    ],
+    "stackingFloor": 0.04
+  },
+  "priceChangeBands": {
+    "band1MaxPct": 5.0,
+    "band2MaxPct": 9.5,
+    "band3MaxPct": 25.0,
+    "band4MaxPct": 50.0,
+    "highDemandThreshold": 3
+  },
+  "packages": [
+    {
+      "packageNumber": 1,
+      "id": "starter",
+      "name": "Starter",
+      "monthlyFee": 99,
+      "ceilingRate": null,
+      "d4dBonus": null,
+      "tempReduction": { "points": 0.010, "months": 3 },
+      "badge": null,
+      "recommended": false,
+      "tagline": "Get your business in front of customers today.",
+      "planDetail": "Everything you need to start taking jobs through the platform. Pay a flat monthly fee and a small commission on what you earn — nothing more.",
+      "savingExample": null
+    },
+    {
+      "packageNumber": 2,
+      "id": "shield",
+      "name": "Shield",
+      "monthlyFee": 499,
+      "ceilingRate": 0.10,
+      "d4dBonus": 0.025,
+      "tempReduction": { "points": 0.016, "months": 3 },
+      "badge": "Entry protection",
+      "recommended": false,
+      "tagline": "Stop overpaying on your biggest jobs.",
+      "planDetail": "Commission capped at 10% — so when you close a large job, you keep significantly more. One job can pay for this plan many times over.",
+      "savingExample": "On a R74,300 job: standard commission is R9,473. With your cap it's R7,430. You keep an extra R2,043 — from one job."
+    },
+    {
+      "packageNumber": 3,
+      "id": "pro",
+      "name": "Pro",
+      "monthlyFee": 799,
+      "ceilingRate": 0.095,
+      "d4dBonus": 0.030,
+      "tempReduction": { "points": 0.020, "months": 3 },
+      "badge": "Most popular",
+      "recommended": true,
+      "tagline": "The plan serious providers choose.",
+      "planDetail": "A tighter commission cap plus a free Graphic Design service. One R10,000 job more than pays for the month.",
+      "savingExample": "On a R75,000 job: standard commission is R9,562. With your cap it's R7,125. You pocket R2,437 extra — more than 3× the monthly plan cost."
+    },
+    {
+      "packageNumber": 4,
+      "id": "growth",
+      "name": "Growth",
+      "monthlyFee": 1199,
+      "ceilingRate": 0.085,
+      "d4dBonus": 0.035,
+      "tempReduction": { "points": 0.030, "months": 3 },
+      "badge": "High-volume",
+      "recommended": false,
+      "tagline": "Built for providers closing jobs above R1,000 every week.",
+      "planDetail": "The cap kicks in at the second bracket — almost every job you close is cheaper. Plus a free Social Media Management service to fuel your inbound pipeline.",
+      "savingExample": "Every job above R1,000 is capped. On 5 × R10,000 jobs: save R7,500 compared to standard rates — in a single month."
+    },
+    {
+      "packageNumber": 5,
+      "id": "elite",
+      "name": "Elite",
+      "monthlyFee": 1699,
+      "ceilingRate": 0.075,
+      "d4dBonus": 0.045,
+      "tempReduction": { "points": 0.035, "months": 6 },
+      "badge": "Max protection",
+      "recommended": false,
+      "tagline": "The same rate on a R2,000 job as a R200,000 job.",
+      "planDetail": "Every sale above R999 is capped at 7.5% — the same rate as the smallest possible job. For high-ticket providers, this is the most powerful plan on the platform.",
+      "savingExample": "On a R200,000 project: standard commission is R25,500. With your 7.5% cap it's R15,000. You keep R10,500 more — from one project."
+    }
+  ],
+  "ranking": {
+    "weightTextMatch": 1.0,
+    "weightLocation": 0.8,
+    "weightTags": 0.6,
+    "weightReviewQuality": 0.9,
+    "weightCompletedBookings": 0.7,
+    "weightProfileCompleteness": 0.5,
+    "weightReliabilityPenalty": 0.4
+  },
+  "serviceRecommendation": {
+    "minReviewsForRecommendation": 5,
+    "weightRecencyRating": 0.35,
+    "weightBookingVolume": 0.25,
+    "weightReliability": 0.25,
+    "weightReviewRatio": 0.15,
+    "recencyHalfLifeDays": 180
+  },
+  "booking": {
+    "autoExpiryHours": 24
+  },
+  "creditWallet": {
+    "packDenominations": [100, 250, 500, 1000],
+    "purchaseMinCredits": 50,
+    "purchaseMaxCredits": 5000
+  },
+  "providerPayout": {
+    "businessDays": 5
+  },
+  "support": {
+    "email": "support@servicepros.co.za"
+  },
+  "referralProgram": {
+    "commissionPct": 35,
+    "maxActiveMonths": 6
+  },
+  "upload": {
+    "maxFileSizeMb": 10
+  }
+}

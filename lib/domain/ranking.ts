@@ -30,14 +30,11 @@ export interface ScoredProvider {
   providerId: string;
   isPublished: boolean;
   signals: RelevanceSignals;
-  activeBoostFactor: number | null; // null = no active paid placement
-  reliabilityPenaltyScore: number;  // 0–1, mirrors signals.reliabilityPenalty for threshold check
 }
 
 export interface RankedProvider {
   providerId: string;
   relevanceScore: number;
-  boostFactor: number;
   finalScore: number;
 }
 
@@ -95,45 +92,21 @@ export function computeRelevanceScore(
   return Math.max(0, Math.min(1, raw));
 }
 
-// ---------- 4.2 Paid placement boost ----------
-//
-// RANK-LOGIC-003: final_score = relevance_score × (1 + boost_factor)
-// RANK-LOGIC-004: near-zero relevance_score is NOT boosted into visible results.
-// RANK-LOGIC-005: boost_factor capped at configurable maximum.
-
-export function applyBoost(
-  relevanceScore: number,
-  boostFactor: number,
-  boostCap: number,
-  nearZeroThreshold: number,
-): number {
-  // RANK-LOGIC-004: irrelevant providers must not be elevated by boost alone.
-  if (relevanceScore <= nearZeroThreshold) {
-    return relevanceScore; // boost has no effect
-  }
-
-  const cappedBoost = Math.min(boostFactor, boostCap);
-  return relevanceScore * (1 + cappedBoost);
-}
-
 // ---------- Full ranking pipeline ----------
 //
 // RANK-LOGIC-001: only published providers are eligible.
-// RANK-LOGIC-006: providers with reliability penalty above threshold cannot
-//   activate paid placement (checked at purchase time, but also enforced here
-//   by ignoring their boost_factor).
+//
+// Paid ranking boost (former RANK-LOGIC-003/004/005/006, paid_placements
+// table, applyBoost()) was removed — it had zero rows in production and
+// contradicted the platform rule that sponsored placement is bought time,
+// never bought rank. Sponsored inventory (sponsored_placements) renders in
+// its own reserved, labelled slots and never touches this scoring pipeline.
 
 export async function rankProviders(
   candidates: ScoredProvider[],
   config: ConfigStore,
 ): Promise<RankedProvider[]> {
-  const [weights, boostCap, nearZeroThreshold, reliabilityThreshold] =
-    await Promise.all([
-      loadWeights(config),
-      getConfigNumber(config, CONFIG_KEYS.RANKING_BOOST_CAP),
-      getConfigNumber(config, CONFIG_KEYS.RANKING_NEAR_ZERO_THRESHOLD),
-      getConfigNumber(config, CONFIG_KEYS.RANKING_RELIABILITY_PENALTY_THRESHOLD),
-    ]);
+  const weights = await loadWeights(config);
 
   const scored: RankedProvider[] = [];
 
@@ -143,26 +116,10 @@ export async function rankProviders(
 
     const relevanceScore = computeRelevanceScore(provider.signals, weights);
 
-    // RANK-LOGIC-006: provider with a high reliability penalty cannot benefit from boost.
-    const boostEligible =
-      provider.reliabilityPenaltyScore < reliabilityThreshold;
-    const rawBoost =
-      boostEligible && provider.activeBoostFactor !== null
-        ? provider.activeBoostFactor
-        : 0;
-
-    const finalScore = applyBoost(
-      relevanceScore,
-      rawBoost,
-      boostCap,
-      nearZeroThreshold,
-    );
-
     scored.push({
       providerId: provider.providerId,
       relevanceScore,
-      boostFactor: rawBoost,
-      finalScore,
+      finalScore: relevanceScore,
     });
   }
 

@@ -6,7 +6,7 @@ import type { Metadata } from 'next'
 import { createClient } from '@/lib/supabase/server'
 import { getTenantContext } from '@/lib/tenant'
 import { searchProviders } from '@/lib/search'
-import { InMemoryConfigStore } from '@/lib/domain/config'
+import { loadPlatformConfig } from '@/lib/platform-config'
 import { ProviderCardCompact } from '@/components/ProviderCard'
 import { NameSearchBar } from '@/components/NameSearchBar'
 import { SearchFilters } from '@/components/SearchFilters'
@@ -73,26 +73,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
   const tagFilter = params.tags ? params.tags.split(',').filter(Boolean) : []
   const page = Math.max(1, Number(params.page) || 1)
 
-  // Default ranking config so search works even when platform_config rows are
-  // absent. Any matching DB row overrides the corresponding default below.
-  const RANKING_DEFAULTS: Record<string, number> = {
-    ranking_weight_text_match: 0.3,
-    ranking_weight_location: 0.15,
-    ranking_weight_tags: 0.15,
-    ranking_weight_review_quality: 0.2,
-    ranking_weight_completed_bookings: 0.1,
-    ranking_weight_profile_completeness: 0.1,
-    ranking_weight_reliability_penalty: 0.5,
-    ranking_boost_cap: 2,
-    ranking_reliability_penalty_threshold: 0.5,
-    ranking_near_zero_threshold: 0.05,
-  }
-
-  const { data: configRows } = await supabase.from('platform_config').select('key, value')
-  const config = new InMemoryConfigStore({
-    ...RANKING_DEFAULTS,
-    ...Object.fromEntries((configRows ?? []).map((r) => [r.key, r.value])),
-  })
+  const config = await loadPlatformConfig()
 
   let ptQuery = supabase
     .from('provider_types')

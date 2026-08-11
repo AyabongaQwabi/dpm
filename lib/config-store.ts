@@ -1,13 +1,11 @@
-import type { SupabaseClient } from '@supabase/supabase-js'
-import { InMemoryConfigStore, type ConfigStore } from '@/lib/domain/config'
+// Store-agnostic helpers on top of ConfigStore (lib/domain/config.ts). The
+// store implementation itself is lib/platform-config.ts's loadPlatformConfig()
+// — a JSON-backed ConfigStore, not a DB fetch. There used to be a DB-backed
+// loadConfigStore() here; it's gone, along with the platform_config table it
+// read, per the JSON config migration (see lib/platform-config.ts's header
+// comment for why).
 
-/** Load platform_config rows into a ConfigStore for domain calculations. */
-export async function loadConfigStore(supabase: SupabaseClient): Promise<ConfigStore> {
-  const { data } = await supabase.from('platform_config').select('key, value')
-  return new InMemoryConfigStore(
-    Object.fromEntries((data ?? []).map((row) => [row.key, row.value])),
-  )
-}
+import type { ConfigStore } from '@/lib/domain/config'
 
 export async function getConfigJsonArray(
   store: ConfigStore,

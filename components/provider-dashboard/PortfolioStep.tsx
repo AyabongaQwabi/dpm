@@ -1,6 +1,7 @@
 'use client'
 
 import { useRef, useState } from 'react'
+import { MAX_UPLOAD_FILE_SIZE_MB } from '@/lib/platform-config'
 import { useRouter } from 'next/navigation'
 import { saveOnboardingStep } from '@/lib/actions/onboarding'
 import { uploadProviderAsset } from '@/lib/actions/upload'
@@ -165,7 +166,7 @@ function DropUploader({
           {uploading ? 'Uploading…' : state.status === 'done' ? 'Replace' : 'Choose or drop'}
         </span>
         <span className="text-[11px] text-muted-foreground">
-          {isImage ? 'JPEG, PNG, WebP, AVIF · max 10 MB' : 'PDF, Word, ZIP · max 10 MB'}
+          {isImage ? `JPEG, PNG, WebP, AVIF · max ${MAX_UPLOAD_FILE_SIZE_MB} MB` : `PDF, Word, ZIP · max ${MAX_UPLOAD_FILE_SIZE_MB} MB`}
         </span>
         <input
           ref={inputRef}

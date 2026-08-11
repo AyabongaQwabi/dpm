@@ -2,7 +2,8 @@ import Link from 'next/link'
 import type { Metadata } from 'next'
 import { requireCustomerSession } from '@/lib/session'
 import { createClient } from '@/lib/supabase/server'
-import { loadConfigStore, getConfigJsonArray } from '@/lib/config-store'
+import { getConfigJsonArray } from '@/lib/config-store'
+import { loadPlatformConfig } from '@/lib/platform-config'
 import { getConfigNumber, CONFIG_KEYS } from '@/lib/domain/config'
 import { getActivePromotion, getPromotionById } from '@/lib/credit-promotions'
 import { formatCredits } from '@/lib/format-credits'
@@ -58,7 +59,7 @@ export default async function CreditsPage({ searchParams }: Props) {
   const { amount: amountParam, status, reference } = await searchParams
   const supabase = await createClient()
 
-  const config = await loadConfigStore(supabase)
+  const config = await loadPlatformConfig()
   const [packs, minAmount, maxAmount] = await Promise.all([
     getConfigJsonArray(config, CONFIG_KEYS.CREDIT_PACK_DENOMINATIONS),
     getConfigNumber(config, CONFIG_KEYS.CREDIT_PURCHASE_MIN),

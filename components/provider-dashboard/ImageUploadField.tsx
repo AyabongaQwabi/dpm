@@ -1,6 +1,7 @@
 'use client'
 
 import { useRef, useState } from 'react'
+import { MAX_UPLOAD_FILE_SIZE_MB } from '@/lib/platform-config'
 import { uploadProviderAsset } from '@/lib/actions/upload'
 
 interface Props {
@@ -57,7 +58,7 @@ export function ImageUploadField({ fieldKey, label, isRequired, isImage, savedUr
   }
 
   const accept = 'image/jpeg,image/png,image/webp,image/avif,image/gif'
-  const sizeNote = 'JPEG, PNG, WebP, AVIF, GIF · up to 10 MB'
+  const sizeNote = `JPEG, PNG, WebP, AVIF, GIF · up to ${MAX_UPLOAD_FILE_SIZE_MB} MB`
 
   return (
     <div className="space-y-2">

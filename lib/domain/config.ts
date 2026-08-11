@@ -51,10 +51,19 @@ export async function getConfigString(
 
 // Well-known config keys — centralised here so all domain modules import from
 // one place instead of spreading magic strings across files.
+//
+// Backing values live in config/platform-config.json (see lib/platform-config.ts),
+// not a DB table — there is no tenant-admin system yet to justify one, and a
+// DB table plus a TS constant plus a JSON seed was three sources of truth
+// for the same numbers. Changing a value here means editing that JSON file
+// and deploying.
+//
+// Dead keys removed (zero real call sites, confirmed by repo-wide grep
+// before removal): COMMISSION_RATE (legacy single-rate key, superseded by
+// the bracket keys), PROVIDER_SUBSCRIPTION_FEE and CEILING_FEE_10/95/85/75
+// (package fees are read from lib/pricing-config.ts's PACKAGES directly,
+// never from config — these were seeded but never consumed).
 export const CONFIG_KEYS = {
-  // Legacy single-rate key (kept for backward compat)
-  COMMISSION_RATE: "commission_rate",
-
   // Booking
   BOOKING_AUTO_EXPIRY_HOURS: "booking_auto_expiry_hours",
 
@@ -66,9 +75,15 @@ export const CONFIG_KEYS = {
   RANKING_WEIGHT_COMPLETED_BOOKINGS: "ranking_weight_completed_bookings",
   RANKING_WEIGHT_PROFILE_COMPLETENESS: "ranking_weight_profile_completeness",
   RANKING_WEIGHT_RELIABILITY_PENALTY: "ranking_weight_reliability_penalty",
-  RANKING_BOOST_CAP: "ranking_boost_cap",
-  RANKING_RELIABILITY_PENALTY_THRESHOLD: "ranking_reliability_penalty_threshold",
-  RANKING_NEAR_ZERO_THRESHOLD: "ranking_near_zero_threshold",
+
+  // Service recommendation ranking — folded in from a previously separate,
+  // undeclared key map in lib/domain/service-ranking.ts.
+  MIN_REVIEWS_FOR_RECOMMENDATION: "min_reviews_for_recommendation",
+  RECOMMENDATION_WEIGHT_RECENCY_RATING: "recommendation_weight_recency_rating",
+  RECOMMENDATION_WEIGHT_BOOKING_VOLUME: "recommendation_weight_booking_volume",
+  RECOMMENDATION_WEIGHT_RELIABILITY: "recommendation_weight_reliability",
+  RECOMMENDATION_WEIGHT_REVIEW_RATIO: "recommendation_weight_review_ratio",
+  RECOMMENDATION_RECENCY_HALF_LIFE_DAYS: "recommendation_recency_half_life_days",
 
   // Commission brackets (Section 2 of pricing source doc)
   COMMISSION_RATE_BRACKET_1: "commission_rate_bracket_1",  // 0.075
@@ -81,18 +96,11 @@ export const CONFIG_KEYS = {
   COMMISSION_BRACKET_3_MAX: "commission_bracket_3_max",    // 9999
   COMMISSION_BRACKET_4_MAX: "commission_bracket_4_max",    // 49999
 
-  // Subscription (Section 1)
-  PROVIDER_SUBSCRIPTION_FEE: "provider_subscription_fee",  // 99
-
   // Ceiling package rates (Section 3)
   CEILING_RATE_10: "ceiling_rate_10",   // 0.10
   CEILING_RATE_95: "ceiling_rate_95",   // 0.095
   CEILING_RATE_85: "ceiling_rate_85",   // 0.085
   CEILING_RATE_75: "ceiling_rate_75",   // 0.075
-  CEILING_FEE_10: "ceiling_fee_10",     // 499
-  CEILING_FEE_95: "ceiling_fee_95",     // 799
-  CEILING_FEE_85: "ceiling_fee_85",     // 1199
-  CEILING_FEE_75: "ceiling_fee_75",     // 1699
 
   // Discount-unlock bonus (Section 4) — in rate points, e.g. 0.025
   DISCOUNT_BONUS_10: "discount_bonus_10",  // 0.025
@@ -100,7 +108,9 @@ export const CONFIG_KEYS = {
   DISCOUNT_BONUS_85: "discount_bonus_85",  // 0.035
   DISCOUNT_BONUS_75: "discount_bonus_75",  // 0.045
 
-  // Price-change moderation (Section 5)
+  // Price-change moderation (Section 5) — now actually read by
+  // evaluatePriceChange/checkDiscountEligibility (previously seeded but
+  // never consumed; those functions hardcoded their own copies instead).
   PRICE_CHANGE_BAND_1_MAX_PCT: "price_change_band_1_max_pct",  // 5.0
   PRICE_CHANGE_BAND_2_MAX_PCT: "price_change_band_2_max_pct",  // 9.5 (exclusive lower of band 3)
   PRICE_CHANGE_BAND_3_MAX_PCT: "price_change_band_3_max_pct",  // 25.0

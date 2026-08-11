@@ -10,7 +10,7 @@
 // - Package tier of reviewer is NOT a weighting factor (see prompt Section 5
 //   review design rationale).
 
-import { ConfigStore, getConfigNumber } from './config'
+import { ConfigStore, CONFIG_KEYS, getConfigNumber } from './config'
 
 export interface ServiceRankingInput {
   serviceId: string
@@ -27,15 +27,6 @@ export interface RankedService {
   serviceId: string
   score: number
   eligible: boolean
-}
-
-const CONFIG_KEYS = {
-  MIN_REVIEWS: 'min_reviews_for_recommendation',
-  WEIGHT_RECENCY_RATING: 'recommendation_weight_recency_rating',
-  WEIGHT_BOOKING_VOLUME: 'recommendation_weight_booking_volume',
-  WEIGHT_RELIABILITY: 'recommendation_weight_reliability',
-  WEIGHT_REVIEW_RATIO: 'recommendation_weight_review_ratio',
-  RECENCY_HALF_LIFE: 'recommendation_recency_half_life_days',
 }
 
 // Exponential decay: weight of a review diminishes by half every `halfLifeDays`
@@ -88,12 +79,12 @@ export async function rankServices(
     wReviewRatio,
     halfLife,
   ] = await Promise.all([
-    getConfigNumber(config, CONFIG_KEYS.MIN_REVIEWS),
-    getConfigNumber(config, CONFIG_KEYS.WEIGHT_RECENCY_RATING),
-    getConfigNumber(config, CONFIG_KEYS.WEIGHT_BOOKING_VOLUME),
-    getConfigNumber(config, CONFIG_KEYS.WEIGHT_RELIABILITY),
-    getConfigNumber(config, CONFIG_KEYS.WEIGHT_REVIEW_RATIO),
-    getConfigNumber(config, CONFIG_KEYS.RECENCY_HALF_LIFE),
+    getConfigNumber(config, CONFIG_KEYS.MIN_REVIEWS_FOR_RECOMMENDATION),
+    getConfigNumber(config, CONFIG_KEYS.RECOMMENDATION_WEIGHT_RECENCY_RATING),
+    getConfigNumber(config, CONFIG_KEYS.RECOMMENDATION_WEIGHT_BOOKING_VOLUME),
+    getConfigNumber(config, CONFIG_KEYS.RECOMMENDATION_WEIGHT_RELIABILITY),
+    getConfigNumber(config, CONFIG_KEYS.RECOMMENDATION_WEIGHT_REVIEW_RATIO),
+    getConfigNumber(config, CONFIG_KEYS.RECOMMENDATION_RECENCY_HALF_LIFE_DAYS),
   ])
 
   const results: RankedService[] = []

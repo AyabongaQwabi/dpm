@@ -1,5 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
-import { loadConfigStore } from '@/lib/config-store'
+import { loadPlatformConfig, PRICE_CHANGE_BANDS } from '@/lib/platform-config'
 import {
   calculateCommissionFull,
   checkDiscountEligibility,
@@ -65,7 +65,7 @@ export async function calculateBookingCommission(
   if (!pkg) throw new Error('Package not found')
 
   const serviceId = pkg.service_id as string
-  const config = await loadConfigStore(supabase)
+  const config = await loadPlatformConfig()
   const ctx = await loadCommissionContext(supabase, providerId, serviceId)
 
   const { data: lastSale } = await supabase
@@ -82,7 +82,7 @@ export async function calculateBookingCommission(
   const discountBonusEligible = checkDiscountEligibility({
     currentListPrice,
     lastSalePrice,
-  })
+  }, PRICE_CHANGE_BANDS)
 
   return calculateCommissionFull(
     {

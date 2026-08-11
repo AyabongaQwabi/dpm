@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { loadConfigStore } from '@/lib/config-store'
+import { loadPlatformConfig } from '@/lib/platform-config'
 import { getConfigNumber, CONFIG_KEYS } from '@/lib/domain/config'
 import { refundBookingCredits } from '@/lib/actions/credits'
 
@@ -16,7 +16,7 @@ export async function GET(request: Request) {
   }
 
   const admin = createAdminClient()
-  const config = await loadConfigStore(admin)
+  const config = await loadPlatformConfig()
   const expiryHours = await getConfigNumber(config, CONFIG_KEYS.BOOKING_AUTO_EXPIRY_HOURS)
 
   const cutoff = new Date(Date.now() - expiryHours * 3_600_000).toISOString()

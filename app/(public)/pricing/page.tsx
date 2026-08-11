@@ -1,7 +1,8 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
-import { loadConfigStore, getConfigJsonArray } from '@/lib/config-store'
+import { getConfigJsonArray } from '@/lib/config-store'
+import { loadPlatformConfig } from '@/lib/platform-config'
 import { getConfigNumber, CONFIG_KEYS } from '@/lib/domain/config'
 import { getActivePromotion } from '@/lib/credit-promotions'
 import { CreditPackCards } from '@/components/credits/CreditPackCards'
@@ -59,7 +60,7 @@ export default async function CustomerPricingPage() {
   const supabase = await createClient()
   const [{ data: { user } }, config] = await Promise.all([
     supabase.auth.getUser(),
-    loadConfigStore(supabase),
+    loadPlatformConfig(),
   ])
 
   const [packs, minAmount, maxAmount] = await Promise.all([

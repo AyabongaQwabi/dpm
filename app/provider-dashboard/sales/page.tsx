@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { requireProviderSession } from '@/lib/session'
-import { loadConfigStore } from '@/lib/config-store'
+import { loadPlatformConfig } from '@/lib/platform-config'
 import { getConfigNumber, CONFIG_KEYS } from '@/lib/domain/config'
 import type { BookingStatus, PaymentStatus, ProviderPayoutStatus } from '@/lib/db'
 import { formatCredits } from '@/lib/format-credits'
@@ -29,7 +29,7 @@ const PAYOUT_LABELS: Record<ProviderPayoutStatus, string> = {
 export default async function SalesPage() {
   const { provider } = await requireProviderSession()
   const supabase = await createClient()
-  const config = await loadConfigStore(supabase)
+  const config = await loadPlatformConfig()
   const payoutDays = await getConfigNumber(config, CONFIG_KEYS.PROVIDER_PAYOUT_BUSINESS_DAYS)
 
   const { data: bookings } = await supabase

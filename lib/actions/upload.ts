@@ -3,6 +3,7 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { MAX_UPLOAD_FILE_SIZE_MB } from '@/lib/platform-config'
 
 const BUCKET = 'provider-assets'
 
@@ -32,8 +33,8 @@ export async function uploadProviderAsset(
   const file = formData.get('file') as File | null
   if (!file || file.size === 0) return { error: 'No file provided.' }
 
-  const maxBytes = 10 * 1024 * 1024
-  if (file.size > maxBytes) return { error: 'File exceeds 10 MB limit.' }
+  const maxBytes = MAX_UPLOAD_FILE_SIZE_MB * 1024 * 1024
+  if (file.size > maxBytes) return { error: `File exceeds ${MAX_UPLOAD_FILE_SIZE_MB} MB limit.` }
 
   if (!ALLOWED_TYPES.has(file.type)) {
     return { error: `File type "${file.type}" is not supported.` }

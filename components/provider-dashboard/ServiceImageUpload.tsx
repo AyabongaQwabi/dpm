@@ -1,6 +1,7 @@
 'use client'
 
 import { useRef, useState } from 'react'
+import { MAX_UPLOAD_FILE_SIZE_MB } from '@/lib/platform-config'
 import { useRouter } from 'next/navigation'
 import { uploadProviderAsset } from '@/lib/actions/upload'
 
@@ -108,7 +109,7 @@ export function ServiceImageUpload({ serviceId, currentImage, action }: Props) {
             <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909M3 21h18M3 10.5h18" />
           </svg>
           <span className="text-sm font-medium text-primary-accent">Choose or drag an image</span>
-          <span className="text-xs text-muted-foreground">JPEG, PNG, WebP, AVIF · max 10 MB</span>
+          <span className="text-xs text-muted-foreground">JPEG, PNG, WebP, AVIF · max {MAX_UPLOAD_FILE_SIZE_MB} MB</span>
         </div>
       )}
 

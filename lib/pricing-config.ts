@@ -1,47 +1,27 @@
 /**
  * SINGLE SOURCE OF TRUTH — provider pricing configuration.
  *
- * Every number that appears in:
- *   - The pricing page (display copy, saving callouts, plan cards)
- *   - The commission calculator (client-side math)
- *   - The domain layer (server-side calculations via platform_config DB rows)
- *   - Migrations (the INSERT values in supabase/migrations/)
- *   - Unit test fixtures
+ * The actual data lives in config/platform-config.json now, not in this
+ * file — commission brackets, package numbers/fees/rates, and marketing
+ * copy (name/badge/tagline/planDetail/savingExample) are all read from
+ * there. This file's job is now: re-shape that JSON into the typed
+ * constants/helpers every consumer already imports (COMMISSION_BRACKETS,
+ * PACKAGES, effectiveRate, formatRate, etc.), so none of those call sites
+ * (CommissionCalculator.tsx, the pricing page, subscription actions, ~12
+ * files in total) need to change.
  *
- * …derives from this file. To change any rate, fee, or limit: change it here,
- * and it automatically flows everywhere.
+ * There is no DB round-trip anywhere in this file or its consumers — the
+ * old platform_config table and the DB-backed ConfigStore path are gone;
+ * see lib/platform-config.ts for the JSON-backed ConfigStore used by
+ * server domain functions (payments.ts, ranking.ts, etc.).
  *
- * The database (platform_config table) remains the runtime source for server
- * calculations. This file generates the InMemoryConfigStore entries used in
- * tests, the DB seed values asserted in migrations, and the display values
- * used in UI components that can't call the DB directly (client components,
- * static sections of the pricing page, etc.).
- *
- * HOW IT WORKS IN PRACTICE
- * ─────────────────────────
- * 1. Server domain functions (payments.ts) read from ConfigStore (DB-backed).
- *    The DB values must match what's seeded in the migration.
- * 2. The migration INSERT is generated from PLATFORM_CONFIG_SEED below —
- *    so "update the migration" means "re-derive from this file."
- * 3. Client components (CommissionCalculator, pricing page) import the typed
- *    constants directly and use them for display and in-browser math.
- * 4. Test fixtures call makePricingConfigStore() which returns an
- *    InMemoryConfigStore pre-populated from this file.
+ * To change any rate, fee, cap, or marketing copy string: edit
+ * config/platform-config.json. A deploy is required to pick it up.
  */
+
+import platformConfig from '../config/platform-config.json'
 
 // ─── Commission brackets ──────────────────────────────────────────────────────
-
-/**
- * The five per-sale commission brackets.
- * `max: Infinity` on the last bracket means "everything above the previous max".
- */
-export const COMMISSION_BRACKETS = [
-  { min: 0,     max: 999,      rate: 0.075,  label: 'R0 – R999' },
-  { min: 1000,  max: 4999,     rate: 0.085,  label: 'R1,000 – R4,999' },
-  { min: 5000,  max: 9999,     rate: 0.095,  label: 'R5,000 – R9,999' },
-  { min: 10000, max: 49999,    rate: 0.10,   label: 'R10,000 – R49,999' },
-  { min: 50000, max: Infinity, rate: 0.1275, label: 'R50,000+' },
-] as const satisfies readonly CommissionBracketDef[];
 
 export interface CommissionBracketDef {
   min: number;
@@ -49,6 +29,19 @@ export interface CommissionBracketDef {
   rate: number;
   label: string;
 }
+
+/**
+ * The five per-sale commission brackets, re-shaped from
+ * config/platform-config.json's commission.brackets (JSON can't represent
+ * Infinity, so the last bracket's null max is mapped to Infinity here —
+ * same meaning as before: "everything above the previous max").
+ */
+export const COMMISSION_BRACKETS: readonly CommissionBracketDef[] = platformConfig.commission.brackets.map((b) => ({
+  min: b.min,
+  max: b.max ?? Infinity,
+  rate: b.rate,
+  label: b.label,
+}));
 
 /** Lowest possible commission rate (bracket 1). Useful for display copy. */
 export const MIN_COMMISSION_RATE = COMMISSION_BRACKETS[0].rate; // 0.075
@@ -63,7 +56,7 @@ export const MAX_COMMISSION_RATE = COMMISSION_BRACKETS[COMMISSION_BRACKETS.lengt
  * regardless of how many savings layers (ceiling + D4D bonus + temp reduction)
  * are active simultaneously.
  */
-export const COMMISSION_STACKING_FLOOR = 0.04;
+export const COMMISSION_STACKING_FLOOR = platformConfig.commission.stackingFloor;
 
 // ─── Packages ─────────────────────────────────────────────────────────────────
 
@@ -108,87 +101,25 @@ export interface PackageConfig {
   savingExample: string | null;
 }
 
-export const PACKAGES: readonly PackageConfig[] = [
-  {
-    packageNumber: 1,
-    id: 'starter',
-    name: 'Starter',
-    monthlyFee: 99,
-    ceilingRate: null,
-    d4dBonus: null,
-    tempReduction: { points: 0.010, months: 3 },
-    badge: null,
-    recommended: false,
-    tagline: 'Get your business in front of customers today.',
-    planDetail:
-      'Everything you need to start taking jobs through the platform. Pay a flat monthly fee and a small commission on what you earn — nothing more.',
-    savingExample: null,
-  },
-  {
-    packageNumber: 2,
-    id: 'shield',
-    name: 'Shield',
-    monthlyFee: 499,
-    ceilingRate: 0.10,
-    d4dBonus: 0.025,
-    tempReduction: { points: 0.016, months: 3 },
-    badge: 'Entry protection',
-    recommended: false,
-    tagline: 'Stop overpaying on your biggest jobs.',
-    planDetail:
-      'Commission capped at 10% — so when you close a large job, you keep significantly more. One job can pay for this plan many times over.',
-    savingExample:
-      "On a R74,300 job: standard commission is R9,473. With your cap it's R7,430. You keep an extra R2,043 — from one job.",
-  },
-  {
-    packageNumber: 3,
-    id: 'pro',
-    name: 'Pro',
-    monthlyFee: 799,
-    ceilingRate: 0.095,
-    d4dBonus: 0.030,
-    tempReduction: { points: 0.020, months: 3 },
-    badge: 'Most popular',
-    recommended: true,
-    tagline: 'The plan serious providers choose.',
-    planDetail:
-      'A tighter commission cap plus a free Graphic Design service. One R10,000 job more than pays for the month.',
-    savingExample:
-      "On a R75,000 job: standard commission is R9,562. With your cap it's R7,125. You pocket R2,437 extra — more than 3× the monthly plan cost.",
-  },
-  {
-    packageNumber: 4,
-    id: 'growth',
-    name: 'Growth',
-    monthlyFee: 1199,
-    ceilingRate: 0.085,
-    d4dBonus: 0.035,
-    tempReduction: { points: 0.030, months: 3 },
-    badge: 'High-volume',
-    recommended: false,
-    tagline: 'Built for providers closing jobs above R1,000 every week.',
-    planDetail:
-      'The cap kicks in at the second bracket — almost every job you close is cheaper. Plus a free Social Media Management service to fuel your inbound pipeline.',
-    savingExample:
-      'Every job above R1,000 is capped. On 5 × R10,000 jobs: save R7,500 compared to standard rates — in a single month.',
-  },
-  {
-    packageNumber: 5,
-    id: 'elite',
-    name: 'Elite',
-    monthlyFee: 1699,
-    ceilingRate: 0.075,
-    d4dBonus: 0.045,
-    tempReduction: { points: 0.035, months: 6 },
-    badge: 'Max protection',
-    recommended: false,
-    tagline: 'The same rate on a R2,000 job as a R200,000 job.',
-    planDetail:
-      'Every sale above R999 is capped at 7.5% — the same rate as the smallest possible job. For high-ticket providers, this is the most powerful plan on the platform.',
-    savingExample:
-      "On a R200,000 project: standard commission is R25,500. With your 7.5% cap it's R15,000. You keep R10,500 more — from one project.",
-  },
-] as const;
+/**
+ * Every provider plan, re-shaped from config/platform-config.json's
+ * packages array (numeric fields, caps, AND marketing copy — name, badge,
+ * tagline, planDetail, savingExample — all live there now).
+ */
+export const PACKAGES: readonly PackageConfig[] = platformConfig.packages.map((p) => ({
+  packageNumber: p.packageNumber as 1 | 2 | 3 | 4 | 5,
+  id: p.id,
+  name: p.name,
+  monthlyFee: p.monthlyFee,
+  ceilingRate: p.ceilingRate,
+  d4dBonus: p.d4dBonus,
+  tempReduction: p.tempReduction,
+  badge: p.badge,
+  recommended: p.recommended,
+  tagline: p.tagline,
+  planDetail: p.planDetail,
+  savingExample: p.savingExample,
+}));
 
 // ─── Derived helpers (pure functions, no imports, safe to use anywhere) ───────
 
@@ -253,19 +184,23 @@ export function formatFee(amount: number): string {
   return 'R' + amount.toLocaleString('en-ZA');
 }
 
-// ─── platform_config seed (used by migrations and test fixtures) ──────────────
+// ─── Flat key→value map (used by test fixtures via makePricingConfigStore) ────
 
 /**
- * The canonical set of key→value pairs that must exist in the platform_config
- * table. The migration INSERT and the test InMemoryConfigStore are both
- * generated from this object — so there is exactly one place to update.
+ * The same flat key→value shape lib/domain/config.ts's CONFIG_KEYS expects,
+ * generated from config/platform-config.json. Used only by test fixtures
+ * (makePricingConfigStore, below) — production code reads through
+ * lib/platform-config.ts's loadPlatformConfig() instead, which is generated
+ * from the same JSON via a separate flattening function. Kept as two
+ * independent flatteners rather than one shared function so lib/pricing-config.ts
+ * (imported by client components) never needs to import lib/domain/config.ts's
+ * ConfigStore machinery.
  *
- * Values are stored as strings because platform_config.value is TEXT.
+ * The old "commission_rate" legacy single-rate key was removed — zero call
+ * sites read it (confirmed by repo-wide grep before removal); it was
+ * superseded by the per-bracket keys below.
  */
 export const PLATFORM_CONFIG_SEED: Record<string, string> = {
-  // Legacy single-rate key (kept for backward compat)
-  commission_rate: String(COMMISSION_BRACKETS[0].rate),
-
   // Bracket rates
   commission_rate_bracket_1: String(COMMISSION_BRACKETS[0].rate),
   commission_rate_bracket_2: String(COMMISSION_BRACKETS[1].rate),
@@ -283,20 +218,11 @@ export const PLATFORM_CONFIG_SEED: Record<string, string> = {
   // Stacking floor
   commission_stacking_floor: String(COMMISSION_STACKING_FLOOR),
 
-  // Provider subscription fee (Starter plan)
-  provider_subscription_fee: String(PACKAGES[0].monthlyFee),
-
   // Ceiling package rates (ceiling plans only — packages 2–5)
   ceiling_rate_10: String(PACKAGES[1].ceilingRate),
   ceiling_rate_95: String(PACKAGES[2].ceilingRate),
   ceiling_rate_85: String(PACKAGES[3].ceilingRate),
   ceiling_rate_75: String(PACKAGES[4].ceilingRate),
-
-  // Ceiling package monthly fees
-  ceiling_fee_10: String(PACKAGES[1].monthlyFee),
-  ceiling_fee_95: String(PACKAGES[2].monthlyFee),
-  ceiling_fee_85: String(PACKAGES[3].monthlyFee),
-  ceiling_fee_75: String(PACKAGES[4].monthlyFee),
 
   // Discount 4 Discount bonus rate-points per ceiling package
   discount_bonus_10: String(PACKAGES[1].d4dBonus),
@@ -317,34 +243,40 @@ export const PLATFORM_CONFIG_SEED: Record<string, string> = {
   temp_reduction_pkg_4_months: String(PACKAGES[3].tempReduction.months),
   temp_reduction_pkg_5_months: String(PACKAGES[4].tempReduction.months),
 
-  // Price-change moderation bands (Section 5 of pricing model doc)
-  price_change_band_1_max_pct: '5.0',
-  price_change_band_2_max_pct: '9.5',
-  price_change_band_3_max_pct: '25.0',
-  price_change_band_4_max_pct: '50.0',
-  price_change_high_demand_threshold: '3',
+  // Price-change moderation bands
+  price_change_band_1_max_pct: String(platformConfig.priceChangeBands.band1MaxPct),
+  price_change_band_2_max_pct: String(platformConfig.priceChangeBands.band2MaxPct),
+  price_change_band_3_max_pct: String(platformConfig.priceChangeBands.band3MaxPct),
+  price_change_band_4_max_pct: String(platformConfig.priceChangeBands.band4MaxPct),
+  price_change_high_demand_threshold: String(platformConfig.priceChangeBands.highDemandThreshold),
 
   // Booking auto-expiry
-  booking_auto_expiry_hours: '24',
+  booking_auto_expiry_hours: String(platformConfig.booking.autoExpiryHours),
 
   // Credit wallet (1 credit = R1)
-  credit_pack_denominations: '[100,250,500,1000]',
-  credit_purchase_min: '50',
-  credit_purchase_max: '5000',
-  provider_payout_business_days: '5',
-  support_email: 'support@servicepros.co.za',
+  credit_pack_denominations: JSON.stringify(platformConfig.creditWallet.packDenominations),
+  credit_purchase_min: String(platformConfig.creditWallet.purchaseMinCredits),
+  credit_purchase_max: String(platformConfig.creditWallet.purchaseMaxCredits),
+  provider_payout_business_days: String(platformConfig.providerPayout.businessDays),
+  support_email: platformConfig.support.email,
 
-  // Ranking weights (defaults — tunable in DB without a deploy)
-  ranking_weight_text_match: '1.0',
-  ranking_weight_location: '0.8',
-  ranking_weight_tags: '0.6',
-  ranking_weight_review_quality: '0.9',
-  ranking_weight_completed_bookings: '0.7',
-  ranking_weight_profile_completeness: '0.5',
-  ranking_weight_reliability_penalty: '0.4',
-  ranking_boost_cap: '2.0',
-  ranking_reliability_penalty_threshold: '0.2',
-  ranking_near_zero_threshold: '0.01',
+  // Ranking weights
+  ranking_weight_text_match: String(platformConfig.ranking.weightTextMatch),
+  ranking_weight_location: String(platformConfig.ranking.weightLocation),
+  ranking_weight_tags: String(platformConfig.ranking.weightTags),
+  ranking_weight_review_quality: String(platformConfig.ranking.weightReviewQuality),
+  ranking_weight_completed_bookings: String(platformConfig.ranking.weightCompletedBookings),
+  ranking_weight_profile_completeness: String(platformConfig.ranking.weightProfileCompleteness),
+  ranking_weight_reliability_penalty: String(platformConfig.ranking.weightReliabilityPenalty),
+
+  // Service recommendation ranking (formerly a separate shadow key registry
+  // in lib/domain/service-ranking.ts, folded into the canonical CONFIG_KEYS)
+  min_reviews_for_recommendation: String(platformConfig.serviceRecommendation.minReviewsForRecommendation),
+  recommendation_weight_recency_rating: String(platformConfig.serviceRecommendation.weightRecencyRating),
+  recommendation_weight_booking_volume: String(platformConfig.serviceRecommendation.weightBookingVolume),
+  recommendation_weight_reliability: String(platformConfig.serviceRecommendation.weightReliability),
+  recommendation_weight_review_ratio: String(platformConfig.serviceRecommendation.weightReviewRatio),
+  recommendation_recency_half_life_days: String(platformConfig.serviceRecommendation.recencyHalfLifeDays),
 };
 
 /**

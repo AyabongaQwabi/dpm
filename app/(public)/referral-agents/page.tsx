@@ -3,28 +3,31 @@ import Link from 'next/link'
 import { JsonLd } from '@/components/seo/JsonLd'
 import { Icon } from '@/components/ui/Icon'
 import { getSupportEmail } from '@/lib/policy-content'
+import { REFERRAL_PROGRAM } from '@/lib/platform-config'
 import { breadcrumbJsonLd, canonicalAlternates, defaultOpenGraph, defaultTwitter } from '@/lib/seo'
+
+const { commissionPct, maxActiveMonths } = REFERRAL_PROGRAM
 
 export const metadata: Metadata = {
   title: 'Referral agent programme',
   description:
-    'Earn a share of subscription revenue for providers you refer to ServicePros — 35% of active months, for up to 6 months per provider.',
+    `Earn a share of subscription revenue for providers you refer to ServicePros — ${commissionPct}% of active months, for up to ${maxActiveMonths} months per provider.`,
   alternates: canonicalAlternates('/referral-agents'),
   openGraph: defaultOpenGraph(
     'Referral agent programme',
-    'Earn a share of subscription revenue for providers you refer to ServicePros — 35% of active months, up to 6 months per provider.',
+    `Earn a share of subscription revenue for providers you refer to ServicePros — ${commissionPct}% of active months, up to ${maxActiveMonths} months per provider.`,
     '/referral-agents',
   ),
   twitter: defaultTwitter(
     'Referral agent programme',
-    'Earn a share of subscription revenue for providers you refer to ServicePros — 35% of active months, up to 6 months per provider.',
+    `Earn a share of subscription revenue for providers you refer to ServicePros — ${commissionPct}% of active months, up to ${maxActiveMonths} months per provider.`,
   ),
 }
 
 const TERMS = [
   {
-    title: '35% of subscription revenue',
-    body: 'You earn 35% of the monthly subscription fee for every provider you refer, for as long as they keep paying.',
+    title: `${commissionPct}% of subscription revenue`,
+    body: `You earn ${commissionPct}% of the monthly subscription fee for every provider you refer, for as long as they keep paying.`,
   },
   {
     title: 'Active months only',
@@ -35,8 +38,8 @@ const TERMS = [
     body: 'Your share is calculated on the monthly fee of the package the provider chose at signup — it stays locked to that package.',
   },
   {
-    title: 'Maximum 6 active months per referred provider',
-    body: "Earnings on a single referred provider stop after 6 active months. This is a 6-month earning window, not an ongoing annuity — worth knowing up front so it doesn't surprise you later.",
+    title: `Maximum ${maxActiveMonths} active months per referred provider`,
+    body: `Earnings on a single referred provider stop after ${maxActiveMonths} active months. This is a ${maxActiveMonths}-month earning window, not an ongoing annuity — worth knowing up front so it doesn't surprise you later.`,
   },
 ] as const
 
@@ -61,7 +64,7 @@ export default async function ReferralAgentsPage() {
             </h1>
             <p className="mt-5 text-lg leading-8 text-muted-foreground text-pretty">
               If you know service providers who&apos;d do well on ServicePros, refer them and earn a
-              percentage of their subscription for as long as they stay active — up to 6 months per
+              percentage of their subscription for as long as they stay active — up to {maxActiveMonths} months per
               provider.
             </p>
           </div>
@@ -76,7 +79,7 @@ export default async function ReferralAgentsPage() {
             <p className="mt-3 leading-7 text-muted-foreground">
               You introduce a service provider to ServicePros using your unique referral link. If they
               sign up and subscribe, you earn a share of their monthly subscription fee for as long as
-              they stay paying and active, up to the 6-month cap.
+              they stay paying and active, up to the {maxActiveMonths}-month cap.
             </p>
           </div>
           <div>
@@ -121,9 +124,9 @@ export default async function ReferralAgentsPage() {
       {/* Honest ceiling */}
       <section className="border-t bg-muted/30">
         <div className="mx-auto max-w-4xl px-4 py-14">
-          <h2 className="font-display text-lg font-semibold">A 6-month window, not an annuity</h2>
+          <h2 className="font-display text-lg font-semibold">A {maxActiveMonths}-month window, not an annuity</h2>
           <p className="mt-3 text-sm leading-6 text-muted-foreground">
-            Earnings on any single referred provider stop after 6 active months, whether or not they stay
+            Earnings on any single referred provider stop after {maxActiveMonths} active months, whether or not they stay
             subscribed after that. If you refer steadily, your total earnings grow with your pipeline of
             new referrals — but no single referral pays out indefinitely. We&apos;d rather you know that
             now than be surprised by it later.
