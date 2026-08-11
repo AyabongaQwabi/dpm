@@ -4,6 +4,7 @@ import { useRef, useState } from 'react'
 import { MAX_UPLOAD_FILE_SIZE_MB } from '@/lib/platform-config'
 import { useRouter } from 'next/navigation'
 import { uploadProviderAsset } from '@/lib/actions/upload'
+import { imageUploadHint } from '@/lib/image-upload-guidelines'
 
 interface Props {
   serviceId: string
@@ -119,6 +120,8 @@ export function ServiceImageUpload({ serviceId, currentImage, action }: Props) {
           respond better to real images than stock photos or text-heavy posters.
         </p>
       )}
+
+      <p className="text-xs text-muted-foreground">{imageUploadHint('serviceImage')}</p>
 
       <input
         ref={inputRef}

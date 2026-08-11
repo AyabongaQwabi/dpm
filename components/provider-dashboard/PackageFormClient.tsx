@@ -1,8 +1,14 @@
 'use client'
 
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import type { DiscountType } from '@/lib/db'
+import {
+  SERVICE_PACKAGE_TITLE_ALLOWED_PATTERN,
+  SERVICE_PACKAGE_TITLE_GUIDANCE,
+  SERVICE_PACKAGE_TITLE_MAX_CHARS,
+  SERVICE_PACKAGE_TITLE_MAX_WORDS,
+} from '@/lib/service-package-rules'
 
 interface Props {
   serviceId: string
@@ -91,19 +97,24 @@ export function PackageFormClient({
   packageId,
   action,
   defaults,
-  submitLabel = 'Add package',
+  submitLabel,
   isFirstPackage = false,
   onSaved,
 }: Props) {
   const router = useRouter()
+  const formRef = useRef<HTMLFormElement>(null)
   const [offerings, setOfferings] = useState<string[]>(defaults?.offerings ?? [])
   const [fileSlots, setFileSlots] = useState<string[]>(
     defaults?.requirement_file_slots?.map((s) => s.name) ?? []
   )
   const [saving, setSaving] = useState(false)
+  const [hasSavedNewPackage, setHasSavedNewPackage] = useState(false)
+  const [name, setName] = useState(defaults?.name ?? '')
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
+    const submitter = (e.nativeEvent as SubmitEvent).submitter as HTMLButtonElement | null
+    const intent = submitter?.value === 'add_another' ? 'add_another' : 'save'
     setSaving(true)
     const fd = new FormData(e.currentTarget)
     // Replace textarea values with JSON arrays
@@ -117,15 +128,31 @@ export function PackageFormClient({
       // server action may redirect on success
     }
     setSaving(false)
+    if (!packageId) {
+      setHasSavedNewPackage(true)
+      if (intent === 'add_another') {
+        formRef.current?.reset()
+        setName('')
+        setOfferings([])
+        setFileSlots([])
+      }
+    }
     onSaved?.()
     router.refresh()
   }
 
+  const isDefault = defaults?.is_default || (isFirstPackage && !hasSavedNewPackage)
+  const primaryLabel = submitLabel ?? 'Save package'
+  const packageNameWordCount = name.trim() ? name.trim().split(/\s+/).length : 0
+  const packageNameTooLong = name.length > SERVICE_PACKAGE_TITLE_MAX_CHARS
+  const packageNameTooManyWords = packageNameWordCount > SERVICE_PACKAGE_TITLE_MAX_WORDS
+  const hasPackageNameClientError = packageNameTooLong || packageNameTooManyWords
+
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form ref={formRef} onSubmit={handleSubmit} className="space-y-4">
       <input type="hidden" name="serviceId" value={serviceId} />
       {packageId && <input type="hidden" name="packageId" value={packageId} />}
-      <input type="hidden" name="isDefault" value={defaults?.is_default || isFirstPackage ? 'true' : 'false'} />
+      <input type="hidden" name="isDefault" value={isDefault ? 'true' : 'false'} />
       <input type="hidden" name="displayOrder" value={defaults?.display_order ?? 0} />
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -137,10 +164,25 @@ export function PackageFormClient({
             name="name"
             type="text"
             required
-            defaultValue={defaults?.name}
-            placeholder="e.g. Standard"
+            value={name}
+            onChange={(event) => setName(event.target.value)}
+            minLength={2}
+            maxLength={SERVICE_PACKAGE_TITLE_MAX_CHARS}
+            pattern={SERVICE_PACKAGE_TITLE_ALLOWED_PATTERN}
+            placeholder="e.g. Business Website"
             className="w-full rounded-[var(--radius)] border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
           />
+          <p className="text-xs text-muted-foreground">
+            {SERVICE_PACKAGE_TITLE_GUIDANCE}
+          </p>
+          <p className={`text-xs ${packageNameTooLong || packageNameTooManyWords ? 'text-destructive' : 'text-muted-foreground'}`}>
+            {name.length}/{SERVICE_PACKAGE_TITLE_MAX_CHARS} characters · {packageNameWordCount}/{SERVICE_PACKAGE_TITLE_MAX_WORDS} words
+          </p>
+          {packageNameTooManyWords && (
+            <p className="text-xs text-destructive">
+              Keep the package name to {SERVICE_PACKAGE_TITLE_MAX_WORDS} words or fewer.
+            </p>
+          )}
         </div>
         <div className="space-y-1.5">
           <label className="block text-sm font-medium">
@@ -243,13 +285,28 @@ export function PackageFormClient({
         </div>
       </div>
 
-      <button
-        type="submit"
-        disabled={saving}
-        className="bg-primary text-primary-foreground rounded-[var(--radius)] px-5 py-2 text-sm font-semibold hover:opacity-90 transition-opacity cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
-      >
-        {saving ? 'Saving…' : submitLabel}
-      </button>
+      <div className="flex flex-col gap-2 border-t border-border pt-4 sm:flex-row sm:items-center">
+        <button
+          type="submit"
+          name="intent"
+          value="save"
+          disabled={saving || hasPackageNameClientError}
+          className="inline-flex justify-center rounded-[var(--radius)] bg-primary px-5 py-2 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          {saving ? 'Saving...' : primaryLabel}
+        </button>
+        {!packageId && (
+          <button
+            type="submit"
+            name="intent"
+            value="add_another"
+            disabled={saving || hasPackageNameClientError}
+            className="inline-flex justify-center rounded-[var(--radius)] border border-primary/40 bg-background px-5 py-2 text-sm font-semibold text-primary transition-colors hover:bg-primary/5 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {saving ? 'Saving...' : 'Add package and clear form'}
+          </button>
+        )}
+      </div>
     </form>
   )
 }

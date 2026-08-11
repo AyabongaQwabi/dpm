@@ -1,4 +1,4 @@
-import { notFound, redirect } from 'next/navigation'
+import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { requireProviderSession } from '@/lib/session'
 import {
@@ -18,13 +18,21 @@ import { ServiceArticleEditor } from '@/components/provider-dashboard/ServiceArt
 import { ServiceImageUpload } from '@/components/provider-dashboard/ServiceImageUpload'
 import { PackageFormClient } from '@/components/provider-dashboard/PackageFormClient'
 import type { DiscountType } from '@/lib/db'
+import { SERVICE_PACKAGE_TITLE_GUIDANCE } from '@/lib/service-package-rules'
 
 interface PageProps {
   params: Promise<{ id: string }>
+  searchParams: Promise<{ packageError?: string }>
 }
 
-export default async function ServiceEditorPage({ params }: PageProps) {
+const PACKAGE_ERRORS: Record<string, string> = {
+  title: SERVICE_PACKAGE_TITLE_GUIDANCE,
+  price: 'Package price must be zero or more.',
+}
+
+export default async function ServiceEditorPage({ params, searchParams }: PageProps) {
   const { id: serviceId } = await params
+  const { packageError } = await searchParams
   const { provider } = await requireProviderSession()
   const supabase = await createClient()
 
@@ -69,7 +77,7 @@ export default async function ServiceEditorPage({ params }: PageProps) {
   const canPublish = !!service.article_json && packages.length > 0
 
   return (
-    <div className="max-w-3xl mx-auto px-4 py-10 space-y-8">
+    <div className="mx-auto max-w-5xl space-y-8 px-4 py-6 sm:px-6 lg:px-8 lg:py-10">
       {/* Header */}
       <div className="flex items-start justify-between gap-4">
         <div>
@@ -226,6 +234,12 @@ export default async function ServiceEditorPage({ params }: PageProps) {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
+          {packageError && PACKAGE_ERRORS[packageError] && (
+            <p className="rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+              {PACKAGE_ERRORS[packageError]}
+            </p>
+          )}
+
           {/* Existing packages */}
           {packages.map((pkg) => (
             <details key={pkg.id} className="border rounded-xl overflow-hidden group">
@@ -331,4 +345,3 @@ export default async function ServiceEditorPage({ params }: PageProps) {
     </div>
   )
 }
-

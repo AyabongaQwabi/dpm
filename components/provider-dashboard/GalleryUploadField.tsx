@@ -3,6 +3,7 @@
 import { useRef, useState } from 'react'
 import { MAX_UPLOAD_FILE_SIZE_MB } from '@/lib/platform-config'
 import { uploadProviderAsset } from '@/lib/actions/upload'
+import { imageUploadHint } from '@/lib/image-upload-guidelines'
 
 interface GalleryImage {
   url: string
@@ -85,7 +86,7 @@ export function GalleryUploadField({ fieldKey, label, isRequired, savedUrls, ima
 
     setImages((prev) => [...prev, ...newImages])
 
-    await Promise.all(files.map((file, i) => uploadOne(file, startIndex + i)))
+    await Promise.all(accepted.map((file, i) => uploadOne(file, startIndex + i)))
   }
 
   function removeImage(index: number) {
@@ -211,6 +212,9 @@ export function GalleryUploadField({ fieldKey, label, isRequired, savedUrls, ima
         />
         <p className="mt-1 text-xs text-muted-foreground">
           JPEG, PNG, WebP, AVIF, GIF · up to {MAX_UPLOAD_FILE_SIZE_MB} MB each · select multiple at once
+        </p>
+        <p className="mt-1 text-xs text-muted-foreground">
+          {imageUploadHint('galleryImage')}
         </p>
         <p className="mt-1 text-xs text-muted-foreground">
           Real photos of finished work perform better than stock images or watermarked photos.

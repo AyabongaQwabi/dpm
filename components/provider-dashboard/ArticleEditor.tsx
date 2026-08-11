@@ -8,6 +8,7 @@ import Link from '@tiptap/extension-link'
 import Placeholder from '@tiptap/extension-placeholder'
 import { useCallback, useRef, useState } from 'react'
 import { uploadProviderAsset } from '@/lib/actions/upload'
+import { imageUploadHint } from '@/lib/image-upload-guidelines'
 
 interface ArticleEditorProps {
   serviceId: string
@@ -31,12 +32,92 @@ function getPlainText(json: unknown): string {
     .trim()
 }
 
-export function ArticleEditor({ serviceId, initialJson, onSave }: ArticleEditorProps) {
+const ALLOWED_PASTE_TAGS = new Set([
+  'a',
+  'blockquote',
+  'br',
+  'em',
+  'h1',
+  'h2',
+  'h3',
+  'h4',
+  'li',
+  'ol',
+  'p',
+  's',
+  'strong',
+  'u',
+  'ul',
+])
+
+const PASTE_TAG_MAP: Record<string, string> = {
+  b: 'strong',
+  div: 'p',
+  i: 'em',
+}
+
+function cleanPastedNode(node: Node): Node | null {
+  if (node.nodeType === Node.TEXT_NODE) {
+    return document.createTextNode(node.textContent ?? '')
+  }
+  if (node.nodeType !== Node.ELEMENT_NODE) return null
+
+  const element = node as HTMLElement
+  const sourceTag = element.tagName.toLowerCase()
+  if (['meta', 'script', 'style'].includes(sourceTag)) return null
+
+  const targetTag = PASTE_TAG_MAP[sourceTag] ?? sourceTag
+  const wrapper = ALLOWED_PASTE_TAGS.has(targetTag) ? document.createElement(targetTag) : document.createDocumentFragment()
+
+  if (targetTag === 'a' && wrapper instanceof HTMLAnchorElement) {
+    const href = element.getAttribute('href')
+    if (href) {
+      try {
+        const url = new URL(href, window.location.origin)
+        if (url.protocol === 'http:' || url.protocol === 'https:' || url.protocol === 'mailto:') {
+          wrapper.setAttribute('href', url.toString())
+          wrapper.setAttribute('rel', 'nofollow noopener noreferrer')
+        }
+      } catch {
+        // Drop malformed links but keep their text.
+      }
+    }
+  }
+
+  element.childNodes.forEach((child) => {
+    const cleaned = cleanPastedNode(child)
+    if (cleaned) wrapper.appendChild(cleaned)
+  })
+
+  const style = element.getAttribute('style') ?? ''
+  let styled: Node = wrapper
+  if (/font-weight\s*:\s*(bold|[6-9]00)/i.test(style)) styled = wrapPastedNode('strong', styled)
+  if (/font-style\s*:\s*italic/i.test(style)) styled = wrapPastedNode('em', styled)
+  if (/text-decoration[^;]*underline/i.test(style)) styled = wrapPastedNode('u', styled)
+  return styled
+}
+
+function wrapPastedNode(tag: string, node: Node): Node {
+  const wrapper = document.createElement(tag)
+  wrapper.appendChild(node)
+  return wrapper
+}
+
+function sanitizePastedHtml(html: string): string {
+  const doc = new DOMParser().parseFromString(html, 'text/html')
+  const container = document.createElement('div')
+  doc.body.childNodes.forEach((node) => {
+    const cleaned = cleanPastedNode(node)
+    if (cleaned) container.appendChild(cleaned)
+  })
+  return container.innerHTML
+}
+
+export function ArticleEditor({ initialJson, onSave }: ArticleEditorProps) {
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const [imageUploading, setImageUploading] = useState(false)
   const imageInputRef = useRef<HTMLInputElement>(null)
-  const formRef = useRef<HTMLFormElement>(null)
 
   const editor = useEditor({
     extensions: [
@@ -50,6 +131,9 @@ export function ArticleEditor({ serviceId, initialJson, onSave }: ArticleEditorP
     editorProps: {
       attributes: {
         class: 'prose prose-sm max-w-none min-h-[320px] focus:outline-none px-4 py-3',
+      },
+      transformPastedHTML(html) {
+        return sanitizePastedHtml(html)
       },
     },
   })
@@ -164,6 +248,9 @@ export function ArticleEditor({ serviceId, initialJson, onSave }: ArticleEditorP
             e.target.value = ''
           }}
         />
+        <span className="text-xs text-muted-foreground">
+          {imageUploadHint('articleImage')}
+        </span>
         <div className="ml-auto">
           <button
             type="button"

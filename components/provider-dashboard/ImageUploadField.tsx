@@ -3,6 +3,7 @@
 import { useRef, useState } from 'react'
 import { MAX_UPLOAD_FILE_SIZE_MB } from '@/lib/platform-config'
 import { uploadProviderAsset } from '@/lib/actions/upload'
+import { imageUploadHint } from '@/lib/image-upload-guidelines'
 
 interface Props {
   fieldKey: string
@@ -59,6 +60,7 @@ export function ImageUploadField({ fieldKey, label, isRequired, isImage, savedUr
 
   const accept = 'image/jpeg,image/png,image/webp,image/avif,image/gif'
   const sizeNote = `JPEG, PNG, WebP, AVIF, GIF · up to ${MAX_UPLOAD_FILE_SIZE_MB} MB`
+  const guidelineNote = fieldKey === 'profile_image' ? imageUploadHint('profileImage') : null
 
   return (
     <div className="space-y-2">
@@ -149,6 +151,7 @@ export function ImageUploadField({ fieldKey, label, isRequired, isImage, savedUr
           aria-label={label}
         />
         <p className="mt-1 text-xs text-muted-foreground">{sizeNote}</p>
+        {guidelineNote && <p className="mt-1 text-xs text-muted-foreground">{guidelineNote}</p>}
       </div>
     </div>
   )

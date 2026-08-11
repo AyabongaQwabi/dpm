@@ -8,6 +8,12 @@ import { requireProviderSession } from '@/lib/session'
 import type { DiscountType, ServiceType } from '@/lib/db'
 import { hasEntitlement } from '@/lib/actions/pro-membership'
 import { ENTITLEMENT_KEYS, FREE_TIER_SERVICE_LISTING_CAP } from '@/lib/entitlements'
+import {
+  SERVICE_PACKAGE_OFFERING_MAX_CHARS,
+  SERVICE_PACKAGE_OFFERINGS_MAX_ITEMS,
+  normaliseServicePackageTitle,
+  validateServicePackageTitle,
+} from '@/lib/service-package-rules'
 
 // ---- Service CRUD ----
 
@@ -253,7 +259,8 @@ export async function upsertPackage(formData: FormData) {
 
   if (!service) redirect('/provider-dashboard/services')
 
-  const name = (formData.get('name') as string).trim()
+  const servicePagePath = `/provider-dashboard/services/${serviceId}`
+  const name = normaliseServicePackageTitle(formData.get('name') as string)
   const description = (formData.get('description') as string).trim()
   const price = parseFloat(formData.get('price') as string)
   const discountType = (formData.get('discountType') as DiscountType) ?? 'none'
@@ -263,7 +270,16 @@ export async function upsertPackage(formData: FormData) {
   const offeringsJson = formData.get('offeringsJson') as string | null
   const offerings: string[] = offeringsJson
     ? (JSON.parse(offeringsJson) as string[])
-    : ((formData.get('offeringsRaw') as string) ?? '').split('\n').map((o) => o.trim()).filter(Boolean)
+      .map((o) => o.trim())
+      .filter(Boolean)
+      .slice(0, SERVICE_PACKAGE_OFFERINGS_MAX_ITEMS)
+      .map((o) => o.slice(0, SERVICE_PACKAGE_OFFERING_MAX_CHARS))
+    : ((formData.get('offeringsRaw') as string) ?? '')
+      .split('\n')
+      .map((o) => o.trim())
+      .filter(Boolean)
+      .slice(0, SERVICE_PACKAGE_OFFERINGS_MAX_ITEMS)
+      .map((o) => o.slice(0, SERVICE_PACKAGE_OFFERING_MAX_CHARS))
 
   const requirements = (formData.get('requirements') as string ?? '').trim()
 
@@ -275,9 +291,13 @@ export async function upsertPackage(formData: FormData) {
   const isDefault = formData.get('isDefault') === 'true'
   const displayOrder = parseInt(formData.get('displayOrder') as string) || 0
 
-  if (!name || isNaN(price) || price < 0) {
-    revalidatePath(`/provider-dashboard/services/${serviceId}`)
-    return
+  const titleError = validateServicePackageTitle(name)
+  if (titleError) {
+    redirect(`${servicePagePath}?packageError=title`)
+  }
+
+  if (isNaN(price) || price < 0) {
+    redirect(`${servicePagePath}?packageError=price`)
   }
 
   const admin = createAdminClient()
@@ -324,7 +344,7 @@ export async function upsertPackage(formData: FormData) {
 
   await maybePublishService(admin, supabase, serviceId)
 
-  revalidatePath(`/provider-dashboard/services/${serviceId}`)
+  revalidatePath(servicePagePath)
   revalidatePath(`/providers/${provider.id}`)
 }
 

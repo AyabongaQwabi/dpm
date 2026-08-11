@@ -5,6 +5,7 @@ import { MAX_UPLOAD_FILE_SIZE_MB } from '@/lib/platform-config'
 import { useRouter } from 'next/navigation'
 import { saveOnboardingStep } from '@/lib/actions/onboarding'
 import { uploadProviderAsset } from '@/lib/actions/upload'
+import { imageUploadHint } from '@/lib/image-upload-guidelines'
 
 interface PortfolioItem {
   title: string
@@ -168,6 +169,11 @@ function DropUploader({
         <span className="text-[11px] text-muted-foreground">
           {isImage ? `JPEG, PNG, WebP, AVIF · max ${MAX_UPLOAD_FILE_SIZE_MB} MB` : `PDF, Word, ZIP · max ${MAX_UPLOAD_FILE_SIZE_MB} MB`}
         </span>
+        {isImage && (
+          <span className="max-w-xs text-[11px] text-muted-foreground">
+            {imageUploadHint('portfolioImage')}
+          </span>
+        )}
         <input
           ref={inputRef}
           type="file"

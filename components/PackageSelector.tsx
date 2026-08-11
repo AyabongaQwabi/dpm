@@ -73,29 +73,34 @@ export function PackageSelector({ packages, serviceId, serviceName, ctaVerb, isS
       </div>
 
       <div className="p-6 space-y-3">
-        {/* Package tabs */}
+        {/* Package options */}
         {packages.length > 1 && (
-          <div className="flex rounded-xl border border-border overflow-hidden mb-5">
+          <div className="mb-5 grid gap-2 rounded-xl border border-border bg-muted/20 p-2">
             {packages.map((pkg) => {
               const eff = effectivePrice(pkg.price, pkg.discount_type, pkg.discount_amount)
+              const isSelected = selected === pkg.id
               return (
                 <button
                   key={pkg.id}
                   onClick={() => setSelected(pkg.id)}
                   className={[
-                    'flex-1 py-2.5 px-3 text-xs font-medium transition-colors text-center relative',
-                    selected === pkg.id
-                      ? 'bg-primary text-primary-foreground'
-                      : 'hover:bg-muted text-muted-foreground',
+                    'relative grid min-h-16 grid-cols-[1fr_auto] items-center gap-3 rounded-lg border px-3 py-2.5 text-left transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 cursor-pointer',
+                    isSelected
+                      ? 'border-primary bg-primary text-primary-foreground shadow-sm'
+                      : 'border-transparent bg-card text-foreground hover:border-primary-accent/40 hover:bg-primary-accent/5',
                   ].join(' ')}
                 >
-                  <span className="block truncate">{pkg.name}</span>
-                  <span className={`block text-xs mt-0.5 tabular-nums ${selected === pkg.id ? 'opacity-80' : ''}`}>
+                  <span className="min-w-0">
+                    <span className="block break-words text-sm font-semibold leading-snug">{pkg.name}</span>
+                    {pkg.is_default && (
+                      <span className={`mt-1 inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold ${isSelected ? 'bg-primary-foreground/15 text-primary-foreground' : 'bg-primary/5 text-primary'}`}>
+                        Popular
+                      </span>
+                    )}
+                  </span>
+                  <span className={`whitespace-nowrap text-right text-sm font-semibold tabular-nums ${isSelected ? 'text-primary-foreground' : 'text-muted-foreground'}`}>
                     {formatCredits(eff)}
                   </span>
-                  {pkg.is_default && selected !== pkg.id && (
-                    <span className="absolute -top-1 -right-1 h-2 w-2 rounded-full bg-primary-accent border border-card" />
-                  )}
                 </button>
               )
             })}

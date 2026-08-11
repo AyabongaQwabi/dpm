@@ -17,16 +17,21 @@ interface Props {
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params
   const supabase = await createClient()
-  const { data: service } = await supabase
+  const { data: service, error } = await supabase
     .from('services')
     .select(`
       title, description, image,
-      service_packages(price, discount_type, discount_amount),
-      provider:providers!inner(business_name, location_city, is_published)
+      service_packages:service_packages!service_packages_service_id_fkey(price, discount_type, discount_amount),
+      provider:providers!services_provider_id_fkey!inner(business_name, location_city, is_published)
     `)
     .eq('id', id)
     .eq('is_published', true)
-    .single()
+    .eq('provider.is_published', true)
+    .maybeSingle()
+  if (error) {
+    console.error('Service metadata query failed:', error.message)
+    return {}
+  }
   if (!service) return {}
 
   const provider = Array.isArray(service.provider) ? service.provider[0] : service.provider
@@ -66,35 +71,45 @@ export default async function ServiceDetailPage({ params }: Props) {
   const { id } = await params
   const supabase = await createClient()
 
-  const [{ data: service }, { data: { user } }] = await Promise.all([
+  const [{ data: service, error: serviceError }, { data: { user } }] = await Promise.all([
     supabase
       .from('services')
       .select(`
         id, title, description, image, article_json, service_type, is_published,
-        provider:providers!inner(
+        provider:providers!services_provider_id_fkey!inner(
           id, business_name, slug, profile_image, bio,
           location_city, location_state,
           is_published,
-          provider_types!inner(name, slug, provider_categories(name, slug)),
-          provider_tags(tag:tags(name)),
-          reviews(rating)
+          provider_types:provider_types!providers_provider_type_id_fkey!inner(
+            name, slug,
+            provider_categories:provider_categories!provider_types_category_id_fkey(name, slug)
+          ),
+          provider_tags:provider_tags!provider_tags_provider_id_fkey(
+            tag:tags!provider_tags_tag_id_fkey(name)
+          ),
+          reviews:reviews!reviews_provider_id_fkey(rating)
         ),
-        service_packages(
+        service_packages:service_packages!service_packages_service_id_fkey(
           id, name, description, price, discount_type, discount_amount,
           offerings, requirements, delivery_time, is_default, display_order
         ),
-        reviews(
+        reviews:reviews!reviews_service_id_fkey(
           id, rating, comment, created_at,
           customer:customers(name),
-          package:service_packages(name)
+          package:service_packages!reviews_package_id_fkey(name)
         )
       `)
       .eq('id', id)
       .eq('is_published', true)
-      .single(),
+      .eq('provider.is_published', true)
+      .maybeSingle(),
     supabase.auth.getUser(),
   ])
 
+  if (serviceError) {
+    console.error('Service detail query failed:', serviceError.message)
+    notFound()
+  }
   if (!service) notFound()
 
   function first<T>(v: T | T[] | null | undefined): T | null {
@@ -198,7 +213,7 @@ export default async function ServiceDetailPage({ params }: Props) {
         <span className="text-foreground font-medium">{service.title}</span>
       </nav>
 
-      <div className="grid gap-10 lg:grid-cols-[1fr_380px] lg:items-start">
+      <div className="grid gap-10 xl:grid-cols-[minmax(0,1fr)_430px] xl:items-start">
 
         {/* ── LEFT: Service content ─────────────────────────────────── */}
         <div className="min-w-0">
@@ -381,7 +396,7 @@ export default async function ServiceDetailPage({ params }: Props) {
         </div>
 
         {/* ── RIGHT: Package selector (sticky) ─────────────────────── */}
-        <aside className="lg:sticky lg:top-6">
+        <aside className="xl:sticky xl:top-6">
           <PackageSelector
             packages={packages.map((pkg) => ({
               id: pkg.id,
