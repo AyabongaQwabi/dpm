@@ -13,25 +13,57 @@
 -- here — this table only tracks whether a provider currently holds Pro.
 
 -- ---------------------------------------------------------------------------
--- Provider wallet balance
+-- Provider credit wallet
 -- ---------------------------------------------------------------------------
+--
+-- Mirrors the customer wallet convention (1 credit = R1), but providers are a
+-- separate entity from customers and need their own balance row. Keep all
+-- writes behind RPCs: providers can read their own balance/history, while the
+-- service role is the only writer.
 
-ALTER TABLE providers
-  ADD COLUMN IF NOT EXISTS credit_balance INTEGER NOT NULL DEFAULT 0
-    CHECK (credit_balance >= 0);
+CREATE TABLE provider_credit_wallets (
+  provider_id TEXT PRIMARY KEY REFERENCES providers (id) ON DELETE CASCADE,
+  balance     NUMERIC(12,2) NOT NULL DEFAULT 0,
+  updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TRIGGER provider_credit_wallets_set_updated_at
+  BEFORE UPDATE ON provider_credit_wallets
+  FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+
+ALTER TABLE provider_credit_wallets ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "providers read own credit wallet"
+  ON provider_credit_wallets FOR SELECT
+  USING (
+    provider_id IN (
+      SELECT id FROM providers WHERE auth_provider_id = auth.uid()::TEXT
+    )
+  );
 
 -- ---------------------------------------------------------------------------
--- Provider credit ledger — mirrors credit_transactions, keyed on provider_id
+-- Provider credit ledger — append-only transaction history
 -- ---------------------------------------------------------------------------
 
 CREATE TABLE provider_credit_transactions (
-  id            TEXT PRIMARY KEY DEFAULT gen_random_uuid()::TEXT,
-  provider_id   TEXT NOT NULL REFERENCES providers (id),
-  type          credit_transaction_type NOT NULL,
-  amount        INTEGER NOT NULL CHECK (amount <> 0),
-  description   TEXT NOT NULL,
-  yoco_ref      TEXT,
-  created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  id              TEXT PRIMARY KEY DEFAULT gen_random_uuid()::TEXT,
+  provider_id     TEXT NOT NULL REFERENCES providers (id) ON DELETE CASCADE,
+  type            TEXT NOT NULL CHECK (type IN ('topup', 'debit', 'refund', 'adjustment')),
+  amount          NUMERIC(12,2) NOT NULL CHECK (amount <> 0),
+  balance_after   NUMERIC(12,2) NOT NULL,
+  reference_type  TEXT NOT NULL CHECK (reference_type <> ''),
+  reference_id    TEXT,
+  yoco_ref        TEXT,
+  notes           TEXT,
+  created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  CONSTRAINT provider_credit_transactions_amount_sign CHECK (
+    (type IN ('topup', 'refund') AND amount > 0)
+    OR (type = 'debit' AND amount < 0)
+    OR (type = 'adjustment')
+  ),
+  CONSTRAINT provider_credit_transactions_adjustment_notes CHECK (
+    type <> 'adjustment' OR NULLIF(BTRIM(COALESCE(notes, '')), '') IS NOT NULL
+  )
 );
 
 CREATE INDEX provider_credit_transactions_provider_id_created_at_idx
@@ -52,127 +84,122 @@ CREATE POLICY "providers read own credit transactions"
   );
 
 -- ---------------------------------------------------------------------------
--- RPC: provider_wallet_purchase — idempotent on yoco_ref
+-- RPC: topup_provider_wallet — idempotent on yoco_ref
 -- ---------------------------------------------------------------------------
 
-CREATE OR REPLACE FUNCTION provider_wallet_purchase(
+CREATE OR REPLACE FUNCTION topup_provider_wallet(
   p_provider_id TEXT,
-  p_amount INTEGER,
-  p_yoco_ref TEXT,
-  p_description TEXT
-) RETURNS VOID
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path = public
-AS $$
-BEGIN
-  IF p_amount <= 0 THEN
-    RAISE EXCEPTION 'Purchase amount must be positive';
-  END IF;
-
-  IF p_yoco_ref IS NOT NULL AND EXISTS (
-    SELECT 1 FROM provider_credit_transactions WHERE yoco_ref = p_yoco_ref
-  ) THEN
-    RETURN;
-  END IF;
-
-  UPDATE providers
-  SET credit_balance = credit_balance + p_amount,
-      updated_at = NOW()
-  WHERE id = p_provider_id;
-
-  IF NOT FOUND THEN
-    RAISE EXCEPTION 'Provider not found';
-  END IF;
-
-  INSERT INTO provider_credit_transactions (provider_id, type, amount, description, yoco_ref)
-  VALUES (p_provider_id, 'purchase', p_amount, p_description, p_yoco_ref);
-END;
-$$;
-
--- ---------------------------------------------------------------------------
--- RPC: provider_wallet_spend
--- ---------------------------------------------------------------------------
-
-CREATE OR REPLACE FUNCTION provider_wallet_spend(
-  p_provider_id TEXT,
-  p_amount INTEGER,
-  p_description TEXT
+  p_amount NUMERIC,
+  p_yoco_ref TEXT
 ) RETURNS VOID
 LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = public
 AS $$
 DECLARE
-  v_balance INTEGER;
+  v_balance NUMERIC(12,2);
+BEGIN
+  IF p_amount <= 0 THEN
+    RAISE EXCEPTION 'Top-up amount must be positive';
+  END IF;
+
+  IF p_yoco_ref IS NULL OR NULLIF(BTRIM(p_yoco_ref), '') IS NULL THEN
+    RAISE EXCEPTION 'Yoco reference is required';
+  END IF;
+
+  IF EXISTS (
+    SELECT 1 FROM provider_credit_transactions WHERE yoco_ref = p_yoco_ref
+  ) THEN
+    RETURN;
+  END IF;
+
+  INSERT INTO provider_credit_wallets (provider_id, balance)
+  VALUES (p_provider_id, 0)
+  ON CONFLICT (provider_id) DO NOTHING;
+
+  UPDATE provider_credit_wallets
+  SET balance = balance + p_amount
+  WHERE provider_id = p_provider_id
+  RETURNING balance INTO v_balance;
+
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Provider not found';
+  END IF;
+
+  INSERT INTO provider_credit_transactions (
+    provider_id, type, amount, balance_after, reference_type, yoco_ref, notes
+  ) VALUES (
+    p_provider_id, 'topup', p_amount, v_balance, 'topup', p_yoco_ref,
+    'Provider wallet top-up'
+  );
+END;
+$$;
+
+REVOKE ALL ON FUNCTION topup_provider_wallet(TEXT, NUMERIC, TEXT) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION topup_provider_wallet(TEXT, NUMERIC, TEXT) TO service_role;
+
+-- ---------------------------------------------------------------------------
+-- RPC: spend_provider_wallet
+-- ---------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION spend_provider_wallet(
+  p_provider_id TEXT,
+  p_amount NUMERIC,
+  p_reference_type TEXT,
+  p_reference_id TEXT DEFAULT NULL,
+  p_description TEXT DEFAULT NULL,
+  p_allow_negative BOOLEAN DEFAULT FALSE
+) RETURNS VOID
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_balance NUMERIC(12,2);
+  v_new_balance NUMERIC(12,2);
 BEGIN
   IF p_amount <= 0 THEN
     RAISE EXCEPTION 'Spend amount must be positive';
   END IF;
 
-  SELECT credit_balance INTO v_balance
-  FROM providers
-  WHERE id = p_provider_id
+  IF p_reference_type IS NULL OR NULLIF(BTRIM(p_reference_type), '') IS NULL THEN
+    RAISE EXCEPTION 'Reference type is required';
+  END IF;
+
+  INSERT INTO provider_credit_wallets (provider_id, balance)
+  VALUES (p_provider_id, 0)
+  ON CONFLICT (provider_id) DO NOTHING;
+
+  SELECT balance INTO v_balance
+  FROM provider_credit_wallets
+  WHERE provider_id = p_provider_id
   FOR UPDATE;
 
   IF v_balance IS NULL THEN
     RAISE EXCEPTION 'Provider not found';
   END IF;
 
-  IF v_balance < p_amount THEN
+  IF NOT p_allow_negative AND v_balance < p_amount THEN
     RAISE EXCEPTION 'Insufficient credit balance';
   END IF;
 
-  UPDATE providers
-  SET credit_balance = credit_balance - p_amount,
-      updated_at = NOW()
-  WHERE id = p_provider_id;
+  v_new_balance := v_balance - p_amount;
 
-  INSERT INTO provider_credit_transactions (provider_id, type, amount, description)
-  VALUES (p_provider_id, 'spend', -p_amount, p_description);
+  UPDATE provider_credit_wallets
+  SET balance = v_new_balance
+  WHERE provider_id = p_provider_id;
+
+  INSERT INTO provider_credit_transactions (
+    provider_id, type, amount, balance_after, reference_type, reference_id, notes
+  ) VALUES (
+    p_provider_id, 'debit', -p_amount, v_new_balance, p_reference_type,
+    p_reference_id, p_description
+  );
 END;
 $$;
 
--- ---------------------------------------------------------------------------
--- RPC: provider_wallet_refund — idempotent per description+amount is not
--- guaranteed unique, so refunds are keyed by yoco_ref like purchases.
--- ---------------------------------------------------------------------------
-
-CREATE OR REPLACE FUNCTION provider_wallet_refund(
-  p_provider_id TEXT,
-  p_amount INTEGER,
-  p_yoco_ref TEXT,
-  p_description TEXT
-) RETURNS VOID
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path = public
-AS $$
-BEGIN
-  IF p_amount <= 0 THEN
-    RAISE EXCEPTION 'Refund amount must be positive';
-  END IF;
-
-  IF p_yoco_ref IS NOT NULL AND EXISTS (
-    SELECT 1 FROM provider_credit_transactions
-    WHERE yoco_ref = p_yoco_ref AND type = 'refund'
-  ) THEN
-    RETURN;
-  END IF;
-
-  UPDATE providers
-  SET credit_balance = credit_balance + p_amount,
-      updated_at = NOW()
-  WHERE id = p_provider_id;
-
-  IF NOT FOUND THEN
-    RAISE EXCEPTION 'Provider not found';
-  END IF;
-
-  INSERT INTO provider_credit_transactions (provider_id, type, amount, description, yoco_ref)
-  VALUES (p_provider_id, 'refund', p_amount, p_description, p_yoco_ref);
-END;
-$$;
+REVOKE ALL ON FUNCTION spend_provider_wallet(TEXT, NUMERIC, TEXT, TEXT, TEXT, BOOLEAN) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION spend_provider_wallet(TEXT, NUMERIC, TEXT, TEXT, TEXT, BOOLEAN) TO service_role;
 
 -- ---------------------------------------------------------------------------
 -- Pro membership state
@@ -239,7 +266,7 @@ ALTER TABLE providers
 
 -- ---------------------------------------------------------------------------
 -- pro.profile_customisation (Batch B) — accent colour, pinned service,
--- custom CTA. Gated entirely by hasEntitlement() in application code; these
+-- cover image, custom CTA. Gated entirely by hasEntitlement() in application code; these
 -- columns hold values regardless of current entitlement so nothing is lost
 -- if a membership lapses and is later reinstated. Display code is
 -- responsible for ignoring them when the entitlement is absent.
@@ -247,6 +274,7 @@ ALTER TABLE providers
 
 ALTER TABLE providers
   ADD COLUMN IF NOT EXISTS accent_color    TEXT,
+  ADD COLUMN IF NOT EXISTS cover_image     TEXT,
   ADD COLUMN IF NOT EXISTS pinned_service_id TEXT REFERENCES services (id) ON DELETE SET NULL,
   ADD COLUMN IF NOT EXISTS cta_label       TEXT,
   ADD COLUMN IF NOT EXISTS cta_target_url  TEXT;

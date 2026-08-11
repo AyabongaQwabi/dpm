@@ -61,6 +61,29 @@ export async function POST(request: Request) {
     return NextResponse.json({ received: true })
   }
 
+  if (metadata.type === 'provider_wallet_topup') {
+    const providerId = metadata.provider_id
+    const amount = Math.round(Number(metadata.credit_amount))
+
+    if (!providerId || !reference || !Number.isFinite(amount) || amount <= 0) {
+      return NextResponse.json({ error: 'Missing provider wallet metadata' }, { status: 400 })
+    }
+
+    const admin = createAdminClient()
+    const { error } = await admin.rpc('topup_provider_wallet', {
+      p_provider_id: providerId,
+      p_amount: amount,
+      p_yoco_ref: reference,
+    })
+
+    if (error) {
+      console.error('topup_provider_wallet failed:', error.message)
+      return NextResponse.json({ error: 'Provider wallet update failed' }, { status: 500 })
+    }
+
+    return NextResponse.json({ received: true })
+  }
+
   if (metadata.type !== 'credit_purchase') {
     return NextResponse.json({ received: true })
   }
