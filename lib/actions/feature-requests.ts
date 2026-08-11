@@ -35,18 +35,10 @@ export async function submitFeatureRequest(
   formData: FormData,
 ): Promise<FeatureRequestActionState> {
   const salt = process.env.FEATURE_REQUEST_IP_HASH_SALT
-  if (!salt) {
-    return {
-      ok: false,
-      message: 'Feature requests are not configured yet. Please try again later.',
-      errors: {},
-    }
-  }
-
   const [supabase, hdrs] = await Promise.all([createClient(), headers()])
   const admin = createAdminClient()
   const { data: { user } } = await supabase.auth.getUser()
-  const ipHash = hashIpAddress(clientIpFromHeaders(hdrs), salt)
+  const ipHash = salt ? hashIpAddress(clientIpFromHeaders(hdrs), salt) : null
 
   return submitFeatureRequestWithDeps(prevState, formData, {
     userId: user?.id ?? null,

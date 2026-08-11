@@ -121,6 +121,24 @@ describe('feature request submission', () => {
     expect(deps.insertFeatureRequest).not.toHaveBeenCalled()
   })
 
+  it('submits without IP rate limiting when no ip_hash is available', async () => {
+    const { deps, rows } = makeDeps({
+      countRecentSubmissions: vi.fn(async () => 3),
+    })
+
+    const result = await submitFeatureRequestWithDeps(
+      initialFeatureRequestState,
+      makeForm(),
+      { ...context, ipHash: null },
+      deps,
+    )
+
+    expect(result.ok).toBe(true)
+    expect(rows).toHaveLength(1)
+    expect(rows[0]?.ip_hash).toBeNull()
+    expect(deps.countRecentSubmissions).not.toHaveBeenCalled()
+  })
+
   it('keeps the row and returns success when email sending fails', async () => {
     const { deps, rows } = makeDeps({
       sendNotificationEmail: vi.fn(async () => {
