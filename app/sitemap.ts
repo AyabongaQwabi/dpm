@@ -36,7 +36,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${SITE_URL}/referral-agents`, lastModified: now, changeFrequency: 'monthly', priority: 0.6 },
   ]
 
-  const [{ data: providers }, { data: categories }, { data: services }, { data: categoryLocationProviders }, locations] = await Promise.all([
+  const [{ data: providers }, { data: categories }, { data: services }, { data: categoryLocationProviders }, locations, { data: posts }] = await Promise.all([
     supabase
       .from('providers')
       .select('slug, id, updated_at')
@@ -55,6 +55,16 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       .not('location_city', 'is', null)
       .limit(1000),
     getLocations(supabase, 200),
+    // Posts only — never stories. Stories have no slug column and must
+    // never appear here (noindex from the moment of publication).
+    supabase
+      .from('content_posts')
+      .select('slug, updated_at, providers!inner(slug, id, is_published)')
+      .eq('kind', 'post')
+      .eq('status', 'published')
+      .eq('moderation_status', 'passed')
+      .eq('providers.is_published', true)
+      .limit(2000),
   ])
 
   const providerRoutes: MetadataRoute.Sitemap = (providers ?? []).map((provider) => ({
@@ -84,6 +94,19 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     changeFrequency: 'weekly',
     priority: 0.7,
   }))
+
+  const postRoutes: MetadataRoute.Sitemap = (posts ?? [])
+    .map((post) => {
+      const provider = Array.isArray(post.providers) ? post.providers[0] : post.providers
+      if (!provider || !post.slug) return null
+      return {
+        url: `${SITE_URL}/providers/${provider.slug ?? provider.id}/posts/${post.slug}`,
+        lastModified: post.updated_at ? new Date(post.updated_at) : now,
+        changeFrequency: 'monthly' as const,
+        priority: 0.6,
+      }
+    })
+    .filter((route): route is NonNullable<typeof route> => route !== null)
 
   const serviceRoutes: MetadataRoute.Sitemap = (services ?? []).map((service) => ({
     url: `${SITE_URL}/services/${service.id}`,
@@ -164,5 +187,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     ...serviceRoutes,
     ...serviceTypeRoutes,
     ...categoryLocationRoutes,
+    ...postRoutes,
   ]
 }

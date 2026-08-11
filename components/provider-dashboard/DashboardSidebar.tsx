@@ -42,6 +42,15 @@ const NAV_ITEMS = [
     ),
   },
   {
+    href: '/provider-dashboard/posts',
+    label: 'Posts & Stories',
+    icon: (
+      <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M4 4h16v12H7l-3 3V4z" />
+      </svg>
+    ),
+  },
+  {
     href: '/provider-dashboard/billing',
     label: 'Billing',
     icon: (
@@ -67,6 +76,15 @@ const NAV_ITEMS = [
     icon: (
       <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+      </svg>
+    ),
+  },
+  {
+    href: '/provider-dashboard/pro',
+    label: 'Pro',
+    icon: (
+      <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M12 2l2.5 6.5L21 9l-5 4.5L17.5 21 12 17l-5.5 4L8 13.5 3 9l6.5-.5z" />
       </svg>
     ),
   },

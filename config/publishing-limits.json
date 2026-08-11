@@ -1,0 +1,16 @@
+{
+  "free": {
+    "postsPerMonth": 2,
+    "storiesLiveAtOnce": 1,
+    "imagesPerPost": 1,
+    "bodyMaxChars": 1500
+  },
+  "pro": {
+    "postsPerMonth": 20,
+    "storiesLiveAtOnce": 5,
+    "imagesPerPost": 10,
+    "bodyMaxChars": 5000
+  },
+  "storyLifetimeHours": 24,
+  "expiredStoryMediaRetentionDays": 30
+}

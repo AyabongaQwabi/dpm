@@ -46,6 +46,11 @@ export default async function FeedPage() {
       )
     `)
     .eq('provider.is_published', true)
+    // Stories are ephemeral and never indexed — the feed shows permanent
+    // posts only. Status/moderation filter matches the public RLS read rule.
+    .in('kind', ['post'])
+    .eq('status', 'published')
+    .eq('moderation_status', 'passed')
     .order('created_at', { ascending: false })
     .limit(48)
 

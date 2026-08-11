@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import { notFound } from 'next/navigation'
+import { notFound, redirect } from 'next/navigation'
 import {
   CalendarDays,
   ExternalLink,
@@ -33,6 +33,7 @@ import {
 } from '@/lib/seo'
 import { JsonLd } from '@/components/seo/JsonLd'
 import { UnclaimedProfileBanner } from '@/components/providers/UnclaimedProfileBanner'
+import { StoriesStrip } from '@/components/providers/StoriesStrip'
 
 const RECOMMENDATION_DEFAULTS: Record<string, number> = {
   min_reviews_for_recommendation: 5,
@@ -52,6 +53,11 @@ export const revalidate = 1800
 function first<T>(value: T | T[] | null | undefined): T | null {
   if (!value) return null
   return Array.isArray(value) ? value[0] ?? null : value
+}
+
+/** Isolates the impure Date.now() call outside the component render body (react-hooks/purity). */
+function isStoryStillLive(expiresAt: string): boolean {
+  return new Date(expiresAt).getTime() > Date.now()
 }
 
 async function getProvider(slug: string) {
@@ -88,7 +94,7 @@ async function getProvider(slug: string) {
       reviews(id, rating, comment, created_at, package_id,
         customer:customers(name),
         package:service_packages(name)),
-      content_posts(id, image_url, body, post_type, created_at),
+      content_posts(id, title, slug, image_url, body, post_type, kind, status, moderation_status, expires_at, published_at, created_at),
       field_values:provider_field_values(field_id, value, field:fields(key))
     `)
     .or(`slug.eq.${slug},id.eq.${slug}`)
@@ -132,7 +138,19 @@ export default async function ProviderProfilePage({ params }: ProfilePageProps) 
   const supabase = await createClient()
   const provider = await getProvider(slug)
 
-  if (!provider) notFound()
+  if (!provider) {
+    // Not a live slug or id — check whether it's a retired custom slug
+    // (pro.custom_slug) before giving up, so changing a vanity URL never
+    // breaks an existing inbound link or indexed page.
+    const { data: retired } = await supabase
+      .from('provider_slug_history')
+      .select('provider_id, providers(slug)')
+      .eq('slug', slug)
+      .maybeSingle()
+    const currentSlug = retired ? first((retired as { providers: { slug: string | null } | { slug: string | null }[] | null }).providers)?.slug : null
+    if (currentSlug) redirect(`/providers/${currentSlug}`)
+    notFound()
+  }
 
   const { data: configRows } = await supabase.from('platform_config').select('key, value')
   const config = new InMemoryConfigStore({
@@ -211,13 +229,31 @@ export default async function ProviderProfilePage({ params }: ProfilePageProps) 
     }[]
   }[]
   const publishedServices = services.filter((s) => s.is_published)
-  const contentPosts = (provider.content_posts ?? []) as {
+  const allContentPosts = (provider.content_posts ?? []) as {
     id: string
+    title: string | null
+    slug: string | null
     image_url: string | null
     body: string | null
     post_type: string
+    kind: 'post' | 'story' | null
+    status: string | null
+    moderation_status: string | null
+    expires_at: string | null
+    published_at: string | null
     created_at: string
   }[]
+  const isVisible = (p: (typeof allContentPosts)[number]) =>
+    (p.status ?? 'published') === 'published' && (p.moderation_status ?? 'passed') === 'passed'
+  // Posts: permanent, indexable — kind='post' explicitly, or legacy rows
+  // with no kind set yet (pre-migration content_posts data).
+  const contentPosts = allContentPosts.filter((p) => isVisible(p) && (p.kind ?? 'post') === 'post')
+  // Stories: ephemeral strip only, never indexed, never a permanent URL.
+  // Excluded here if already past expires_at even if the cron hasn't
+  // flipped status='expired' yet — belt and suspenders against a missed run.
+  const liveStories = allContentPosts.filter(
+    (p) => isVisible(p) && p.kind === 'story' && p.expires_at && isStoryStillLive(p.expires_at),
+  )
 
   const fieldPhone = fieldValues.find((fv) => first(fv.field)?.key === 'phone')?.value
   const fieldWebsite = fieldValues.find((fv) => first(fv.field)?.key === 'website')?.value
@@ -429,6 +465,12 @@ export default async function ProviderProfilePage({ params }: ProfilePageProps) 
           </div>
         </div>
       </section>
+
+      {/* ── Stories (ephemeral — no permanent URL, disappears when empty) ── */}
+      <StoriesStrip
+        stories={liveStories.map((s) => ({ id: s.id, image_url: s.image_url, body: s.body, published_at: s.published_at }))}
+        businessName={provider.business_name}
+      />
 
       {/* ── Sticky tab nav ─────────────────────────────────────────────── */}
       <nav className="sticky top-16 z-30 border-b bg-background/90 backdrop-blur" aria-label="Profile sections">
@@ -815,30 +857,38 @@ export default async function ProviderProfilePage({ params }: ProfilePageProps) 
         )}
 
         {/* ── Posts ────────────────────────────────────────────────────── */}
+        {/* Permanent, indexable — each links to its own canonical URL.
+            Stories never appear here (see the strip above the sticky nav). */}
         {contentPosts.length > 0 && (
           <section id="posts">
             <h2 className="font-display text-2xl font-bold text-foreground mb-6">Latest posts</h2>
             <div className="grid gap-5 md:grid-cols-3">
               {contentPosts.map((post) => (
-                <article key={post.id} className="overflow-hidden rounded-2xl border border-border bg-card hover:shadow-md hover:border-primary-accent/30 transition-all duration-200">
-                  {post.image_url && (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={post.image_url}
-                      alt={`${post.post_type} update from ${provider.business_name}`}
-                      className="aspect-[4/3] w-full object-cover"
-                      loading="lazy"
-                    />
-                  )}
-                  <div className="p-4">
-                    <p className="text-xs font-semibold uppercase tracking-wider text-primary-accent">{post.post_type}</p>
-                    {post.body && <p className="mt-2 line-clamp-4 text-sm leading-6 text-muted-foreground">{post.body}</p>}
-                    <time className="mt-4 inline-flex items-center gap-1.5 text-xs text-muted-foreground" dateTime={post.created_at}>
-                      <CalendarDays className="h-3.5 w-3.5" />
-                      {new Date(post.created_at).toLocaleDateString('en-ZA', { day: 'numeric', month: 'short', year: 'numeric' })}
-                    </time>
-                  </div>
-                </article>
+                <Link
+                  key={post.id}
+                  href={post.slug ? `/providers/${profilePath}/posts/${post.slug}` : `/providers/${profilePath}`}
+                  className="block overflow-hidden rounded-2xl border border-border bg-card hover:shadow-md hover:border-primary-accent/30 transition-all duration-200"
+                >
+                  <article>
+                    {post.image_url && (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={post.image_url}
+                        alt={post.title ?? `Post from ${provider.business_name}`}
+                        className="aspect-[4/3] w-full object-cover"
+                        loading="lazy"
+                      />
+                    )}
+                    <div className="p-4">
+                      {post.title && <h3 className="font-semibold text-foreground">{post.title}</h3>}
+                      {post.body && <p className="mt-2 line-clamp-4 text-sm leading-6 text-muted-foreground">{post.body}</p>}
+                      <time className="mt-4 inline-flex items-center gap-1.5 text-xs text-muted-foreground" dateTime={post.published_at ?? post.created_at}>
+                        <CalendarDays className="h-3.5 w-3.5" />
+                        {new Date(post.published_at ?? post.created_at).toLocaleDateString('en-ZA', { day: 'numeric', month: 'short', year: 'numeric' })}
+                      </time>
+                    </div>
+                  </article>
+                </Link>
               ))}
             </div>
           </section>

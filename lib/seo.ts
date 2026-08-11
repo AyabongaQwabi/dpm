@@ -269,6 +269,40 @@ export function serviceJsonLd(service: {
   }
 }
 
+/** Structured data for a provider post — a permanent, indexable page. Never used for stories (stories are noindex, no permanent URL, no sitemap entry). */
+export function blogPostingJsonLd(post: {
+  title: string
+  bodyText: string
+  path: string
+  image?: string | null
+  publishedAt: string
+  updatedAt: string
+  provider: { name: string; path: string }
+}) {
+  const postUrl = canonicalUrl(post.path)
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'BlogPosting',
+    '@id': `${postUrl}#post`,
+    headline: post.title,
+    description: post.bodyText.slice(0, 200),
+    url: postUrl,
+    datePublished: post.publishedAt,
+    dateModified: post.updatedAt,
+    ...(post.image ? { image: canonicalUrl(post.image) } : {}),
+    author: {
+      '@type': 'LocalBusiness',
+      name: post.provider.name,
+      url: canonicalUrl(post.provider.path),
+    },
+    publisher: {
+      '@type': 'Organization',
+      name: SITE_NAME,
+    },
+    mainEntityOfPage: { '@type': 'WebPage', '@id': postUrl },
+  }
+}
+
 export function organizationJsonLd(
   contactPoints: Array<{
     contactType: string

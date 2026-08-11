@@ -106,3 +106,15 @@ export function tiptapToHtml(json: unknown): string {
   if (!json || typeof json !== 'object') return ''
   return renderNode(json as TiptapNode)
 }
+
+function extractText(node: TiptapNode): string {
+  if (node.type === 'text') return node.text ?? ''
+  if (!node.content) return ''
+  return node.content.map(extractText).join(node.type === 'paragraph' || node.type === 'heading' ? ' ' : '')
+}
+
+/** Plain-text extraction for length checks and moderation scanning — not for display (use tiptapToHtml for that). */
+export function tiptapToPlainText(json: unknown): string {
+  if (!json || typeof json !== 'object') return ''
+  return extractText(json as TiptapNode).replace(/\s+/g, ' ').trim()
+}
