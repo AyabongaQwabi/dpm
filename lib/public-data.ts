@@ -1,7 +1,13 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { DiscountType } from '@/lib/db'
 import type { BusinessType, VerificationState } from '@/components/ui/VerifiedBadge'
-import { SPONSORED_DENSITY_CAP_PER_TEN } from '@/lib/sponsored-config'
+import {
+  SPONSORED_DENSITY_CAP_PER_TEN,
+  SPONSORED_MIN_RATING_THRESHOLD,
+  SPONSORED_ROTATION_WINDOW_HOURS,
+  SPONSORED_VISIBLE_SLOTS,
+} from '@/lib/sponsored-config'
+import { isEligibleForSponsoredPlacement, maxSponsoredForOrganicCount, rotateList } from '@/lib/domain/sponsored'
 
 export interface ProviderCardView {
   id: string
@@ -131,6 +137,19 @@ export function toProviderCard(row: ProviderRow): ProviderCardView {
       fica: Boolean(row.verified_fica),
     },
   }
+}
+
+function isSponsoredProviderRenderable(provider: ProviderCardView): boolean {
+  return isEligibleForSponsoredPlacement({
+    hasContactVerification: Boolean(provider.verification.contact),
+    hasOpenDispute: false,
+    averageRating: provider.avgRating,
+    minRatingThreshold: SPONSORED_MIN_RATING_THRESHOLD,
+  })
+}
+
+function toSponsoredCard(row: ProviderRow): ProviderCardView {
+  return { ...toProviderCard(row), isSponsored: true }
 }
 
 export function providerSelect() {
@@ -272,10 +291,8 @@ export async function getFeaturedProviders(
 /**
  * C.4: the homepage featured strip reads from sponsored_placements where
  * applicable, but always keeps an editorial fallback so the strip is never
- * 100% paid inventory. Sponsored providers fill up to the density cap
- * (default: 1 per 10 — for a 6-card strip that's zero unless the cap is
- * raised, so in practice this surfaces at most one sponsored card among six
- * today); the rest of the strip is always the existing verified/round-robin
+ * 100% paid inventory. Sponsored providers fill up to the density cap;
+ * the rest of the strip is always the existing verified/round-robin
  * editorial selection. Sponsored cards are prepended (their own reserved
  * slot) but the editorial list underneath is untouched — same C.2 rule as
  * search: a sponsored slot never reorders or replaces organic selection,
@@ -301,12 +318,13 @@ export async function getFeaturedProvidersWithSponsored(
     .is('city', null)
     .lte('starts_at', now)
     .gte('ends_at', now)
+    .order('starts_at', { ascending: true })
 
   if (!placements || placements.length === 0) {
     return editorial
   }
 
-  const maxSponsoredSlots = Math.max(0, Math.floor(limit / 10) * SPONSORED_DENSITY_CAP_PER_TEN) || (limit > 0 ? 1 : 0)
+  const maxSponsoredSlots = maxSponsoredForOrganicCount(editorial.providers.length, SPONSORED_DENSITY_CAP_PER_TEN)
 
   const editorialIds = new Set(editorial.providers.map((p) => p.id))
   const sponsoredProviderIds = placements
@@ -324,10 +342,9 @@ export async function getFeaturedProvidersWithSponsored(
     .in('id', sponsoredProviderIds)
     .eq('is_published', true)
 
-  const sponsoredCards = ((sponsoredRows ?? []) as unknown as ProviderRow[]).map((row) => ({
-    ...toProviderCard(row),
-    isSponsored: true,
-  }))
+  const sponsoredCards = ((sponsoredRows ?? []) as unknown as ProviderRow[])
+    .map(toSponsoredCard)
+    .filter(isSponsoredProviderRenderable)
 
   // Sponsored cards get their own slots ahead of the editorial list, capped
   // so the strip stays majority-editorial; never let sponsored crowd out the
@@ -348,7 +365,6 @@ export async function getSponsoredForCategoryCity(
   placementType: 'search_top_slot' | 'category_city_feature',
   categoryId: string,
   city: string,
-  excludeProviderIds: string[] = [],
 ): Promise<ProviderCardView[]> {
   const now = new Date().toISOString()
   const { data: placements } = await supabase
@@ -360,11 +376,15 @@ export async function getSponsoredForCategoryCity(
     .eq('city', city)
     .lte('starts_at', now)
     .gte('ends_at', now)
+    .order('starts_at', { ascending: true })
 
   if (!placements || placements.length === 0) return []
 
-  const excluded = new Set(excludeProviderIds)
-  const providerIds = placements.map((p) => p.provider_id).filter((id) => !excluded.has(id))
+  const providerIds = rotateList(
+    placements.map((p) => p.provider_id),
+    new Date(),
+    SPONSORED_ROTATION_WINDOW_HOURS,
+  )
   if (providerIds.length === 0) return []
 
   const { data: rows } = await supabase
@@ -373,10 +393,60 @@ export async function getSponsoredForCategoryCity(
     .in('id', providerIds)
     .eq('is_published', true)
 
-  return ((rows ?? []) as unknown as ProviderRow[]).map((row) => ({
-    ...toProviderCard(row),
-    isSponsored: true,
-  }))
+  const cardsById = new Map<string, ProviderCardView>(
+    ((rows ?? []) as unknown as ProviderRow[]).map((row) => {
+      const card = toSponsoredCard(row)
+      return [card.id, card]
+    }),
+  )
+
+  return providerIds
+    .map((id) => cardsById.get(id))
+    .filter((card): card is ProviderCardView => Boolean(card))
+    .filter(isSponsoredProviderRenderable)
+}
+
+export async function getFloatingSponsoredProvider(
+  supabase: SupabaseClient,
+): Promise<ProviderCardView | null> {
+  const now = new Date().toISOString()
+  const { data: placements } = await supabase
+    .from('sponsored_placements')
+    .select('provider_id')
+    .eq('placement_type', 'floating_box')
+    .eq('status', 'active')
+    .is('category_id', null)
+    .is('city', null)
+    .lte('starts_at', now)
+    .gte('ends_at', now)
+    .order('starts_at', { ascending: true })
+
+  if (!placements || placements.length === 0) return null
+
+  const providerIds = rotateList(
+    placements.map((p) => p.provider_id),
+    new Date(),
+    SPONSORED_ROTATION_WINDOW_HOURS,
+  )
+
+  const { data: rows } = await supabase
+    .from('providers')
+    .select(providerSelect())
+    .in('id', providerIds)
+    .eq('is_published', true)
+
+  const cardsById = new Map<string, ProviderCardView>(
+    ((rows ?? []) as unknown as ProviderRow[]).map((row) => {
+      const card = toSponsoredCard(row)
+      return [card.id, card]
+    }),
+  )
+
+  return providerIds
+    .map((id) => cardsById.get(id))
+    .filter((card): card is ProviderCardView => Boolean(card))
+    .filter(isSponsoredProviderRenderable)
+    .slice(0, SPONSORED_VISIBLE_SLOTS.floating_box)[0] ?? null
 }
 
 export interface ProviderPage {
@@ -520,29 +590,40 @@ export async function getServices(
       discount_type,
       discount_amount,
       image,
-      service_packages(id, name, price, discount_type, discount_amount, is_default, display_order),
-      provider:providers!inner(
+      service_packages:service_packages!service_packages_service_id_fkey(
+        id,
+        name,
+        price,
+        discount_type,
+        discount_amount,
+        is_default,
+        display_order
+      ),
+      provider:providers!services_provider_id_fkey!inner(
         business_name,
         slug,
         profile_image,
         location_city,
-        provider_types!inner(provider_categories!inner(slug)),
-        reviews(rating)
+        is_published,
+        provider_types:provider_types!providers_provider_type_id_fkey!inner(
+          provider_categories:provider_categories!provider_types_category_id_fkey!inner(slug)
+        ),
+        reviews:reviews!reviews_provider_id_fkey(rating)
       )
     `)
     .eq('is_published', true)
-    .eq('providers.is_published', true)
+    .eq('provider.is_published', true)
     .order('created_at', { ascending: false })
     .limit(limit)
 
   if (options.categorySlug) {
-    query = query.eq('providers.provider_types.provider_categories.slug', options.categorySlug)
+    query = query.eq('provider.provider_types.provider_categories.slug', options.categorySlug)
   }
   if (options.search) {
     query = query.or(`title.ilike.%${options.search}%,description.ilike.%${options.search}%`)
   }
   if (options.city) {
-    query = query.ilike('providers.location_city', `%${options.city}%`)
+    query = query.ilike('provider.location_city', `%${options.city}%`)
   }
   if (options.minPrice !== undefined) {
     query = query.gte('price', options.minPrice)
@@ -551,7 +632,11 @@ export async function getServices(
     query = query.lte('price', options.maxPrice)
   }
 
-  const { data } = await query
+  const { data, error } = await query
+  if (error) {
+    console.error('Services listing query failed:', error.message)
+    return []
+  }
 
   type RawPackage = {
     id: string; name: string; price: number
@@ -563,6 +648,7 @@ export async function getServices(
     slug: string | null
     profile_image?: string | null
     location_city: string | null
+    is_published?: boolean
     provider_types?: { provider_categories?: { slug: string } | { slug: string }[] | null } | { provider_categories?: { slug: string } | { slug: string }[] | null }[] | null
     reviews?: { rating: number }[] | null
   }

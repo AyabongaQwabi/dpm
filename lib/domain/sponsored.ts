@@ -67,6 +67,23 @@ export function maxSponsoredForOrganicCount(organicCount: number, capPerTen: num
 }
 
 /**
+ * Deterministic rotation for sponsored reservation pools. This avoids an
+ * auction/weighting model while still cycling visible placements over time.
+ */
+export function rotationStartIndex(itemCount: number, now: Date, windowHours: number): number {
+  if (itemCount <= 0) return 0
+  const safeWindowHours = Math.max(1, Math.floor(windowHours))
+  const windowMs = safeWindowHours * 60 * 60 * 1000
+  return Math.floor(now.getTime() / windowMs) % itemCount
+}
+
+export function rotateList<T>(items: readonly T[], now: Date, windowHours: number): T[] {
+  if (items.length <= 1) return [...items]
+  const start = rotationStartIndex(items.length, now, windowHours)
+  return [...items.slice(start), ...items.slice(0, start)]
+}
+
+/**
  * Unused-time credit (C.2): when a placement is paused mid-flight for
  * falling below eligibility, how many seconds of its reserved window remain
  * unused as of `pausedAt`. Callers add this to credited_seconds so the

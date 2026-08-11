@@ -6,6 +6,8 @@ import { Pagination } from '@/components/Pagination'
 import { JsonLd } from '@/components/seo/JsonLd'
 import { getCategories, getPublishedProvidersPage, getSponsoredForCategoryCity, titleFromSlug } from '@/lib/public-data'
 import { createClient } from '@/lib/supabase/server'
+import { maxSponsoredForOrganicCount } from '@/lib/domain/sponsored'
+import { SPONSORED_DENSITY_CAP_PER_TEN } from '@/lib/sponsored-config'
 import { breadcrumbJsonLd, canonicalAlternates, defaultOpenGraph, defaultTwitter, providerListJsonLd, seoIndexPolicy, SEO_INDEX_THRESHOLDS } from '@/lib/seo'
 
 interface PageProps {
@@ -72,15 +74,19 @@ export default async function ProvidersByCategoryInLocationPage({ params, search
   // Only fetched on page 1 (a rotating/reserved slot belongs above page-1
   // results, not scattered across pagination).
   const categoryId = categories.find((c) => c.slug === slug)?.id ?? null
-  const organicIds = providers.map((p) => p.id)
   const [topSlot, featureCards] = page === 1 && categoryId
     ? await Promise.all([
-        getSponsoredForCategoryCity(supabase, 'search_top_slot', categoryId, location, organicIds),
-        getSponsoredForCategoryCity(supabase, 'category_city_feature', categoryId, location, organicIds),
+        getSponsoredForCategoryCity(supabase, 'search_top_slot', categoryId, location),
+        getSponsoredForCategoryCity(supabase, 'category_city_feature', categoryId, location),
       ])
     : [[], []]
-  // Density cap: at most one category_city_feature card shown alongside the grid.
-  const featuredSponsored = featureCards.slice(0, 1)
+  // Density cap: sponsored cards render in their own labelled slots while the
+  // organic list remains unchanged below, including the same provider if they
+  // naturally appear there too.
+  const featuredSponsored = featureCards.slice(
+    0,
+    maxSponsoredForOrganicCount(providers.length, SPONSORED_DENSITY_CAP_PER_TEN),
+  )
 
   return (
     <main className="mx-auto max-w-7xl px-4 py-12">
@@ -125,7 +131,7 @@ export default async function ProvidersByCategoryInLocationPage({ params, search
       <p className="mt-8 text-sm text-muted-foreground">{total} provider{total === 1 ? '' : 's'} found</p>
       <section className="mt-4 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
         {featuredSponsored.map((provider) => (
-          <ProviderCard key={provider.id} provider={provider} />
+          <ProviderCard key={`sponsored-${provider.id}`} provider={provider} />
         ))}
         {providers.map((provider) => (
           <ProviderCard key={provider.id} provider={provider} />

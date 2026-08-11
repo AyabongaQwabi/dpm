@@ -1,5 +1,6 @@
 import { SiteFooter } from '@/components/SiteFooter'
 import { SiteNav } from '@/components/SiteNav'
+import { FloatingSponsoredPlacement } from '@/components/sponsored/FloatingSponsoredPlacement'
 import { getTenantContext, getUserLocation } from '@/lib/tenant'
 
 export default async function PublicLayout({ children }: { children: React.ReactNode }) {
@@ -13,6 +14,7 @@ export default async function PublicLayout({ children }: { children: React.React
         location={location}
       />
       <div className="flex-1">{children}</div>
+      <FloatingSponsoredPlacement />
       <SiteFooter />
     </>
   )

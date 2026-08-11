@@ -1,11 +1,13 @@
 'use server'
 
 // Server actions for sponsored placement purchase and re-checks (Batch C).
-// Debits the provider credit wallet through the existing internal path
-// (provider_wallet_spend, added in Batch A) — never touches Yoco directly.
+// Debits the provider credit wallet through the internal wallet RPC — never
+// touches Yoco directly.
 
 import { createAdminClient } from '@/lib/supabase/admin'
 import { requireProviderSession } from '@/lib/session'
+import { redirect } from 'next/navigation'
+import { revalidatePath } from 'next/cache'
 import {
   isEligibleForSponsoredPlacement,
   canSellAnotherSlot,
@@ -17,6 +19,7 @@ import {
   isSponsoredPlacementPurchasable,
   SPONSORED_RESCUE_GRANT_RESERVE_PCT,
   SPONSORED_MIN_RATING_THRESHOLD,
+  SPONSORED_SLOT_INVENTORY_PER_SCOPE,
 } from '@/lib/sponsored-config'
 
 interface PurchaseInput {
@@ -26,6 +29,18 @@ interface PurchaseInput {
   city: string | null
   startsAt: Date
   endsAt: Date
+}
+
+const PLACEMENT_TYPES: SponsoredPlacementType[] = ['category_city_feature', 'floating_box', 'search_top_slot']
+
+function addBillingUnit(start: Date, billingUnit: 'week' | 'month'): Date {
+  const end = new Date(start)
+  if (billingUnit === 'week') {
+    end.setDate(end.getDate() + 7)
+  } else {
+    end.setMonth(end.getMonth() + 1)
+  }
+  return end
 }
 
 async function checkEligibility(providerId: string): Promise<boolean> {
@@ -90,16 +105,10 @@ export async function purchaseSponsoredPlacement(
 
   const admin = createAdminClient()
 
-  // C.1: model total slots for this placement_type + scope as "how many
-  // distinct providers could hold an active placement of this type/scope at
-  // once" — for category_city_feature and search_top_slot that's a single
-  // rotating slot per scope (totalSlots = 1); floating_box's slot count is
-  // one of the open C.3 questions and isn't sellable yet (see below).
-  if (input.placementType === 'floating_box') {
-    return { ok: false, error: 'not_yet_available' }
-  }
-
-  const totalSlots = 1
+  // C.1/C.2: total reservation inventory is config-backed, separate from
+  // the visible slot count. This keeps a one-visible-slot surface sellable
+  // while preserving the configured rescue reserve.
+  const totalSlots = SPONSORED_SLOT_INVENTORY_PER_SCOPE[input.placementType]
   let scopeQuery = admin
     .from('sponsored_placements')
     .select('id', { count: 'exact', head: true })
@@ -118,10 +127,13 @@ export async function purchaseSponsoredPlacement(
     return { ok: false, error: 'reserved_for_rescue_grant' }
   }
 
-  const { error: spendError } = await admin.rpc('provider_wallet_spend', {
+  const { error: spendError } = await admin.rpc('spend_provider_wallet', {
     p_provider_id: input.providerId,
     p_amount: pricing.price,
+    p_reference_type: 'sponsored_placement',
+    p_reference_id: null,
     p_description: `Sponsored placement: ${input.placementType}`,
+    p_allow_negative: false,
   })
 
   if (spendError) {
@@ -150,6 +162,57 @@ export async function purchaseSponsoredPlacement(
   }
 
   return { ok: true }
+}
+
+export async function purchaseSponsoredPlacementAction(formData: FormData) {
+  const { provider } = await requireProviderSession()
+  const placementType = String(formData.get('placementType') ?? '') as SponsoredPlacementType
+  if (!PLACEMENT_TYPES.includes(placementType)) {
+    redirect('/provider-dashboard/sponsored?error=invalid_placement')
+  }
+
+  const admin = createAdminClient()
+  const { data: providerRow } = await admin
+    .from('providers')
+    .select('id, location_city, provider_types!inner(category_id)')
+    .eq('id', provider.id)
+    .single()
+
+  const providerType = Array.isArray(providerRow?.provider_types)
+    ? providerRow.provider_types[0]
+    : providerRow?.provider_types
+  const categoryId = placementType === 'floating_box' ? null : providerType?.category_id ?? null
+  const city = placementType === 'floating_box' ? null : providerRow?.location_city ?? null
+
+  if (placementType !== 'floating_box' && (!categoryId || !city)) {
+    redirect('/provider-dashboard/sponsored?error=missing_scope')
+  }
+
+  const pricing = getSponsoredPricing(placementType)
+  if (pricing.price === null) {
+    redirect('/provider-dashboard/sponsored?error=not_yet_priced')
+  }
+
+  const startsAt = new Date()
+  const result = await purchaseSponsoredPlacement({
+    providerId: provider.id,
+    placementType,
+    categoryId,
+    city,
+    startsAt,
+    endsAt: addBillingUnit(startsAt, pricing.billingUnit),
+  })
+
+  if (!result.ok) {
+    redirect(`/provider-dashboard/sponsored?error=${encodeURIComponent(result.error)}&amount=${pricing.price}`)
+  }
+
+  revalidatePath('/provider-dashboard/sponsored')
+  revalidatePath('/')
+  if (categoryId && city) {
+    revalidatePath(`/providers/category/${categoryId}/in/${city}`)
+  }
+  redirect('/provider-dashboard/sponsored?status=reserved')
 }
 
 /**

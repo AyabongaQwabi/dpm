@@ -61,6 +61,17 @@ const NAV_ITEMS = [
     ),
   },
   {
+    href: '/provider-dashboard/sponsored',
+    label: 'Sponsored',
+    icon: (
+      <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M3 11v2a2 2 0 0 0 2 2h2l4 4V5L7 9H5a2 2 0 0 0-2 2z" />
+        <path d="M16 9a5 5 0 0 1 0 6" />
+        <path d="M19 6a9 9 0 0 1 0 12" />
+      </svg>
+    ),
+  },
+  {
     href: '/provider-dashboard/onboarding',
     label: 'Profile',
     icon: (
