@@ -1,0 +1,30 @@
+{
+  "limits": {
+    "nameMaxChars": 100,
+    "emailMaxChars": 254,
+    "titleMaxChars": 120,
+    "descriptionMaxChars": 2000
+  },
+  "rateLimit": {
+    "maxSubmissionsPerHour": 3,
+    "windowMinutes": 60
+  },
+  "notification": {
+    "recipient": "aya@qwabi.co.za"
+  },
+  "submitterRoles": [
+    { "value": "customer", "label": "Customer" },
+    { "value": "provider", "label": "Provider" },
+    { "value": "agent", "label": "Referral agent" },
+    { "value": "other", "label": "Other" }
+  ],
+  "areas": [
+    { "value": "search", "label": "Search and discovery" },
+    { "value": "profile", "label": "Provider profiles" },
+    { "value": "payments", "label": "Payments and billing" },
+    { "value": "messaging", "label": "Messaging" },
+    { "value": "reviews", "label": "Reviews and trust" },
+    { "value": "mobile", "label": "Mobile experience" },
+    { "value": "other", "label": "Other" }
+  ]
+}

@@ -12,6 +12,7 @@ async function sendEmail(params: {
   to: string
   subject: string
   html: string
+  replyTo?: string
 }): Promise<{ ok: boolean; error?: string }> {
   const resend = getResend()
   if (!resend) {
@@ -24,6 +25,7 @@ async function sendEmail(params: {
     to: params.to,
     subject: params.subject,
     html: params.html,
+    replyTo: params.replyTo,
   })
 
   if (error) {
@@ -32,6 +34,41 @@ async function sendEmail(params: {
   }
 
   return { ok: true }
+}
+
+export async function sendFeatureRequestNotificationEmail({
+  to,
+  replyTo,
+  title,
+  html,
+}: {
+  to: string
+  replyTo: string
+  title: string
+  html: string
+}) {
+  return sendEmail({
+    to,
+    replyTo,
+    subject: `New feature request — ${title}`,
+    html,
+  })
+}
+
+export async function sendFeatureRequestConfirmationEmail({
+  to,
+  title,
+  html,
+}: {
+  to: string
+  title: string
+  html: string
+}) {
+  return sendEmail({
+    to,
+    subject: `We received your ServicePros feature request — ${title}`,
+    html,
+  })
 }
 
 export async function sendClaimVerificationEmail({

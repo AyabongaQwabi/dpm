@@ -38,6 +38,14 @@ Never import from `@prisma/client`, `lib/prisma`, or any ORM package. If you see
 - Pure business logic lives in `lib/domain/` — no DB calls inside those files.
 - `lib/search.ts` is the signal-assembly layer between Supabase queries and `lib/domain/ranking.ts`.
 
+## Configuration and constants
+
+- When adding behaviour that needs tunable values, attempt to create or extend a JSON file in `config/` first, then import it through a small typed helper/module. Examples: feature pauses, Pro membership pricing/caps, publishing limits.
+- When a value is a true code constant rather than business configuration, put it in a named constants/config module near the owning feature instead of hardcoding it in pages, components, route handlers, or actions.
+- Commercial values, limits, thresholds, copy-sensitive option sets, status labels, and feature gates should not be repeated inline. Keep one source of truth and derive UI labels, tests, and migration seed values from it where practical.
+- If a value must also live in `platform_config` or a migration seed, document the mirror and keep the names aligned so drift is obvious.
+- Every new `config/*.json` file must be documented in `config/README.md`: what each setting means, where it is imported, and whether it mirrors database or migration values.
+
 ## Applying the migration
 
 ```bash

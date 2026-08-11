@@ -46,6 +46,7 @@ export function SiteFooter() {
             <li><Link href="/about" className="hover:text-primary-foreground">About</Link></li>
             <li><Link href="/dpm" className="hover:text-primary-foreground">What is a DPM?</Link></li>
             <li><Link href="/contact" className="hover:text-primary-foreground">Contact</Link></li>
+            <li><Link href="/feature-requests" className="hover:text-primary-foreground">Feature requests</Link></li>
             <li><Link href="/terms" className="hover:text-primary-foreground">Terms of Service</Link></li>
             <li><Link href="/privacy" className="hover:text-primary-foreground">Privacy Policy</Link></li>
             <li><Link href="/refund" className="hover:text-primary-foreground">Refund Policy</Link></li>
