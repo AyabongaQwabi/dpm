@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { headers } from "next/headers";
 import Script from "next/script";
+import { Analytics } from "@vercel/analytics/next";
 import { Bricolage_Grotesque, Hanken_Grotesk, Spline_Sans_Mono } from "next/font/google";
 import "./globals.css";
 
@@ -131,6 +132,7 @@ export default async function RootLayout({
       </head>
       <body className="min-h-full flex flex-col">
         {children}
+        <Analytics />
         <Script
           src={`https://www.googletagmanager.com/gtag/js?id=${GA_MEASUREMENT_ID}`}
           strategy="afterInteractive"
