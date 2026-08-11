@@ -6,7 +6,7 @@ import { RegionalBrowse } from '@/components/home/RegionalBrowse'
 import { TrustSection } from '@/components/home/TrustSection'
 import { RecommendedServices } from '@/components/home/RecommendedServices'
 import { JsonLd } from '@/components/seo/JsonLd'
-import { getCategories, getFeaturedProviders, getLocations, getPublishedProviders } from '@/lib/public-data'
+import { getCategories, getFeaturedProvidersWithSponsored, getLocations, getPublishedProviders } from '@/lib/public-data'
 import { getRecommendedServices } from '@/lib/recommended-services'
 import { createClient } from '@/lib/supabase/server'
 import { canonicalAlternates, defaultOpenGraph, defaultTwitter, providerListJsonLd, webSiteJsonLd } from '@/lib/seo'
@@ -57,7 +57,7 @@ export default async function LandingPage() {
   ])
 
   const [{ providers: featured, verifiedPoolSize }, withCompleteProfile, recent] = await Promise.all([
-    getFeaturedProviders(supabase, categories, { limit: 6, categorySlug: tenant.categorySlug ?? undefined }),
+    getFeaturedProvidersWithSponsored(supabase, categories, { limit: 6, categorySlug: tenant.categorySlug ?? undefined }),
     getPublishedProviders(supabase, { withCompleteProfile: true, limit: 6, categorySlug: tenant.categorySlug ?? undefined }),
     getPublishedProviders(supabase, { limit: 6, categorySlug: tenant.categorySlug ?? undefined }),
   ])

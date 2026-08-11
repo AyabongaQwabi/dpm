@@ -5,6 +5,8 @@ import {
   sendSubscriptionRenewalReminderEmail,
 } from '@/lib/email/resend'
 import { getProviderAuthEmail } from '@/lib/payments/verify-subscription'
+import { lapseExpiredMemberships } from '@/lib/actions/pro-membership'
+import { recheckSponsoredEligibility } from '@/lib/actions/sponsored'
 import { SITE_URL } from '@/lib/seo'
 
 function authorize(request: Request): boolean {
@@ -98,5 +100,8 @@ export async function GET(request: Request) {
     }
   }
 
-  return NextResponse.json({ expired, reminded })
+  const membershipsLapsed = await lapseExpiredMemberships()
+  const sponsoredRecheck = await recheckSponsoredEligibility()
+
+  return NextResponse.json({ expired, reminded, membershipsLapsed, sponsoredRecheck })
 }

@@ -4,7 +4,7 @@ import { notFound } from 'next/navigation'
 import { ProviderCard } from '@/components/ProviderCard'
 import { Pagination } from '@/components/Pagination'
 import { JsonLd } from '@/components/seo/JsonLd'
-import { getCategories, getPublishedProvidersPage, titleFromSlug } from '@/lib/public-data'
+import { getCategories, getPublishedProvidersPage, getSponsoredForCategoryCity, titleFromSlug } from '@/lib/public-data'
 import { createClient } from '@/lib/supabase/server'
 import { breadcrumbJsonLd, canonicalAlternates, defaultOpenGraph, defaultTwitter, providerListJsonLd, seoIndexPolicy, SEO_INDEX_THRESHOLDS } from '@/lib/seo'
 
@@ -67,6 +67,21 @@ export default async function ProvidersByCategoryInLocationPage({ params, search
   const category = providers[0]?.categoryName ?? titleFromSlug(slug)
   const relatedCategories = categories.filter((c) => c.slug !== slug).slice(0, 5)
 
+  // C.1/C.2: sponsored inventory for this exact category+city pair. Reserved
+  // slots, additive only — never reorders the organic `providers` list above.
+  // Only fetched on page 1 (a rotating/reserved slot belongs above page-1
+  // results, not scattered across pagination).
+  const categoryId = categories.find((c) => c.slug === slug)?.id ?? null
+  const organicIds = providers.map((p) => p.id)
+  const [topSlot, featureCards] = page === 1 && categoryId
+    ? await Promise.all([
+        getSponsoredForCategoryCity(supabase, 'search_top_slot', categoryId, location, organicIds),
+        getSponsoredForCategoryCity(supabase, 'category_city_feature', categoryId, location, organicIds),
+      ])
+    : [[], []]
+  // Density cap: at most one category_city_feature card shown alongside the grid.
+  const featuredSponsored = featureCards.slice(0, 1)
+
   return (
     <main className="mx-auto max-w-7xl px-4 py-12">
       <JsonLd
@@ -101,8 +116,17 @@ export default async function ProvidersByCategoryInLocationPage({ params, search
         </p>
       </section>
 
+      {topSlot.length > 0 && (
+        <section className="mt-8 max-w-sm">
+          <ProviderCard provider={topSlot[0]} />
+        </section>
+      )}
+
       <p className="mt-8 text-sm text-muted-foreground">{total} provider{total === 1 ? '' : 's'} found</p>
       <section className="mt-4 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        {featuredSponsored.map((provider) => (
+          <ProviderCard key={provider.id} provider={provider} />
+        ))}
         {providers.map((provider) => (
           <ProviderCard key={provider.id} provider={provider} />
         ))}

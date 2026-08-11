@@ -1,6 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { DiscountType } from '@/lib/db'
 import type { BusinessType, VerificationState } from '@/components/ui/VerifiedBadge'
+import { SPONSORED_DENSITY_CAP_PER_TEN } from '@/lib/sponsored-config'
 
 export interface ProviderCardView {
   id: string
@@ -21,6 +22,8 @@ export interface ProviderCardView {
   isFeatured: boolean
   businessType: BusinessType
   verification: VerificationState
+  /** C.2 disclosure: true when this card fills a sponsored (not editorial) slot. */
+  isSponsored?: boolean
 }
 
 export interface CategoryView {
@@ -264,6 +267,116 @@ export async function getFeaturedProviders(
   }
 
   return { providers: interleaved, verifiedPoolSize }
+}
+
+/**
+ * C.4: the homepage featured strip reads from sponsored_placements where
+ * applicable, but always keeps an editorial fallback so the strip is never
+ * 100% paid inventory. Sponsored providers fill up to the density cap
+ * (default: 1 per 10 — for a 6-card strip that's zero unless the cap is
+ * raised, so in practice this surfaces at most one sponsored card among six
+ * today); the rest of the strip is always the existing verified/round-robin
+ * editorial selection. Sponsored cards are prepended (their own reserved
+ * slot) but the editorial list underneath is untouched — same C.2 rule as
+ * search: a sponsored slot never reorders or replaces organic selection,
+ * it's added alongside it.
+ */
+export async function getFeaturedProvidersWithSponsored(
+  supabase: SupabaseClient,
+  categories: CategoryView[],
+  options: { limit?: number; categorySlug?: string } = {},
+): Promise<{ providers: ProviderCardView[]; verifiedPoolSize: number }> {
+  const limit = options.limit ?? 6
+  const editorial = await getFeaturedProviders(supabase, categories, options)
+
+  // Site-wide category_city_feature placements (no category/city scope) are
+  // the only sponsored inventory eligible for the homepage strip.
+  const now = new Date().toISOString()
+  const { data: placements } = await supabase
+    .from('sponsored_placements')
+    .select('provider_id')
+    .eq('placement_type', 'category_city_feature')
+    .eq('status', 'active')
+    .is('category_id', null)
+    .is('city', null)
+    .lte('starts_at', now)
+    .gte('ends_at', now)
+
+  if (!placements || placements.length === 0) {
+    return editorial
+  }
+
+  const maxSponsoredSlots = Math.max(0, Math.floor(limit / 10) * SPONSORED_DENSITY_CAP_PER_TEN) || (limit > 0 ? 1 : 0)
+
+  const editorialIds = new Set(editorial.providers.map((p) => p.id))
+  const sponsoredProviderIds = placements
+    .map((p) => p.provider_id)
+    .filter((id) => !editorialIds.has(id))
+    .slice(0, maxSponsoredSlots)
+
+  if (sponsoredProviderIds.length === 0) {
+    return editorial
+  }
+
+  const { data: sponsoredRows } = await supabase
+    .from('providers')
+    .select(providerSelect())
+    .in('id', sponsoredProviderIds)
+    .eq('is_published', true)
+
+  const sponsoredCards = ((sponsoredRows ?? []) as unknown as ProviderRow[]).map((row) => ({
+    ...toProviderCard(row),
+    isSponsored: true,
+  }))
+
+  // Sponsored cards get their own slots ahead of the editorial list, capped
+  // so the strip stays majority-editorial; never let sponsored crowd out the
+  // full editorial set.
+  const combined = [...sponsoredCards, ...editorial.providers].slice(0, limit + sponsoredCards.length)
+
+  return { providers: combined, verifiedPoolSize: editorial.verifiedPoolSize }
+}
+
+/**
+ * C.2/C.1: fetches active sponsored providers scoped to a specific
+ * category + city pair, for a given placement_type. Read-only, additive —
+ * callers render these in their own labelled slot; they never replace or
+ * reorder the organic list fetched separately via getPublishedProvidersPage.
+ */
+export async function getSponsoredForCategoryCity(
+  supabase: SupabaseClient,
+  placementType: 'search_top_slot' | 'category_city_feature',
+  categoryId: string,
+  city: string,
+  excludeProviderIds: string[] = [],
+): Promise<ProviderCardView[]> {
+  const now = new Date().toISOString()
+  const { data: placements } = await supabase
+    .from('sponsored_placements')
+    .select('provider_id')
+    .eq('placement_type', placementType)
+    .eq('status', 'active')
+    .eq('category_id', categoryId)
+    .eq('city', city)
+    .lte('starts_at', now)
+    .gte('ends_at', now)
+
+  if (!placements || placements.length === 0) return []
+
+  const excluded = new Set(excludeProviderIds)
+  const providerIds = placements.map((p) => p.provider_id).filter((id) => !excluded.has(id))
+  if (providerIds.length === 0) return []
+
+  const { data: rows } = await supabase
+    .from('providers')
+    .select(providerSelect())
+    .in('id', providerIds)
+    .eq('is_published', true)
+
+  return ((rows ?? []) as unknown as ProviderRow[]).map((row) => ({
+    ...toProviderCard(row),
+    isSponsored: true,
+  }))
 }
 
 export interface ProviderPage {

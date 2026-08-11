@@ -1,0 +1,236 @@
+'use server'
+
+// Server actions for sponsored placement purchase and re-checks (Batch C).
+// Debits the provider credit wallet through the existing internal path
+// (provider_wallet_spend, added in Batch A) — never touches Yoco directly.
+
+import { createAdminClient } from '@/lib/supabase/admin'
+import { requireProviderSession } from '@/lib/session'
+import {
+  isEligibleForSponsoredPlacement,
+  canSellAnotherSlot,
+  unusedSecondsAt,
+  type SponsoredPlacementType,
+} from '@/lib/domain/sponsored'
+import {
+  getSponsoredPricing,
+  isSponsoredPlacementPurchasable,
+  SPONSORED_RESCUE_GRANT_RESERVE_PCT,
+  SPONSORED_MIN_RATING_THRESHOLD,
+} from '@/lib/sponsored-config'
+
+interface PurchaseInput {
+  providerId: string
+  placementType: SponsoredPlacementType
+  categoryId: string | null
+  city: string | null
+  startsAt: Date
+  endsAt: Date
+}
+
+async function checkEligibility(providerId: string): Promise<boolean> {
+  const admin = createAdminClient()
+
+  const { data: provider } = await admin
+    .from('providers')
+    .select('verified_contact')
+    .eq('id', providerId)
+    .single()
+
+  const { data: reviews } = await admin
+    .from('reviews')
+    .select('rating')
+    .eq('provider_id', providerId)
+
+  const averageRating =
+    reviews && reviews.length > 0
+      ? reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length
+      : null
+
+  const { count: disputeCount } = await admin
+    .from('bookings')
+    .select('id', { count: 'exact', head: true })
+    .eq('provider_id', providerId)
+    .eq('cancellation_reason', '__dispute__')
+
+  return isEligibleForSponsoredPlacement({
+    hasContactVerification: provider?.verified_contact ?? false,
+    hasOpenDispute: (disputeCount ?? 0) > 0,
+    averageRating,
+    minRatingThreshold: SPONSORED_MIN_RATING_THRESHOLD,
+  })
+}
+
+/**
+ * Purchases a sponsored placement against the provider credit wallet.
+ * Refuses to sell if: pricing isn't set (C.3), the provider isn't eligible
+ * (C.2), or selling one more would eat into the 30% rescue_grant reserve
+ * (C.2) for that placement_type + scope.
+ */
+export async function purchaseSponsoredPlacement(
+  input: PurchaseInput,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const { provider } = await requireProviderSession()
+  if (provider.id !== input.providerId) {
+    return { ok: false, error: 'Provider mismatch' }
+  }
+
+  if (!isSponsoredPlacementPurchasable(input.placementType)) {
+    return { ok: false, error: 'not_yet_priced' }
+  }
+  const pricing = getSponsoredPricing(input.placementType)
+  if (pricing.price === null) {
+    return { ok: false, error: 'not_yet_priced' }
+  }
+
+  const eligible = await checkEligibility(input.providerId)
+  if (!eligible) {
+    return { ok: false, error: 'not_eligible' }
+  }
+
+  const admin = createAdminClient()
+
+  // C.1: model total slots for this placement_type + scope as "how many
+  // distinct providers could hold an active placement of this type/scope at
+  // once" — for category_city_feature and search_top_slot that's a single
+  // rotating slot per scope (totalSlots = 1); floating_box's slot count is
+  // one of the open C.3 questions and isn't sellable yet (see below).
+  if (input.placementType === 'floating_box') {
+    return { ok: false, error: 'not_yet_available' }
+  }
+
+  const totalSlots = 1
+  let scopeQuery = admin
+    .from('sponsored_placements')
+    .select('id', { count: 'exact', head: true })
+    .eq('placement_type', input.placementType)
+    .eq('source', 'purchased')
+    .eq('status', 'active')
+
+  scopeQuery = input.categoryId
+    ? scopeQuery.eq('category_id', input.categoryId)
+    : scopeQuery.is('category_id', null)
+  scopeQuery = input.city ? scopeQuery.eq('city', input.city) : scopeQuery.is('city', null)
+
+  const { count: soldCount } = await scopeQuery
+
+  if (!canSellAnotherSlot(totalSlots, soldCount ?? 0, SPONSORED_RESCUE_GRANT_RESERVE_PCT)) {
+    return { ok: false, error: 'reserved_for_rescue_grant' }
+  }
+
+  const { error: spendError } = await admin.rpc('provider_wallet_spend', {
+    p_provider_id: input.providerId,
+    p_amount: pricing.price,
+    p_description: `Sponsored placement: ${input.placementType}`,
+  })
+
+  if (spendError) {
+    if (spendError.message.includes('Insufficient credit balance')) {
+      return { ok: false, error: 'insufficient_balance' }
+    }
+    console.error('purchaseSponsoredPlacement spend:', spendError.message)
+    return { ok: false, error: 'Purchase failed' }
+  }
+
+  const { error: insertError } = await admin.from('sponsored_placements').insert({
+    provider_id: input.providerId,
+    placement_type: input.placementType,
+    category_id: input.categoryId,
+    city: input.city,
+    starts_at: input.startsAt.toISOString(),
+    ends_at: input.endsAt.toISOString(),
+    source: 'purchased',
+    price_paid: pricing.price,
+    status: 'active',
+  })
+
+  if (insertError) {
+    console.error('purchaseSponsoredPlacement insert:', insertError.message)
+    return { ok: false, error: 'Purchase recorded payment but failed to activate placement — contact support' }
+  }
+
+  return { ok: true }
+}
+
+/**
+ * Re-checks eligibility for every active purchased/rescue_grant placement.
+ * A provider who falls below threshold mid-flight has the placement paused
+ * and the unused time credited back (C.2) — intended to run on the same
+ * daily cron as subscription/membership expiry.
+ */
+export async function recheckSponsoredEligibility(): Promise<{ paused: number; resumed: number }> {
+  const admin = createAdminClient()
+  const now = new Date()
+
+  const { data: activePlacements } = await admin
+    .from('sponsored_placements')
+    .select('id, provider_id, ends_at')
+    .eq('status', 'active')
+
+  let paused = 0
+  for (const placement of activePlacements ?? []) {
+    const eligible = await checkEligibility(placement.provider_id)
+    if (eligible) continue
+
+    const unusedSeconds = unusedSecondsAt(new Date(placement.ends_at), now)
+    await admin
+      .from('sponsored_placements')
+      .update({ status: 'paused', paused_at: now.toISOString(), credited_seconds: unusedSeconds })
+      .eq('id', placement.id)
+    paused++
+  }
+
+  // Resume paused placements whose provider is eligible again — extend
+  // ends_at by the credited window so no purchased time is lost.
+  const { data: pausedPlacements } = await admin
+    .from('sponsored_placements')
+    .select('id, provider_id, credited_seconds')
+    .eq('status', 'paused')
+
+  let resumed = 0
+  for (const placement of pausedPlacements ?? []) {
+    const eligible = await checkEligibility(placement.provider_id)
+    if (!eligible) continue
+
+    const newEndsAt = new Date(now.getTime() + placement.credited_seconds * 1000)
+    await admin
+      .from('sponsored_placements')
+      .update({ status: 'active', paused_at: null, credited_seconds: 0, ends_at: newEndsAt.toISOString() })
+      .eq('id', placement.id)
+    resumed++
+  }
+
+  return { paused, resumed }
+}
+
+/**
+ * Fetches active, in-window sponsored placements for a given type + scope.
+ * Read-only helper for rendering — never reorders organic results; callers
+ * render these in their own labelled slot alongside the unmodified organic
+ * list (C.2).
+ */
+export async function getActiveSponsoredPlacements(
+  placementType: SponsoredPlacementType,
+  scope: { categoryId?: string | null; city?: string | null } = {},
+) {
+  const admin = createAdminClient()
+  const now = new Date().toISOString()
+
+  let query = admin
+    .from('sponsored_placements')
+    .select('id, provider_id, starts_at, ends_at, source')
+    .eq('placement_type', placementType)
+    .eq('status', 'active')
+    .lte('starts_at', now)
+    .gte('ends_at', now)
+
+  if (scope.categoryId !== undefined) {
+    query = scope.categoryId ? query.eq('category_id', scope.categoryId) : query.is('category_id', null)
+  }
+  if (scope.city !== undefined) {
+    query = scope.city ? query.eq('city', scope.city) : query.is('city', null)
+  }
+
+  const { data } = await query
+  return data ?? []
+}

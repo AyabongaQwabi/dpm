@@ -1,0 +1,10 @@
+{
+  "pricing": [
+    { "placementType": "category_city_feature", "priceRands": 74, "billingUnit": "week" },
+    { "placementType": "floating_box", "priceRands": null, "billingUnit": "month" },
+    { "placementType": "search_top_slot", "priceRands": 149, "billingUnit": "month" }
+  ],
+  "rescueGrantReservePct": 30,
+  "densityCapPerTen": 1,
+  "minRatingThreshold": 3.5
+}

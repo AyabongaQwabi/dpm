@@ -9,6 +9,8 @@ import {
   type BusinessType,
   type VerificationState,
 } from '@/components/ui/VerifiedBadge'
+import { ProBadge } from '@/components/ui/ProBadge'
+import { SponsoredLabel } from '@/components/ui/SponsoredLabel'
 
 export interface ProviderCardData {
   id: string
@@ -26,10 +28,17 @@ export interface ProviderCardData {
   locationCity?: string | null
   businessType?: BusinessType
   verification?: VerificationState
+  isPro?: boolean
+  /** C.2 disclosure: card fills a sponsored slot, alongside (not instead of) its organic position. */
+  isSponsored?: boolean
 }
 
 // Status row: the single (latest) verification badge — or a grey "Unverified"
-// tag — plus a real-data "Top rated" signal. No invented "open now" badges.
+// tag — plus a real-data "Top rated" signal. Pro renders alongside the
+// verification badge (never instead of it) and carries no ranking weight;
+// it is purely a display flag passed in from wherever the caller already
+// resolved hasEntitlement()/getProMembership() — this component does not
+// query pro_memberships itself. No invented "open now" badges.
 function StatusRow({ provider }: { provider: ProviderCardData }) {
   const topRated =
     provider.avgRating !== null && provider.avgRating >= 4.5 && (provider.reviewCount ?? 0) >= 3
@@ -39,6 +48,8 @@ function StatusRow({ provider }: { provider: ProviderCardData }) {
         state={provider.verification ?? {}}
         businessType={provider.businessType}
       />
+      {provider.isPro && <ProBadge />}
+      {provider.isSponsored && <SponsoredLabel />}
       {topRated && (
         <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
           <Icon.sparkle className="h-3.5 w-3.5" weight="fill" />
