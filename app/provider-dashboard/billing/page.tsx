@@ -4,12 +4,17 @@ import { createClient } from '@/lib/supabase/server'
 import { PACKAGES } from '@/lib/pricing-config'
 import { daysRemaining, getPackageByNumber } from '@/lib/domain/subscriptions'
 import { BillingRenewButton } from '@/components/provider-dashboard/BillingRenewButton'
+import { PackageUpgradeButton } from '@/components/provider-dashboard/PackageUpgradeButton'
 import { PaymentPendingNotice } from '@/components/PaymentPendingNotice'
-import { checkSubscriptionRenewed, getProviderAuthEmail } from '@/lib/payments/verify-subscription'
+import {
+  checkSubscriptionRenewed,
+  checkSubscriptionUpgraded,
+  getProviderAuthEmail,
+} from '@/lib/payments/verify-subscription'
 import { isFeaturePaused, getFeaturePauseMessage } from '@/lib/feature-pauses'
 
 interface BillingPageProps {
-  searchParams: Promise<{ status?: string; reference?: string }>
+  searchParams: Promise<{ status?: string; reference?: string; package?: string }>
 }
 
 export default async function ProviderBillingPage({ searchParams }: BillingPageProps) {
@@ -18,9 +23,15 @@ export default async function ProviderBillingPage({ searchParams }: BillingPageP
   const params = await searchParams
 
   const reference = params.reference
+  const isUpgradeReturn = params.status === 'success' && !!reference && !!params.package
   let renewed = false
+  let upgraded = false
   if (params.status === 'success' && reference) {
-    renewed = (await checkSubscriptionRenewed(reference, provider.id)).renewed
+    if (isUpgradeReturn) {
+      upgraded = (await checkSubscriptionUpgraded(reference, provider.id)).renewed
+    } else {
+      renewed = (await checkSubscriptionRenewed(reference, provider.id)).renewed
+    }
   }
 
   const { data: subscription } = await supabase
@@ -46,13 +57,13 @@ export default async function ProviderBillingPage({ searchParams }: BillingPageP
         <p className="mt-1 text-sm text-muted-foreground">Manage your subscription and commission plan.</p>
       </div>
 
-      {params.status === 'success' && reference && renewed && (
+      {params.status === 'success' && reference && (renewed || upgraded) && (
         <div className="rounded-xl border border-primary/30 bg-primary/5 px-4 py-3 text-sm text-foreground">
           Payment received — your subscription has been updated.
         </div>
       )}
 
-      {params.status === 'success' && reference && !renewed && <PaymentPendingNotice />}
+      {params.status === 'success' && reference && !renewed && !upgraded && <PaymentPendingNotice />}
 
       {isExpired && (
         <div className="rounded-xl border border-destructive/40 bg-destructive/10 px-4 py-4">
@@ -124,11 +135,11 @@ export default async function ProviderBillingPage({ searchParams }: BillingPageP
         <section>
           <h2 className="font-display text-lg font-semibold text-foreground mb-4">Upgrade your plan</h2>
           <p className="text-sm text-muted-foreground mb-4">
-            Unlock lower commission ceilings and discount bonuses. Online upgrade payment coming soon.
+            Unlock lower commission ceilings and discount bonuses.
           </p>
           <div className="grid gap-4 sm:grid-cols-2">
             {upgradePackages.map((plan) => (
-              <div key={plan.id} className="rounded-2xl border border-border bg-card p-5 opacity-90">
+              <div key={plan.id} className="rounded-2xl border border-border bg-card p-5">
                 <div className="flex items-start justify-between gap-2">
                   <h3 className="font-display font-semibold text-foreground">{plan.name}</h3>
                   {plan.badge && (
@@ -143,14 +154,16 @@ export default async function ProviderBillingPage({ searchParams }: BillingPageP
                     {plan.d4dBonus != null && ` · D4D bonus: ${(plan.d4dBonus * 100).toFixed(1)}%`}
                   </p>
                 )}
-                <button
-                  type="button"
-                  disabled
-                  title="Upgrade payment not yet available"
-                  className="mt-4 w-full rounded-lg border border-border px-4 py-2 text-sm font-semibold text-muted-foreground cursor-not-allowed"
-                >
-                  Upgrade to this plan (coming soon)
-                </button>
+                <div className="mt-4">
+                  <PackageUpgradeButton
+                    packageNumber={plan.packageNumber as 2 | 3 | 4 | 5}
+                    monthlyFee={plan.monthlyFee}
+                    returnPath="/provider-dashboard/billing"
+                    purchasesPaused={isFeaturePaused('purchases')}
+                    purchasesPausedMessage={getFeaturePauseMessage('purchases')}
+                    label="Upgrade to this plan"
+                  />
+                </div>
               </div>
             ))}
           </div>

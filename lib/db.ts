@@ -24,6 +24,7 @@ export type InputType =
   | 'tag_picker'
   | 'image_upload'
   | 'file_upload'
+  | 'location_search'
 
 export interface ProviderCategory {
   id: string

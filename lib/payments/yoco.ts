@@ -146,4 +146,5 @@ export type YocoWebhookMetadata = {
   promotion_id?: string | null
   provider_id?: string
   subscription_id?: string
+  package_number?: number | string
 }

@@ -8,6 +8,10 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { DashboardSidebar } from '@/components/provider-dashboard/DashboardSidebar'
 import { PolicyLinks } from '@/components/PolicyLinks'
+import { SubscriptionBanner } from '@/components/provider-dashboard/SubscriptionBanner'
+import { daysRemaining } from '@/lib/domain/subscriptions'
+
+const RENEWAL_WARNING_DAYS = 3
 
 export default async function ProviderDashboardLayout({
   children,
@@ -23,6 +27,29 @@ export default async function ProviderDashboardLayout({
     .select('id, business_name, is_published, profile_image')
     .eq('auth_provider_id', user.id)
     .single()
+
+  let subscriptionBannerStatus: 'expired' | 'expiring' | null = null
+  let subscriptionDaysRemaining = 0
+
+  if (provider) {
+    const { data: subscription } = await supabase
+      .from('provider_subscriptions')
+      .select('status, billing_end')
+      .eq('provider_id', provider.id)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+
+    if (subscription?.status === 'expired') {
+      subscriptionBannerStatus = 'expired'
+    } else if (subscription?.status === 'active') {
+      const remaining = daysRemaining(subscription.billing_end)
+      if (remaining <= RENEWAL_WARNING_DAYS) {
+        subscriptionBannerStatus = 'expiring'
+        subscriptionDaysRemaining = remaining
+      }
+    }
+  }
 
   async function signOut() {
     'use server'
@@ -64,6 +91,8 @@ export default async function ProviderDashboardLayout({
           </div>
         </div>
       </header>
+
+      <SubscriptionBanner status={subscriptionBannerStatus} daysRemaining={subscriptionDaysRemaining} />
 
       <div className="flex flex-1">
         {/* Sidebar */}

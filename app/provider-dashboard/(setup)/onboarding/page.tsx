@@ -26,6 +26,7 @@ import {
 import { SocialLinksStep } from '@/components/provider-dashboard/SocialLinksStep'
 import { LanguagesStep } from '@/components/provider-dashboard/LanguagesStep'
 import { PortfolioStep } from '@/components/provider-dashboard/PortfolioStep'
+import { LocationSearchField } from '@/components/provider-dashboard/LocationSearchField'
 import { ImageUploadField } from '@/components/provider-dashboard/ImageUploadField'
 import { GalleryUploadField } from '@/components/provider-dashboard/GalleryUploadField'
 import { FaqsField } from '@/components/provider-dashboard/FaqsField'
@@ -148,6 +149,7 @@ export default async function OnboardingPage({ searchParams }: OnboardingPagePro
       business_name,
       bio,
       profile_image,
+      location_city,
       social_links,
       languages,
       portfolio,
@@ -217,6 +219,7 @@ export default async function OnboardingPage({ searchParams }: OnboardingPagePro
     ['business_name', provider.business_name ?? ''],
     ['bio', provider.bio ?? ''],
     ['profile_image', provider.profile_image ?? ''],
+    ['location_city', provider.location_city ?? ''],
     ['faqs', provider.faqs ?? []],
     ['links', provider.links ?? []],
     ['social_links', provider.social_links ?? []],
@@ -596,6 +599,17 @@ function FieldInput({
   // Key-specific overrides — must come before inputType checks because the seed
   // registers these fields with generic types (rich_text / short_text) that would
   // otherwise match first and render the wrong widget.
+  if (field.key === 'location_city') {
+    return (
+      <LocationSearchField
+        fieldKey={field.key}
+        label={field.label}
+        isRequired={field.isRequired}
+        savedValue={strVal}
+      />
+    )
+  }
+
   if (field.key === 'faqs') {
     const saved: { question: string; answer: string }[] = Array.isArray(value)
       ? (value as { question: string; answer: string }[])

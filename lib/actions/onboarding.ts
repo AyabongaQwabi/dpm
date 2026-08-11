@@ -10,7 +10,6 @@ import {
   evaluatePublishEligibility,
 } from '@/lib/domain/onboarding'
 import { generateProviderSlug } from '@/lib/domain/slug'
-import { ensureBaseSubscription } from '@/lib/actions/subscriptions'
 
 async function getAuthUserId(): Promise<string> {
   const supabase = await createClient()
@@ -128,7 +127,7 @@ export async function saveOnboardingStep(formData: FormData) {
 
   // Fields that live as dedicated columns on providers — NOT written to
   // provider_field_values. The completion evaluator reads them via providerColumnValues.
-  const PROVIDER_COLUMN_KEYS = new Set(['business_name', 'bio', 'profile_image'])
+  const PROVIDER_COLUMN_KEYS = new Set(['business_name', 'bio', 'profile_image', 'location_city'])
 
   // Build upsert rows — skip provider-column fields, they go to providerColumnUpdate.
   const upsertRows = fcfRows
@@ -155,6 +154,7 @@ export async function saveOnboardingStep(formData: FormData) {
   const businessName = formData.get('business_name') as string | null
   const bio = formData.get('bio') as string | null
   const profileImage = formData.get('profile_image') as string | null
+  const locationCity = formData.get('location_city') as string | null
   const socialLinksRaw = formData.get('__social_links')
   const languagesRaw = formData.get('__languages')
   const portfolioRaw = formData.get('__portfolio')
@@ -170,13 +170,14 @@ export async function saveOnboardingStep(formData: FormData) {
   if (businessName !== null) providerColumnUpdate.business_name = businessName
   if (bio !== null) providerColumnUpdate.bio = bio
   if (profileImage !== null && profileImage !== '') providerColumnUpdate.profile_image = profileImage
+  if (locationCity !== null) providerColumnUpdate.location_city = locationCity
 
   if (businessName?.trim() && !provider.slug) {
     const { data: slugRows } = await admin.from('providers').select('slug').not('slug', 'is', null)
     const existingSlugs = (slugRows ?? []).map((r) => r.slug).filter((s): s is string => Boolean(s))
     providerColumnUpdate.slug = generateProviderSlug({
       businessName: businessName.trim(),
-      city: provider.location_city,
+      city: locationCity ?? provider.location_city,
       existingSlugs,
     })
   }
@@ -222,6 +223,7 @@ export async function saveOnboardingStep(formData: FormData) {
     profile_image: 'profile_image',
     business_name: 'business_name',
     bio: 'bio',
+    location_city: 'location_city',
   }
 
   const reconcileUpdate: Record<string, unknown> = {}
@@ -256,6 +258,7 @@ export async function saveOnboardingStep(formData: FormData) {
     ['business_name', businessName ?? provider.business_name ?? ''],
     ['bio', bio ?? provider.bio ?? ''],
     ['profile_image', profileImage ?? provider.profile_image ?? ''],
+    ['location_city', locationCity ?? provider.location_city ?? ''],
   ])
 
   const stepResult = evaluateStepCompletion({
@@ -332,11 +335,10 @@ export async function saveOnboardingStep(formData: FormData) {
 
   const isLastStep = stepPosition === resolvedSteps[resolvedSteps.length - 1]?.position
   if (isLastStep) {
-    await ensureBaseSubscription(provider.id)
     if (provider.claim_status !== 'claimed') {
       await admin.from('providers').update({ claim_status: 'claimed' }).eq('id', provider.id)
     }
-    redirect('/provider-dashboard/onboarding/complete')
+    redirect('/provider-dashboard/onboarding/package')
   }
   redirect(`/provider-dashboard/onboarding?step=${stepPosition + 1}`)
 }

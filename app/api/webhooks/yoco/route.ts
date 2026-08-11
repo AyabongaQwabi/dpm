@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { getPromotionById } from '@/lib/credit-promotions'
-import { renewProviderSubscription } from '@/lib/actions/subscriptions'
+import { renewProviderSubscription, applyProviderSubscriptionUpgrade } from '@/lib/actions/subscriptions'
 import { verifyYocoWebhookSignature, type YocoWebhookEvent } from '@/lib/payments/yoco'
 import { parseCreditPurchaseMetadata } from '@/lib/domain/credits'
 
@@ -48,6 +48,16 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Missing subscription metadata' }, { status: 400 })
     }
     await renewProviderSubscription(providerId, subscriptionId, reference)
+    return NextResponse.json({ received: true })
+  }
+
+  if (metadata.type === 'provider_subscription_upgrade') {
+    const providerId = metadata.provider_id
+    const packageNumber = Number(metadata.package_number)
+    if (!providerId || !reference || !Number.isInteger(packageNumber) || packageNumber < 1 || packageNumber > 5) {
+      return NextResponse.json({ error: 'Missing upgrade metadata' }, { status: 400 })
+    }
+    await applyProviderSubscriptionUpgrade(providerId, packageNumber as 1 | 2 | 3 | 4 | 5, reference)
     return NextResponse.json({ received: true })
   }
 

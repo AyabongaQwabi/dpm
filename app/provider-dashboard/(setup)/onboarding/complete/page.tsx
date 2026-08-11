@@ -1,18 +1,50 @@
 import Link from 'next/link'
-import { PACKAGES } from '@/lib/pricing-config'
+import { getPackage, PACKAGES } from '@/lib/pricing-config'
 import { requireProviderSession } from '@/lib/session'
+import { checkSubscriptionUpgraded } from '@/lib/payments/verify-subscription'
+import { PaymentPendingNotice } from '@/components/PaymentPendingNotice'
 
-export default async function OnboardingCompletePage() {
-  await requireProviderSession()
+interface OnboardingCompletePageProps {
+  searchParams: Promise<{ status?: string; reference?: string; package?: string }>
+}
+
+export default async function OnboardingCompletePage({ searchParams }: OnboardingCompletePageProps) {
+  const { provider } = await requireProviderSession()
+  const params = await searchParams
   const basePlan = PACKAGES[0]
+
+  const isPaidCheckoutReturn = params.status === 'success' && !!params.reference && !!params.package
+  let paidConfirmed = false
+  if (isPaidCheckoutReturn) {
+    paidConfirmed = (await checkSubscriptionUpgraded(params.reference!, provider.id)).renewed
+  }
+
+  const packageNumber = params.package ? Number(params.package) : null
+  const selectedPlan = packageNumber && packageNumber >= 1 && packageNumber <= 5
+    ? getPackage(packageNumber as 1 | 2 | 3 | 4 | 5)
+    : basePlan
 
   return (
     <div className="mx-auto max-w-lg px-4 py-16 text-center">
+      {isPaidCheckoutReturn && !paidConfirmed && (
+        <div className="mb-6">
+          <PaymentPendingNotice />
+        </div>
+      )}
+
       <h1 className="font-display text-3xl font-bold text-foreground">You&apos;re all set!</h1>
-      <p className="mt-3 text-muted-foreground">
-        You&apos;re on the <strong>{basePlan.name} Plan</strong> (R{basePlan.monthlyFee}/month).
-        Your first billing period starts today — no payment required upfront.
-      </p>
+
+      {isPaidCheckoutReturn && paidConfirmed ? (
+        <p className="mt-3 text-muted-foreground">
+          Payment received — you&apos;re on the <strong>{selectedPlan.name} Plan</strong> (R{selectedPlan.monthlyFee}/month).
+        </p>
+      ) : (
+        <p className="mt-3 text-muted-foreground">
+          You&apos;re on the <strong>{basePlan.name} Plan</strong> (R{basePlan.monthlyFee}/month).
+          Your first billing period starts today — no payment required upfront.
+        </p>
+      )}
+
       <p className="mt-2 text-sm text-muted-foreground">
         Want lower commission rates? Compare ceiling packages on your billing page.
       </p>

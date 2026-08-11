@@ -27,6 +27,26 @@ export async function checkSubscriptionRenewed(
   return { renewed: !!data }
 }
 
+/**
+ * Same dedupe check as checkSubscriptionRenewed, for the
+ * provider_subscription_upgrade webhook path (package selected at signup or
+ * upgraded later from billing).
+ */
+export async function checkSubscriptionUpgraded(
+  reference: string,
+  providerId: string,
+): Promise<CheckSubscriptionResult> {
+  const admin = createAdminClient()
+  const { data } = await admin
+    .from('provider_subscriptions')
+    .select('id')
+    .eq('provider_id', providerId)
+    .eq('last_renewal_yoco_ref', reference)
+    .maybeSingle()
+
+  return { renewed: !!data }
+}
+
 export async function getProviderAuthEmail(providerId: string): Promise<string | null> {
   const admin = createAdminClient()
   const { data: provider } = await admin

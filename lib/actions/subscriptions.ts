@@ -1,5 +1,6 @@
 import { createAdminClient } from '@/lib/supabase/admin'
 import { addOneMonth, buildBaseSubscriptionRow } from '@/lib/domain/subscriptions'
+import { getPackage } from '@/lib/pricing-config'
 
 export async function ensureBaseSubscription(providerId: string): Promise<void> {
   const admin = createAdminClient()
@@ -64,4 +65,58 @@ export async function renewProviderSubscription(
   await admin.from('providers').update({ is_published: true }).eq('id', providerId)
 
   return { renewed: true, alreadyApplied: false }
+}
+
+/**
+ * Applies a paid package upgrade (selected at signup or later from billing)
+ * to the provider's active subscription — same dedupe-by-yoco_ref pattern as
+ * renewProviderSubscription, but also changes package_number/monthly_fee and
+ * starts a fresh billing period rather than extending the existing one.
+ */
+export async function applyProviderSubscriptionUpgrade(
+  providerId: string,
+  packageNumber: 1 | 2 | 3 | 4 | 5,
+  yocoRef: string,
+): Promise<{ applied: boolean; alreadyApplied: boolean }> {
+  const admin = createAdminClient()
+
+  const { data: sub } = await admin
+    .from('provider_subscriptions')
+    .select('id, last_renewal_yoco_ref')
+    .eq('provider_id', providerId)
+    .eq('status', 'active')
+    .maybeSingle()
+
+  if (!sub) return { applied: false, alreadyApplied: false }
+
+  if (sub.last_renewal_yoco_ref === yocoRef) {
+    return { applied: false, alreadyApplied: true }
+  }
+
+  const pkg = getPackage(packageNumber)
+  const now = new Date()
+  const newEnd = addOneMonth(now)
+
+  const { error } = await admin
+    .from('provider_subscriptions')
+    .update({
+      package_number: pkg.packageNumber,
+      monthly_fee: pkg.monthlyFee,
+      billing_start: now.toISOString(),
+      billing_end: newEnd.toISOString(),
+      last_renewal_yoco_ref: yocoRef,
+    })
+    .eq('id', sub.id)
+
+  if (error) {
+    if (error.code === '23505') {
+      return { applied: false, alreadyApplied: true }
+    }
+    console.error('applyProviderSubscriptionUpgrade:', error.message)
+    return { applied: false, alreadyApplied: false }
+  }
+
+  await admin.from('providers').update({ is_published: true }).eq('id', providerId)
+
+  return { applied: true, alreadyApplied: false }
 }
