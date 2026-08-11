@@ -12,6 +12,7 @@ import {
 import { generateProviderSlug } from '@/lib/domain/slug'
 import { hasEntitlement } from '@/lib/actions/pro-membership'
 import { ENTITLEMENT_KEYS, FREE_TIER_GALLERY_IMAGE_CAP, PRO_GALLERY_IMAGE_CAP } from '@/lib/entitlements'
+import { enqueueNurtureSequence, processImmediateNurtureWelcome } from '@/lib/actions/nurture-emails'
 
 async function getAuthUserId(): Promise<string> {
   const supabase = await createClient()
@@ -47,13 +48,29 @@ export async function createProviderProfile(formData: FormData) {
   if (!providerType) redirect('/provider-dashboard/onboarding?error=invalid-type')
 
   const admin = createAdminClient()
-  await admin.from('providers').insert({
+  const { data: provider } = await admin.from('providers').insert({
     auth_provider_id: authUserId,
     provider_type_id: providerTypeId,
     business_name: '',
     onboarding_step: 0,
     is_published: false,
-  })
+  }).select('id').single()
+
+  const { data: userData } = await admin.auth.admin.getUserById(authUserId)
+  const email = userData?.user?.email
+  const name = typeof userData?.user?.user_metadata?.name === 'string'
+    ? userData.user.user_metadata.name
+    : null
+
+  if (provider?.id && email) {
+    await enqueueNurtureSequence({
+      audience: 'provider',
+      recipientId: provider.id,
+      email,
+      name,
+    })
+    await processImmediateNurtureWelcome('provider', provider.id)
+  }
 
   redirect('/provider-dashboard/onboarding')
 }

@@ -8,6 +8,7 @@ import { createClient } from '@/lib/supabase/server'
 import { getTenantContext } from '@/lib/tenant'
 import { Avatar } from '@/components/ui/Avatar'
 import { canonicalAlternates, defaultOpenGraph, defaultTwitter } from '@/lib/seo'
+import { FeedStoriesRail, type FeedStoryItem } from '@/components/providers/FeedStoriesRail'
 
 export async function generateMetadata(): Promise<Metadata> {
   const tenant = await getTenantContext()
@@ -27,6 +28,8 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function FeedPage() {
   const supabase = await createClient()
   const tenant = await getTenantContext()
+
+  const now = new Date().toISOString()
 
   let query = supabase
     .from('content_posts')
@@ -54,11 +57,53 @@ export default async function FeedPage() {
     .order('created_at', { ascending: false })
     .limit(48)
 
+  let storiesQuery = supabase
+    .from('content_posts')
+    .select(`
+      id,
+      image_url,
+      body,
+      published_at,
+      expires_at,
+      provider:providers!inner(
+        id,
+        slug,
+        business_name,
+        profile_image,
+        is_published,
+        provider_types!inner(category_id)
+      )
+    `)
+    .eq('provider.is_published', true)
+    .eq('kind', 'story')
+    .eq('status', 'published')
+    .eq('moderation_status', 'passed')
+    .gt('expires_at', now)
+    .order('published_at', { ascending: false })
+    .limit(24)
+
   if (tenant.categoryId) {
     query = query.eq('provider.provider_types.category_id', tenant.categoryId)
+    storiesQuery = storiesQuery.eq('provider.provider_types.category_id', tenant.categoryId)
   }
 
-  const { data: posts } = await query
+  const [{ data: posts }, { data: stories }] = await Promise.all([query, storiesQuery])
+  const liveStories: FeedStoryItem[] = (stories ?? []).flatMap((story) => {
+    const provider = Array.isArray(story.provider) ? story.provider[0] : story.provider
+    if (!provider) return []
+    return [{
+      id: story.id,
+      image_url: story.image_url,
+      body: story.body,
+      published_at: story.published_at,
+      provider: {
+        id: provider.id,
+        slug: provider.slug,
+        business_name: provider.business_name,
+        profile_image: provider.profile_image,
+      },
+    }]
+  })
 
   return (
     <main className="mx-auto max-w-4xl px-4 py-12">
@@ -71,6 +116,8 @@ export default async function FeedPage() {
           Social posts, updates, tips, and promos from providers across the marketplace.
         </p>
       </section>
+
+      <FeedStoriesRail stories={liveStories} />
 
       {!posts || posts.length === 0 ? (
         <p className="text-muted-foreground">No posts yet. Check back soon.</p>

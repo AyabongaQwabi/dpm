@@ -9,6 +9,8 @@ export interface PublishingLimits {
   storiesLiveAtOnce: number
   imagesPerPost: number
   bodyMaxChars: number
+  storyTextMaxChars: number
+  storyCaptionMaxChars: number
 }
 
 export function canPublishMorePosts(postsThisMonth: number, limits: PublishingLimits): boolean {
@@ -25,6 +27,14 @@ export function isWithinImageLimit(imageCount: number, limits: PublishingLimits)
 
 export function isWithinBodyLimit(bodyLength: number, limits: PublishingLimits): boolean {
   return bodyLength <= limits.bodyMaxChars
+}
+
+export function storyBodyLimitForMedia(imageCount: number, limits: PublishingLimits): number {
+  return imageCount > 0 ? limits.storyCaptionMaxChars : limits.storyTextMaxChars
+}
+
+export function isWithinStoryBodyLimit(bodyLength: number, imageCount: number, limits: PublishingLimits): boolean {
+  return bodyLength <= storyBodyLimitForMedia(imageCount, limits)
 }
 
 const DEFAULT_STORY_LIFETIME_MS = 24 * 60 * 60 * 1000

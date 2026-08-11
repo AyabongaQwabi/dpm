@@ -7,6 +7,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { isFeaturePaused, getFeaturePauseMessage } from '@/lib/feature-pauses'
 import { PausedFeatureNotice } from '@/components/PausedFeatureNotice'
+import { enqueueNurtureSequence, processImmediateNurtureWelcome } from '@/lib/actions/nurture-emails'
 
 interface SignUpPageProps {
   searchParams: Promise<{ error?: string; paused?: string }>
@@ -37,10 +38,20 @@ export default async function SignUpPage({ searchParams }: SignUpPageProps) {
     }
 
     const admin = createAdminClient()
-    await admin.from('customers').upsert(
+    const { data: customer } = await admin.from('customers').upsert(
       { auth_provider_id: data.user.id, email, name },
       { onConflict: 'auth_provider_id' },
-    )
+    ).select('id, email, name').single()
+
+    if (customer) {
+      await enqueueNurtureSequence({
+        audience: 'customer',
+        recipientId: customer.id,
+        email: customer.email,
+        name: customer.name,
+      })
+      await processImmediateNurtureWelcome('customer', customer.id)
+    }
     redirect('/customer-account')
   }
 

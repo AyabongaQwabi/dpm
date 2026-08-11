@@ -16,6 +16,8 @@ import {
   canPublishMoreStories,
   isWithinImageLimit,
   isWithinBodyLimit,
+  isWithinStoryBodyLimit,
+  storyBodyLimitForMedia,
   computeExpiresAt,
 } from '@/lib/domain/provider-posts'
 import { moderateContent, blockMessage } from '@/lib/domain/content-moderation'
@@ -77,6 +79,16 @@ async function generateUniquePostSlug(providerId: string, title: string): Promis
   return `${base}-${n}`
 }
 
+async function getProviderProfilePath(providerId: string, admin = createAdminClient()): Promise<string> {
+  const { data } = await admin
+    .from('providers')
+    .select('slug')
+    .eq('id', providerId)
+    .maybeSingle()
+
+  return data?.slug ?? providerId
+}
+
 interface PublishInput {
   kind: 'post' | 'story'
   title: string | null
@@ -99,10 +111,16 @@ async function publishContentPost(input: PublishInput): Promise<PublishResult> {
     return { ok: false, error: 'Write something or add an image before publishing.' }
   }
 
-  if (!isWithinImageLimit(input.media.length, limits)) {
-    return { ok: false, error: `Too many images — the limit is ${limits.imagesPerPost} per post.` }
+  const maxImages = input.kind === 'story' ? 1 : limits.imagesPerPost
+  if (input.media.length > maxImages || (input.kind === 'post' && !isWithinImageLimit(input.media.length, limits))) {
+    return { ok: false, error: `Too many images — the limit is ${maxImages} per ${input.kind}.` }
   }
-  if (!isWithinBodyLimit(bodyText.length, limits)) {
+  if (input.kind === 'story') {
+    const storyLimit = storyBodyLimitForMedia(input.media.length, limits)
+    if (!isWithinStoryBodyLimit(bodyText.length, input.media.length, limits)) {
+      return { ok: false, error: `Too long — the story limit is ${storyLimit} characters${input.media.length > 0 ? ' when an image is attached' : ''}.` }
+    }
+  } else if (!isWithinBodyLimit(bodyText.length, limits)) {
     return { ok: false, error: `Too long — the limit is ${limits.bodyMaxChars} characters.` }
   }
 
@@ -159,10 +177,11 @@ async function publishContentPost(input: PublishInput): Promise<PublishResult> {
     return { ok: false, error: 'Something went wrong publishing — try again.' }
   }
 
+  const profilePath = await getProviderProfilePath(provider.id, admin)
   revalidatePath('/provider-dashboard/posts')
-  revalidatePath(`/providers/${provider.id}`)
+  revalidatePath(`/providers/${profilePath}`)
   revalidatePath('/feed')
-  if (slug) revalidatePath(`/providers/${provider.id}/posts/${slug}`)
+  if (slug) revalidatePath(`/providers/${profilePath}/posts/${slug}`)
 
   return { ok: true, postId: inserted.id }
 }
@@ -303,7 +322,7 @@ export async function unpublishPost(formData: FormData): Promise<void> {
     .eq('provider_id', provider.id)
 
   revalidatePath('/provider-dashboard/posts')
-  revalidatePath(`/providers/${provider.id}`)
+  revalidatePath(`/providers/${await getProviderProfilePath(provider.id, admin)}`)
 }
 
 export async function deletePost(formData: FormData): Promise<void> {
@@ -318,7 +337,7 @@ export async function deletePost(formData: FormData): Promise<void> {
     .eq('provider_id', provider.id)
 
   revalidatePath('/provider-dashboard/posts')
-  revalidatePath(`/providers/${provider.id}`)
+  revalidatePath(`/providers/${await getProviderProfilePath(provider.id, admin)}`)
 }
 
 // ---- Report (public, no auth required) ----

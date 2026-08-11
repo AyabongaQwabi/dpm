@@ -4,6 +4,8 @@ import {
   canPublishMoreStories,
   isWithinImageLimit,
   isWithinBodyLimit,
+  isWithinStoryBodyLimit,
+  storyBodyLimitForMedia,
   computeExpiresAt,
   isExpired,
   isPubliclyVisible,
@@ -15,6 +17,8 @@ const FREE_LIMITS: PublishingLimits = {
   storiesLiveAtOnce: 1,
   imagesPerPost: 1,
   bodyMaxChars: 1500,
+  storyTextMaxChars: 280,
+  storyCaptionMaxChars: 120,
 }
 
 const PRO_LIMITS: PublishingLimits = {
@@ -22,6 +26,8 @@ const PRO_LIMITS: PublishingLimits = {
   storiesLiveAtOnce: 5,
   imagesPerPost: 10,
   bodyMaxChars: 5000,
+  storyTextMaxChars: 280,
+  storyCaptionMaxChars: 120,
 }
 
 // ---------- Free vs Pro caps ----------
@@ -61,6 +67,20 @@ describe('isWithinImageLimit / isWithinBodyLimit', () => {
   it('enforces the free-tier body length cap', () => {
     expect(isWithinBodyLimit(1500, FREE_LIMITS)).toBe(true)
     expect(isWithinBodyLimit(1501, FREE_LIMITS)).toBe(false)
+  })
+})
+
+describe('story body limits', () => {
+  it('uses the text-only story limit when no image is attached', () => {
+    expect(storyBodyLimitForMedia(0, FREE_LIMITS)).toBe(280)
+    expect(isWithinStoryBodyLimit(280, 0, FREE_LIMITS)).toBe(true)
+    expect(isWithinStoryBodyLimit(281, 0, FREE_LIMITS)).toBe(false)
+  })
+
+  it('uses the shorter caption limit when a story has an image', () => {
+    expect(storyBodyLimitForMedia(1, FREE_LIMITS)).toBe(120)
+    expect(isWithinStoryBodyLimit(120, 1, FREE_LIMITS)).toBe(true)
+    expect(isWithinStoryBodyLimit(121, 1, FREE_LIMITS)).toBe(false)
   })
 })
 

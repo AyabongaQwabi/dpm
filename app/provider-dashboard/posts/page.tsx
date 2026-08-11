@@ -59,7 +59,7 @@ export default async function PostsComposerPage({ searchParams }: PostsPageProps
   ])
 
   return (
-    <div className="max-w-3xl px-4 py-10 space-y-8">
+    <div className="mx-auto max-w-5xl space-y-8 px-4 py-6 sm:px-6 lg:px-8 lg:py-10">
       <div>
         <h1 className="font-display text-2xl font-bold text-foreground">Posts & Stories</h1>
         <p className="mt-1 text-sm text-muted-foreground">
@@ -80,7 +80,7 @@ export default async function PostsComposerPage({ searchParams }: PostsPageProps
 
       <section className="rounded-2xl border border-border bg-card p-6">
         <h2 className="font-semibold text-foreground">Your limits {isPro && <span className="text-primary-accent">(Pro)</span>}</h2>
-        <dl className="mt-3 grid grid-cols-2 gap-4 text-sm sm:grid-cols-4">
+        <dl className="mt-3 grid grid-cols-2 gap-4 text-sm sm:grid-cols-5">
           <div>
             <dt className="text-muted-foreground">Posts this month</dt>
             <dd className="font-semibold">{postsThisMonth} / {limits.postsPerMonth}</dd>
@@ -95,7 +95,11 @@ export default async function PostsComposerPage({ searchParams }: PostsPageProps
           </div>
           <div>
             <dt className="text-muted-foreground">Body length</dt>
-            <dd className="font-semibold">{limits.bodyMaxChars} chars</dd>
+            <dd className="font-semibold">{limits.bodyMaxChars} post chars</dd>
+          </div>
+          <div>
+            <dt className="text-muted-foreground">Story length</dt>
+            <dd className="font-semibold">{limits.storyTextMaxChars} chars</dd>
           </div>
         </dl>
         {!isPro && (

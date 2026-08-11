@@ -36,6 +36,18 @@ async function sendEmail(params: {
   return { ok: true }
 }
 
+export async function sendNurtureEmail({
+  to,
+  subject,
+  html,
+}: {
+  to: string
+  subject: string
+  html: string
+}) {
+  return sendEmail({ to, subject, html })
+}
+
 export async function sendFeatureRequestNotificationEmail({
   to,
   replyTo,
