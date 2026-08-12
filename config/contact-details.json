@@ -1,0 +1,18 @@
+{
+  "siteResponsiblePerson": {
+    "name": "Sipho Jack",
+    "email": "sipho@servicepros.co.za"
+  },
+  "routes": {
+    "generalEnquiry": "general@servicepros.co.za",
+    "providerSupport": "providers@servicepros.co.za",
+    "billing": "billing@servicepros.co.za",
+    "disputes": "disputes@servicepros.co.za",
+    "media": "media@servicepros.co.za"
+  },
+  "responseTime": "1 to 3 days",
+  "popiaInformationOfficer": {
+    "name": "Mr B Qwabi",
+    "email": "legal@servicepros.co.za"
+  }
+}

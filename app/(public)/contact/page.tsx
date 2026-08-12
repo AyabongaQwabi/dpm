@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { JsonLd } from '@/components/seo/JsonLd'
 import { getSupportEmail } from '@/lib/policy-content'
+import { getContactDetails } from '@/lib/contact-details-config'
 import {
   breadcrumbJsonLd,
   canonicalAlternates,
@@ -10,7 +11,6 @@ import {
   organizationJsonLd,
 } from '@/lib/seo'
 import { Icon } from '@/components/ui/Icon'
-import { TodoPlaceholder } from '@/components/TodoPlaceholder'
 
 export const metadata: Metadata = {
   title: 'Contact us',
@@ -21,41 +21,42 @@ export const metadata: Metadata = {
   twitter: defaultTwitter('Contact us', 'Contact Namoota Technology and ServicePros for support, billing, and provider queries.'),
 }
 
-const CONTACT_ROUTES = [
-  {
-    reason: 'General enquiry',
-    description: 'Questions about ServicePros, the marketplace, or your account.',
-    todo: 'general enquiries email',
-  },
-  {
-    reason: 'Provider support',
-    description: 'Help with your provider dashboard, listing, or verification.',
-    todo: 'provider support email',
-  },
-  {
-    reason: 'Billing and payments',
-    description: 'Subscription billing, credit purchases, or payout queries.',
-    todo: 'billing email',
-  },
-  {
-    reason: 'Report a problem with a provider',
-    description: 'Raise a dispute or report misrepresentation by a listed provider.',
-    todo: 'trust & safety email',
-  },
-  {
-    reason: 'Media and partnerships',
-    description: 'Press enquiries, platform partner and referral agent applications.',
-    todo: 'media & partnerships email',
-  },
-] as const
-
 export default async function ContactPage() {
   const supportEmail = await getSupportEmail()
+  const contactDetails = getContactDetails()
+
+  const CONTACT_ROUTES = [
+    {
+      reason: 'General enquiry',
+      description: 'Questions about ServicePros, the marketplace, or your account.',
+      email: contactDetails.routes.generalEnquiry,
+    },
+    {
+      reason: 'Provider support',
+      description: 'Help with your provider dashboard, listing, or verification.',
+      email: contactDetails.routes.providerSupport,
+    },
+    {
+      reason: 'Billing and payments',
+      description: 'Subscription billing, credit purchases, or payout queries.',
+      email: contactDetails.routes.billing,
+    },
+    {
+      reason: 'Report a problem with a provider',
+      description: 'Raise a dispute or report misrepresentation by a listed provider.',
+      email: contactDetails.routes.disputes,
+    },
+    {
+      reason: 'Media and partnerships',
+      description: 'Press enquiries, platform partner and referral agent applications.',
+      email: contactDetails.routes.media,
+    },
+  ] as const
 
   const jsonLd = organizationJsonLd(
     CONTACT_ROUTES.map((route) => ({
       contactType: route.reason,
-      email: supportEmail,
+      email: route.email,
     })),
     {
       legalName: 'Namoota Technology (Pty) Ltd',
@@ -103,10 +104,6 @@ export default async function ContactPage() {
             <dd className="mt-1 text-sm text-muted-foreground">Namoota Technology (Pty) Ltd</dd>
           </div>
           <div>
-            <dt className="text-sm font-medium text-foreground">Company registration number</dt>
-            <dd className="mt-1 text-sm text-muted-foreground">2024/529614/07</dd>
-          </div>
-          <div>
             <dt className="text-sm font-medium text-foreground">Physical address</dt>
             <dd className="mt-1 text-sm text-muted-foreground">
               152 Company Street<br />Muckleneuk<br />Pretoria<br />Gauteng<br />0002
@@ -130,8 +127,15 @@ export default async function ContactPage() {
           </div>
           <div className="sm:col-span-2">
             <dt className="text-sm font-medium text-foreground">Person responsible for this site</dt>
-            {/* TODO(aya): confirm name of person responsible for the site */}
-            <dd className="mt-1"><TodoPlaceholder>confirm name of person responsible for the site</TodoPlaceholder></dd>
+            <dd className="mt-1 text-sm text-muted-foreground">
+              {contactDetails.siteResponsiblePerson.name} —{' '}
+              <a
+                href={`mailto:${contactDetails.siteResponsiblePerson.email}`}
+                className="text-primary hover:underline"
+              >
+                {contactDetails.siteResponsiblePerson.email}
+              </a>
+            </dd>
           </div>
         </dl>
       </section>
@@ -150,22 +154,18 @@ export default async function ContactPage() {
               </span>
               <h3 className="mt-3 font-display text-base font-semibold">{route.reason}</h3>
               <p className="mt-1 text-sm leading-6 text-muted-foreground">{route.description}</p>
-              {/* TODO(aya): confirm {route.todo} */}
-              <p className="mt-3"><TodoPlaceholder>{route.todo}</TodoPlaceholder></p>
+              <p className="mt-3 text-sm">
+                <a href={`mailto:${route.email}`} className="text-primary hover:underline">{route.email}</a>
+              </p>
             </div>
           ))}
         </div>
-        <p className="mt-4 text-xs text-muted-foreground">
-          Until reason-specific inboxes are confirmed, all routes above reach{' '}
-          <a href={`mailto:${supportEmail}`} className="text-primary hover:underline">{supportEmail}</a>.
-        </p>
       </section>
 
       {/* Response time */}
       <section className="mt-12 rounded-2xl border bg-muted/30 p-6">
         <h2 className="font-display text-base font-semibold">Response time</h2>
-        {/* TODO(aya): confirm the response time commitment we can honestly make */}
-        <p className="mt-2"><TodoPlaceholder>confirm the response time commitment we can honestly make</TodoPlaceholder></p>
+        <p className="mt-2 text-sm text-muted-foreground">{contactDetails.responseTime}</p>
       </section>
 
       {/* POPIA Information Officer — a distinct statutory role from general contact */}
@@ -178,13 +178,18 @@ export default async function ContactPage() {
         <dl className="mt-4 grid gap-x-8 gap-y-3 sm:grid-cols-2">
           <div>
             <dt className="text-sm font-medium text-foreground">Name</dt>
-            {/* TODO(aya): confirm Information Officer name */}
-            <dd className="mt-1"><TodoPlaceholder>confirm Information Officer name</TodoPlaceholder></dd>
+            <dd className="mt-1 text-sm text-muted-foreground">{contactDetails.popiaInformationOfficer.name}</dd>
           </div>
           <div>
             <dt className="text-sm font-medium text-foreground">Contact</dt>
-            {/* TODO(aya): confirm Information Officer contact details */}
-            <dd className="mt-1"><TodoPlaceholder>confirm Information Officer contact details</TodoPlaceholder></dd>
+            <dd className="mt-1 text-sm text-muted-foreground">
+              <a
+                href={`mailto:${contactDetails.popiaInformationOfficer.email}`}
+                className="text-primary hover:underline"
+              >
+                {contactDetails.popiaInformationOfficer.email}
+              </a>
+            </dd>
           </div>
         </dl>
       </section>

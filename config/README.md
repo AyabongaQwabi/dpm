@@ -4,6 +4,19 @@ Configuration in this folder is for business-editable values that should not be 
 
 When adding a new `config/*.json` file, document it here in the same change: what each setting means, where it is imported, and whether it mirrors database or migration values.
 
+## `contact-details.json`
+
+Named contacts and reason-specific inboxes for `/contact`.
+
+- `siteResponsiblePerson.name` / `.email`: person responsible for the site, disclosed per ECTA s43.
+- `routes.generalEnquiry` / `.providerSupport` / `.billing` / `.disputes` / `.media`: reason-specific inboxes shown on the contact routing cards.
+- `responseTime`: response time commitment shown on the contact page.
+- `popiaInformationOfficer.name` / `.email`: POPIA Information Officer, a distinct statutory role from general contact.
+
+Imported by `lib/contact-details-config.ts`, then used by `app/(public)/contact/page.tsx`.
+
+No database mirror.
+
 ## `content-moderation.json`
 
 Provider-authored content moderation word lists for posts and stories.
