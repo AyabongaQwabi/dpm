@@ -4,7 +4,7 @@
     "message": "Purchases are temporarily unavailable. Please check back on the 1st of September 2026."
   },
   "profileClaiming": {
-    "paused": false,
+    "paused": true,
     "message": "Claiming business profiles is temporarily unavailable. Please check back on the 1st of September 2026."
   },
   "signUp": {
