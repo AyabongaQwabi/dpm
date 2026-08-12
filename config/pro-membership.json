@@ -9,5 +9,9 @@
     "freeTierGalleryImages": 8,
     "proGalleryImages": 30,
     "freeTierServiceListings": 5
+  },
+  "cancellation": {
+    "refundWindowHours": 24,
+    "refundWindowDescription": "Purchased Pro can be cancelled within 24 hours of purchase for a full credit refund to your provider wallet. Cancelling after that window keeps Pro features active until the current period ends, with no refund."
   }
 }

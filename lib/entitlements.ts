@@ -64,6 +64,13 @@ export const PRO_MEMBERSHIP_CONFIG = {
   annualFee: proMembershipConfig.pricing.annualFeeCredits, // 10 months' worth — 2 months free vs. monthly billing
 } as const
 
+// Cancelling within this window of purchase refunds the fee in full to the
+// provider wallet and cancels immediately, instead of the default "stays
+// active until period end, no refund" behaviour. Sourced from
+// config/pro-membership.json.
+export const PRO_CANCELLATION_REFUND_WINDOW_HOURS = proMembershipConfig.cancellation.refundWindowHours
+export const PRO_CANCELLATION_REFUND_WINDOW_DESCRIPTION = proMembershipConfig.cancellation.refundWindowDescription
+
 // Free-tier vs. Pro caps, sourced from config/pro-membership.json. No cap
 // existed on either gallery images or service listings before Batch B.
 export const FREE_TIER_GALLERY_IMAGE_CAP = proMembershipConfig.caps.freeTierGalleryImages

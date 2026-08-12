@@ -5,9 +5,11 @@ import { cancelPurchasedProMembershipAction } from '@/lib/actions/pro-membership
 
 interface Props {
   periodEndLabel: string
+  withinRefundWindow: boolean
+  refundWindowHours: number
 }
 
-export function ProCancelControl({ periodEndLabel }: Props) {
+export function ProCancelControl({ periodEndLabel, withinRefundWindow, refundWindowHours }: Props) {
   const [confirming, setConfirming] = useState(false)
 
   if (!confirming) {
@@ -25,10 +27,18 @@ export function ProCancelControl({ periodEndLabel }: Props) {
   return (
     <form action={cancelPurchasedProMembershipAction} className="rounded-xl border border-amber-500/40 bg-amber-500/10 p-4">
       <p className="text-sm font-semibold text-foreground">Confirm Pro cancellation</p>
-      <p className="mt-1 text-sm text-muted-foreground">
-        Your Pro features stay active until {periodEndLabel}. On that date your expanded gallery,
-        unlimited listings, profile customisation, custom URL, and raised publishing limits stop.
-      </p>
+      {withinRefundWindow ? (
+        <p className="mt-1 text-sm text-muted-foreground">
+          You&apos;re within the {refundWindowHours}-hour refund window. Cancelling now ends Pro immediately and
+          refunds the full purchase in credits to your provider wallet.
+        </p>
+      ) : (
+        <p className="mt-1 text-sm text-muted-foreground">
+          The {refundWindowHours}-hour refund window has passed, so this cancellation is not refunded. Your Pro
+          features stay active until {periodEndLabel}. On that date your expanded gallery, unlimited listings,
+          profile customisation, custom URL, and raised publishing limits stop.
+        </p>
+      )}
       <div className="mt-4 flex flex-wrap gap-2">
         <button
           type="submit"

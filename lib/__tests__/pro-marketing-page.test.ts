@@ -55,7 +55,8 @@ describe('Pro marketing page', () => {
     expect(read('app/provider-dashboard/pro/page.tsx')).toContain('href="/pro"')
   })
 
-  it('marks cancellation wording for legal review', () => {
-    expect(page).toContain('TODO(aya): legal review')
+  it('states the cancellation refund window sourced from config', () => {
+    expect(page).toContain('PRO_CANCELLATION_REFUND_WINDOW_HOURS')
+    expect(page).not.toContain('TODO(aya)')
   })
 })

@@ -1,6 +1,16 @@
 import { describe, it, expect } from 'vitest'
-import { membershipGrants, addOneMonth, addOneYear, daysRemaining } from '../pro-membership'
-import { ENTITLEMENT_KEYS, PACKAGE_NUMBERS_INCLUDING_PRO } from '../../entitlements'
+import {
+  membershipGrants,
+  addOneMonth,
+  addOneYear,
+  daysRemaining,
+  isWithinCancellationRefundWindow,
+} from '../pro-membership'
+import {
+  ENTITLEMENT_KEYS,
+  PACKAGE_NUMBERS_INCLUDING_PRO,
+  PRO_CANCELLATION_REFUND_WINDOW_HOURS,
+} from '../../entitlements'
 
 // ---------- membershipGrants (hasEntitlement's pure core) ----------
 
@@ -75,5 +85,37 @@ describe('daysRemaining', () => {
     const now = new Date('2026-06-01T00:00:00Z')
     const periodEnd = new Date('2026-06-11T00:00:00Z')
     expect(daysRemaining(periodEnd, now)).toBe(10)
+  })
+})
+
+// ---------- Cancellation refund window ----------
+
+describe('isWithinCancellationRefundWindow', () => {
+  it('is true immediately after purchase', () => {
+    const startedAt = new Date('2026-06-01T00:00:00Z')
+    const now = new Date('2026-06-01T00:00:01Z')
+    expect(isWithinCancellationRefundWindow(startedAt, 24, now)).toBe(true)
+  })
+
+  it('is true just under the window boundary', () => {
+    const startedAt = new Date('2026-06-01T00:00:00Z')
+    const now = new Date('2026-06-01T23:59:59Z')
+    expect(isWithinCancellationRefundWindow(startedAt, 24, now)).toBe(true)
+  })
+
+  it('is false exactly at the window boundary', () => {
+    const startedAt = new Date('2026-06-01T00:00:00Z')
+    const now = new Date('2026-06-02T00:00:00Z')
+    expect(isWithinCancellationRefundWindow(startedAt, 24, now)).toBe(false)
+  })
+
+  it('is false well after the window', () => {
+    const startedAt = new Date('2026-06-01T00:00:00Z')
+    const now = new Date('2026-06-05T00:00:00Z')
+    expect(isWithinCancellationRefundWindow(startedAt, 24, now)).toBe(false)
+  })
+
+  it('uses the configured 24-hour window', () => {
+    expect(PRO_CANCELLATION_REFUND_WINDOW_HOURS).toBe(24)
   })
 })

@@ -7,7 +7,8 @@ import { formatCredits } from '@/lib/format-credits'
 import { getProviderWalletSnapshot } from '@/lib/actions/provider-wallet'
 import { checkProviderTopUpApplied } from '@/lib/payments/verify-provider-wallet'
 import { getProMembership, purchaseProMembershipAction } from '@/lib/actions/pro-membership'
-import { PRO_MEMBERSHIP_CONFIG } from '@/lib/entitlements'
+import { isWithinCancellationRefundWindow } from '@/lib/domain/pro-membership'
+import { PRO_CANCELLATION_REFUND_WINDOW_HOURS, PRO_MEMBERSHIP_CONFIG } from '@/lib/entitlements'
 import {
   clampProviderTopUpAmount,
   PROVIDER_WALLET_CREDIT_VALUE,
@@ -35,6 +36,7 @@ interface BillingPageProps {
     proError?: string
     shortfall?: string
     period?: string
+    refund?: string
   }>
 }
 
@@ -136,6 +138,10 @@ export default async function ProviderBillingPage({ searchParams }: BillingPageP
     shortfallAmount,
     params.period === 'annual' ? PRO_MEMBERSHIP_CONFIG.annualFee : PRO_MEMBERSHIP_CONFIG.monthlyFee,
   )
+  const refundParamAmount = params.refund ? Math.max(0, Math.round(Number(params.refund))) : 0
+  const membershipWithinRefundWindow = membership?.started_at
+    ? isWithinCancellationRefundWindow(membership.started_at, PRO_CANCELLATION_REFUND_WINDOW_HOURS)
+    : false
 
   return (
     <div className="max-w-5xl space-y-8 px-4 py-6 sm:px-0">
@@ -163,6 +169,12 @@ export default async function ProviderBillingPage({ searchParams }: BillingPageP
       {params.pro === 'cancelled' && (
         <div className="rounded-xl border border-amber-500/40 bg-amber-500/10 px-5 py-4 text-sm text-foreground">
           Pro cancellation recorded. Your Pro features stay active until the current period ends.
+        </div>
+      )}
+
+      {params.pro === 'cancelled_refunded' && (
+        <div className="rounded-xl border border-green-200 bg-green-50 px-5 py-4 text-sm text-green-800">
+          Pro cancelled and {formatCredits(refundParamAmount)} refunded to your provider wallet.
         </div>
       )}
 
@@ -318,8 +330,12 @@ export default async function ProviderBillingPage({ searchParams }: BillingPageP
               </div>
             </div>
 
-            {membership.source === 'purchased' && membership.current_period_end && !membership.cancelled_at && (
-              <ProCancelControl periodEndLabel={formatDate(membership.current_period_end) ?? 'the period end'} />
+            {membership.source === 'purchased' && !membership.cancelled_at && (
+              <ProCancelControl
+                periodEndLabel={formatDate(membership.current_period_end) ?? 'the period end'}
+                withinRefundWindow={membershipWithinRefundWindow}
+                refundWindowHours={PRO_CANCELLATION_REFUND_WINDOW_HOURS}
+              />
             )}
 
             {membership.source === 'purchased' && membership.cancelled_at && (

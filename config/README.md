@@ -120,8 +120,10 @@ Pro membership commercial and limit configuration.
 - `caps.freeTierGalleryImages`: gallery image cap for non-Pro providers.
 - `caps.proGalleryImages`: gallery image cap for Pro providers.
 - `caps.freeTierServiceListings`: active service listing cap for non-Pro providers.
+- `cancellation.refundWindowHours`: hours after purchase within which a purchased Pro membership can be cancelled for a full credit refund to the provider wallet.
+- `cancellation.refundWindowDescription`: user-facing copy explaining the refund window, shown on `/pro`, the billing dashboard cancel control, and `/refund`.
 
-Imported by `lib/entitlements.ts`, then used by Pro purchase, package-included Pro, gallery/listing caps, and entitlement tests.
+Imported by `lib/entitlements.ts`, then used by Pro purchase, cancellation, package-included Pro, gallery/listing caps, and entitlement tests.
 
 Mirrors the Pro membership migration’s intended commercial values; keep migration comments/seeds aligned if that migration changes.
 

@@ -11,6 +11,7 @@ import {
   FREE_TIER_GALLERY_IMAGE_CAP,
   FREE_TIER_SERVICE_LISTING_CAP,
   PACKAGE_NUMBERS_INCLUDING_PRO,
+  PRO_CANCELLATION_REFUND_WINDOW_HOURS,
   PRO_GALLERY_IMAGE_CAP,
   PRO_MEMBERSHIP_CONFIG,
 } from '@/lib/entitlements'
@@ -89,7 +90,7 @@ const faqItems = [
   {
     question: 'Can I cancel Pro?',
     answer:
-      'Purchased Pro can be cancelled from Billing. The current implementation keeps Pro features active until the paid period ends. TODO(aya): legal review for final cancellation and refund wording.',
+      `Purchased Pro can be cancelled from Billing. Cancel within ${PRO_CANCELLATION_REFUND_WINDOW_HOURS} hours of purchase and it ends immediately with a full credit refund to your provider wallet. Cancel after that window and Pro features stay active until the paid period ends, with no refund.`,
   },
   {
     question: 'What happens if Pro lapses?',

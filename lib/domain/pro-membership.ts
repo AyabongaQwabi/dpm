@@ -46,3 +46,17 @@ export function daysRemaining(periodEnd: string | Date, now: Date = new Date()):
   const diff = end.getTime() - now.getTime()
   return Math.max(0, Math.ceil(diff / MS_PER_DAY))
 }
+
+/**
+ * Whether a purchased membership is still inside its refund-eligible
+ * cancellation window (PRO_CANCELLATION_REFUND_WINDOW_HOURS from started_at).
+ */
+export function isWithinCancellationRefundWindow(
+  startedAt: string | Date,
+  windowHours: number,
+  now: Date = new Date(),
+): boolean {
+  const start = startedAt instanceof Date ? startedAt : new Date(startedAt)
+  const windowMs = windowHours * 60 * 60 * 1000
+  return now.getTime() - start.getTime() < windowMs
+}

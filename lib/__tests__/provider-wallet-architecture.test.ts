@@ -70,15 +70,20 @@ describe('provider wallet architecture', () => {
     expect(nav).not.toContain("href: '/provider-dashboard/wallet'")
   })
 
-  it('cancels purchased Pro at period end instead of immediately lapsing entitlements', () => {
+  it('cancels purchased Pro at period end outside the refund window, or immediately with a refund inside it', () => {
     const actions = read('lib/actions/pro-membership.ts')
     const cancel = read('components/provider-dashboard/ProCancelControl.tsx')
+    const migration = read('supabase/migrations/20260817000000_pro_membership_cancellation_refund.sql')
 
     expect(actions).toContain('cancelPurchasedProMembershipAction')
     expect(actions).toContain('cancelled_at')
+    expect(actions).toContain('isWithinCancellationRefundWindow')
     expect(actions).toContain('entitlements remain active until current_period_end')
-    expect(actions).not.toContain("status: 'cancelled'")
-    expect(cancel).toContain('Your Pro features stay active until')
+    expect(actions).toContain("status: 'cancelled'")
+    expect(actions).toContain("admin.rpc('refund_provider_wallet'")
+    expect(migration).toContain('CREATE OR REPLACE FUNCTION refund_provider_wallet')
+    expect(cancel).toContain('features stay active until')
+    expect(cancel).toContain('refunds the full purchase in credits')
     expect(cancel).toContain('Confirm cancellation')
   })
 

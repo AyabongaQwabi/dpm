@@ -5,8 +5,19 @@ import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { requireProviderSession } from '@/lib/session'
-import { membershipGrants, addOneMonth, addOneYear, type ProMembershipRow } from '@/lib/domain/pro-membership'
-import { PACKAGE_NUMBERS_INCLUDING_PRO, PRO_MEMBERSHIP_CONFIG, type EntitlementKey } from '@/lib/entitlements'
+import {
+  membershipGrants,
+  addOneMonth,
+  addOneYear,
+  isWithinCancellationRefundWindow,
+  type ProMembershipRow,
+} from '@/lib/domain/pro-membership'
+import {
+  PACKAGE_NUMBERS_INCLUDING_PRO,
+  PRO_CANCELLATION_REFUND_WINDOW_HOURS,
+  PRO_MEMBERSHIP_CONFIG,
+  type EntitlementKey,
+} from '@/lib/entitlements'
 import { getProviderWalletBalance } from '@/lib/actions/provider-wallet'
 import { shortfall } from '@/lib/domain/credits'
 
@@ -162,7 +173,7 @@ export async function cancelPurchasedProMembershipAction() {
 
   const { data: membership, error: loadError } = await admin
     .from('pro_memberships')
-    .select('id, source, status, current_period_end')
+    .select('id, source, status, started_at, current_period_end')
     .eq('provider_id', provider.id)
     .eq('status', 'active')
     .maybeSingle()
@@ -175,12 +186,69 @@ export async function cancelPurchasedProMembershipAction() {
     redirect('/provider-dashboard/billing?proError=not_cancellable')
   }
 
-  const now = new Date().toISOString()
+  const now = new Date()
+  const withinRefundWindow = isWithinCancellationRefundWindow(
+    membership.started_at,
+    PRO_CANCELLATION_REFUND_WINDOW_HOURS,
+    now,
+  )
+
+  if (withinRefundWindow) {
+    // The original spend transaction is the source of truth for what was
+    // actually paid (handles monthly vs. annual and any price change since).
+    const { data: spendTransaction } = await admin
+      .from('provider_credit_transactions')
+      .select('amount')
+      .eq('provider_id', provider.id)
+      .eq('reference_type', 'pro_membership')
+      .eq('reference_id', membership.id)
+      .eq('type', 'debit')
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+
+    const refundAmount = spendTransaction ? Math.abs(Number(spendTransaction.amount)) : PRO_MEMBERSHIP_CONFIG.monthlyFee
+
+    const { error: refundError } = await admin.rpc('refund_provider_wallet', {
+      p_provider_id: provider.id,
+      p_amount: refundAmount,
+      p_reference_type: 'pro_membership_cancellation',
+      p_reference_id: membership.id,
+      p_description: `Pro membership cancelled within ${PRO_CANCELLATION_REFUND_WINDOW_HOURS}h refund window`,
+    })
+
+    if (refundError) {
+      console.error('cancelPurchasedProMembershipAction refund:', refundError.message)
+      redirect('/provider-dashboard/billing?proError=cancel_failed')
+    }
+
+    const nowIso = now.toISOString()
+    const { error } = await admin
+      .from('pro_memberships')
+      .update({
+        status: 'cancelled',
+        cancelled_at: nowIso,
+        notes: `Cancelled by provider on ${nowIso} within the ${PRO_CANCELLATION_REFUND_WINDOW_HOURS}h refund window; ${refundAmount} credits refunded to provider wallet.`,
+      })
+      .eq('id', membership.id)
+
+    if (error) {
+      console.error('cancelPurchasedProMembershipAction:', error.message)
+      redirect('/provider-dashboard/billing?proError=cancel_failed')
+    }
+
+    revalidatePath('/provider-dashboard/billing')
+    revalidatePath('/provider-dashboard/pro')
+    revalidatePath('/provider-dashboard/wallet')
+    redirect(`/provider-dashboard/billing?pro=cancelled_refunded&refund=${refundAmount}`)
+  }
+
+  const nowIso = now.toISOString()
   const { error } = await admin
     .from('pro_memberships')
     .update({
-      cancelled_at: now,
-      notes: `Cancelled by provider on ${now}; entitlements remain active until current_period_end.`,
+      cancelled_at: nowIso,
+      notes: `Cancelled by provider on ${nowIso}; outside the ${PRO_CANCELLATION_REFUND_WINDOW_HOURS}h refund window, so no refund — entitlements remain active until current_period_end.`,
     })
     .eq('id', membership.id)
 

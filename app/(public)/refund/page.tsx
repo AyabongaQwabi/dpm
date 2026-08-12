@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import { getSupportEmail, POLICY_LAST_UPDATED } from '@/lib/policy-content'
+import { PRO_CANCELLATION_REFUND_WINDOW_HOURS } from '@/lib/entitlements'
 import { canonicalAlternates } from '@/lib/seo'
 
 export const metadata: Metadata = {
@@ -45,6 +46,17 @@ export default async function RefundPage() {
           <p className="mt-3">
             Refunded credits appear in your wallet and transaction history. The booking&apos;s payment status
             is updated to <em>refunded</em>.
+          </p>
+        </section>
+
+        <section>
+          <h2 className="text-lg font-semibold text-foreground">Provider Pro membership cancellations</h2>
+          <p className="mt-3">
+            Purchased Pro membership can be cancelled within {PRO_CANCELLATION_REFUND_WINDOW_HOURS} hours of
+            purchase from the provider Billing dashboard for a full credit refund to the provider&apos;s wallet,
+            with Pro ending immediately. Cancelling after that window keeps Pro features active until the
+            current billing period ends, with no refund. This is separate from customer credit and booking
+            refunds above.
           </p>
         </section>
 
