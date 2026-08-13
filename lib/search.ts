@@ -103,7 +103,8 @@ export async function searchProviders(params: {
       verified_fica,
       provider_types!inner(id, name, slug, category_id),
       provider_tags(tag:tags(name)),
-      reviews(rating)
+      rating_average,
+      rating_count
     `)
     .eq('is_published', true)
     .limit(candidatePoolSize)
@@ -135,10 +136,10 @@ export async function searchProviders(params: {
   if (!rows || rows.length === 0) return emptyPage
 
   const candidates: ScoredProvider[] = rows.map((row) => {
-    const reviews = (row.reviews as { rating: number }[] | null) ?? []
-    const avgRating = reviews.length > 0
-      ? reviews.reduce((s: number, r: { rating: number }) => s + r.rating, 0) / reviews.length
-      : 0
+    // Trigger-maintained cached aggregate (excludes hidden reviews). Reading
+    // the cached column rather than reducing a live join keeps ranking and the
+    // displayed rating from diverging.
+    const avgRating = Number(row.rating_average ?? 0)
 
     const tags = ((row.provider_tags as { tag: { name: string }[] }[] | null) ?? [])
       .map((pt) => pt.tag?.[0]?.name)
@@ -172,10 +173,8 @@ export async function searchProviders(params: {
 
   const results = ranked.slice(from, from + pageSize).map((r) => {
     const row = rowById.get(r.providerId)!
-    const reviews = (row.reviews as { rating: number }[] | null) ?? []
-    const avgRating = reviews.length > 0
-      ? reviews.reduce((s: number, rv: { rating: number }) => s + rv.rating, 0) / reviews.length
-      : null
+    const reviewCount = Number(row.rating_count ?? 0)
+    const avgRating = reviewCount > 0 ? Number(row.rating_average) : null
     const providerType = Array.isArray(row.provider_types)
       ? row.provider_types[0]
       : row.provider_types
@@ -237,13 +236,15 @@ function scoreProfileCompleteness(row: {
   bio: string | null
   profile_image: string | null
   provider_tags: unknown
-  reviews: unknown
+  // Cached aggregate rather than a live reviews join — see the note at the
+  // scoring call site.
+  rating_count?: number | null
 }): number {
   let score = 0
   if (row.business_name) score += 0.3
   if (row.bio) score += 0.3
   if (row.profile_image) score += 0.2
   if (Array.isArray(row.provider_tags) && row.provider_tags.length > 0) score += 0.1
-  if (Array.isArray(row.reviews) && row.reviews.length > 0) score += 0.1
+  if (Number(row.rating_count ?? 0) > 0) score += 0.1
   return score
 }

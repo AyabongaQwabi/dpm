@@ -35,6 +35,7 @@ import {
   localBusinessJsonLd,
 } from '@/lib/seo'
 import { JsonLd } from '@/components/seo/JsonLd'
+import { reviewerDisplayName } from '@/lib/domain/reviews'
 import { UnclaimedProfileBanner } from '@/components/providers/UnclaimedProfileBanner'
 import { StoriesStrip } from '@/components/providers/StoriesStrip'
 import { ProviderTagScroller } from '@/components/providers/ProviderTagScroller'
@@ -377,6 +378,16 @@ export default async function ProviderProfilePage({ params }: ProfilePageProps) 
             avgRating,
             reviewCount: reviews.length,
             categoryName: category?.name ?? null,
+            // Cap the emitted nodes: the aggregate carries the full count,
+            // and a page does not need every review in its structured data.
+            reviews: reviews.slice(0, 20).map((review) => ({
+              rating: review.rating,
+              comment: review.comment,
+              createdAt: review.created_at,
+              authorName: reviewerDisplayName(
+                (Array.isArray(review.customer) ? review.customer[0] : review.customer)?.name,
+              ),
+            })),
           }),
         ]}
       />

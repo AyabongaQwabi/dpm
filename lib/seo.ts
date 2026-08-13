@@ -439,6 +439,16 @@ export function localBusinessJsonLd(provider: {
   avgRating: number | null
   reviewCount: number
   categoryName?: string | null
+  /**
+   * Published reviews to emit as Review nodes. Omitted or empty emits none —
+   * never emit ratings markup for a provider with zero published reviews.
+   */
+  reviews?: Array<{
+    rating: number
+    comment: string | null
+    createdAt: string
+    authorName: string
+  }>
 }) {
   const profilePath = provider.slug ?? provider.id
   const schema: Record<string, unknown> = {
@@ -470,6 +480,22 @@ export function localBusinessJsonLd(provider: {
       reviewCount: provider.reviewCount,
       bestRating: 5,
       worstRating: 1,
+    }
+
+    // Individual Review nodes, only ever alongside a non-zero aggregate.
+    if (provider.reviews && provider.reviews.length > 0) {
+      schema.review = provider.reviews.map((review) => ({
+        '@type': 'Review',
+        reviewRating: {
+          '@type': 'Rating',
+          ratingValue: review.rating,
+          bestRating: 5,
+          worstRating: 1,
+        },
+        author: { '@type': 'Person', name: review.authorName },
+        datePublished: review.createdAt.slice(0, 10),
+        reviewBody: review.comment ?? undefined,
+      }))
     }
   }
 
