@@ -308,22 +308,34 @@ async function main() {
   }))
   await upsert('reviews', reviews, { onConflict: 'id' })
 
-  // Content posts — 2 per provider (tip + social/promo).
+  // Content posts — 2 per provider (tip + social/promo). kind='post' requires
+  // title + slug (content_posts_post_requires_title_slug, added in
+  // 20260814000000_provider_posts.sql).
   const posts = providers.flatMap((p, index) => [
     {
       id: `seed-post-${p.slug}-tip`,
       provider_id: p.id,
+      kind: 'post',
+      title: `A tip from ${p.business_name}`,
+      slug: 'a-tip',
       image_url: p.gallery[2],
       body: `Tip from ${p.business_name}: ask about scope, timing, and materials before confirming a booking.`,
       post_type: 'tip',
+      status: 'published',
+      published_at: new Date().toISOString(),
       is_seed: true,
     },
     {
       id: `seed-post-${p.slug}-update`,
       provider_id: p.id,
+      kind: 'post',
+      title: `Recent update from ${p.business_name}`,
+      slug: 'recent-update',
       image_url: p.gallery[index % p.gallery.length],
       body: `Recent update from ${p.business_name}, showing how social-style provider content appears in the feed.`,
       post_type: index % 3 === 0 ? 'promo' : 'social',
+      status: 'published',
+      published_at: new Date().toISOString(),
       is_seed: true,
     },
   ])
