@@ -114,7 +114,8 @@
     "purchaseMaxCredits": 5000
   },
   "providerPayout": {
-    "businessDays": 5
+    "businessDays": 5,
+    "minimumRequestAmount": 500
   },
   "support": {
     "email": "support@servicepros.co.za"

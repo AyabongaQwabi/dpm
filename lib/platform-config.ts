@@ -76,6 +76,7 @@ function flattenPlatformConfig(): Record<string, unknown> {
   flat.credit_purchase_max = c.creditWallet.purchaseMaxCredits
 
   flat.provider_payout_business_days = c.providerPayout.businessDays
+  flat.provider_payout_minimum_request_amount = c.providerPayout.minimumRequestAmount
   flat.support_email = c.support.email
 
   return flat
@@ -121,6 +122,9 @@ export const REFERRAL_PROGRAM = {
  * ImageUploadField).
  */
 export const MAX_UPLOAD_FILE_SIZE_MB = platformConfig.upload.maxFileSizeMb
+
+/** Minimum payout request amount in rands for provider finance flows. */
+export const PROVIDER_PAYOUT_MINIMUM_REQUEST_AMOUNT = platformConfig.providerPayout.minimumRequestAmount
 
 /** Direct-value accessor for callers that don't need the full ConfigStore round trip — see lib/domain/payments.ts's PriceChangeBands. */
 export const PRICE_CHANGE_BANDS = {

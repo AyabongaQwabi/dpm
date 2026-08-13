@@ -141,5 +141,6 @@ export const CONFIG_KEYS = {
   CREDIT_PURCHASE_MIN: "credit_purchase_min",
   CREDIT_PURCHASE_MAX: "credit_purchase_max",
   PROVIDER_PAYOUT_BUSINESS_DAYS: "provider_payout_business_days",
+  PROVIDER_PAYOUT_MINIMUM_REQUEST_AMOUNT: "provider_payout_minimum_request_amount",
   SUPPORT_EMAIL: "support_email",
 } as const;

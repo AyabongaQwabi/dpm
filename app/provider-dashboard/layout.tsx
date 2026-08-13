@@ -96,7 +96,7 @@ export default async function ProviderDashboardLayout({
 
       <div className="flex flex-1">
         {/* Sidebar */}
-        <DashboardSidebar hasProvider={!!provider} providerId={provider?.id ?? null} />
+        <DashboardSidebar hasProvider={!!provider} />
 
         {/* Main content */}
         <main className="flex-1 min-w-0">
