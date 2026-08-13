@@ -525,7 +525,7 @@ export async function getPublishedProvidersPage(
 export async function getCategories(supabase: SupabaseClient): Promise<CategoryView[]> {
   const { data } = await supabase
     .from('provider_categories')
-    .select('id, name, slug, description, icon, provider_types(providers(id))')
+    .select('id, name, slug, description, icon, provider_types(providers(id, is_published))')
     .order('name', { ascending: true })
 
   return ((data ?? []) as unknown as Array<{
@@ -534,7 +534,7 @@ export async function getCategories(supabase: SupabaseClient): Promise<CategoryV
     slug: string
     description: string | null
     icon: string | null
-    provider_types?: Array<{ providers?: Array<{ id: string }> | null }> | null
+    provider_types?: Array<{ providers?: Array<{ id: string; is_published: boolean }> | null }> | null
   }>).map((category) => ({
     id: category.id,
     name: category.name,
@@ -542,7 +542,7 @@ export async function getCategories(supabase: SupabaseClient): Promise<CategoryV
     description: category.description,
     icon: category.icon,
     providerCount: (category.provider_types ?? []).reduce(
-      (sum, type) => sum + (type.providers?.length ?? 0),
+      (sum, type) => sum + (type.providers?.filter((p) => p.is_published).length ?? 0),
       0,
     ),
   }))
