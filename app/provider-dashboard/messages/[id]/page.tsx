@@ -55,10 +55,10 @@ export default async function ThreadPage({ params }: PageProps) {
     .from('message_threads')
     .select(`
       id, booking_id,
-      service:services(id, title),
-      customer:customers(id, name, email),
+      service:services!message_threads_service_id_fkey(id, title),
+      customer:customers!message_threads_customer_id_fkey(id, name, email),
       messages(id, actor, body, created_at),
-      booking:bookings(id, status, final_price)
+      booking:bookings!message_threads_booking_id_fkey(id, status, final_price)
     `)
     .eq('id', threadId)
     .eq('provider_id', provider.id)
