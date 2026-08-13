@@ -5,7 +5,13 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { requireCustomerSession } from '@/lib/session'
-import { refundBookingCredits } from '@/lib/actions/credits'
+import { transitionBooking } from '@/lib/actions/booking-transitions'
+import {
+  canEditReview,
+  canWriteReview,
+  isValidRating,
+} from '@/lib/domain/reviews'
+import { REVIEW_EDITABLE_FOR_DAYS } from '@/lib/booking-lifecycle-config'
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -20,34 +26,16 @@ export async function cancelBooking(formData: FormData) {
   const bookingId = formData.get('bookingId') as string
   const reason = (formData.get('reason') as string | null)?.trim() || 'Cancelled by customer'
 
-  const supabase = await createClient()
-  const { data: booking } = await supabase
-    .from('bookings')
-    .select('id, status, customer_id, payment_status')
-    .eq('id', bookingId)
-    .eq('customer_id', customer.id)
-    .single()
-
-  if (!booking || booking.status !== 'requested') return
-
-  const admin = createAdminClient()
-  await admin.from('bookings').update({
-    status: 'cancelled',
-    cancellation_reason: reason,
-    updated_at: new Date().toISOString(),
-  }).eq('id', bookingId)
-
-  await admin.from('booking_status_history').insert({
-    booking_id: bookingId,
-    from_status: 'requested',
-    to_status: 'cancelled',
-    actor_type: 'customer',
-    actor_id: customer.id,
+  // transitionBooking validates the from-state (only before work is finished),
+  // checks the actor owns the booking, writes the audit row, and refunds the
+  // credits to the wallet via the existing refund path.
+  await transitionBooking({
+    bookingId,
+    to: 'cancelled',
+    actorType: 'customer',
+    actorId: customer.id,
+    note: reason,
   })
-
-  if (booking.payment_status === 'captured') {
-    await refundBookingCredits(bookingId)
-  }
 
   revalidateAll()
 }
@@ -59,84 +47,43 @@ export async function confirmCompletion(formData: FormData) {
   const { customer } = await requireCustomerSession()
   const bookingId = formData.get('bookingId') as string
 
-  const supabase = await createClient()
-  const { data: booking } = await supabase
-    .from('bookings')
-    .select('id, status, customer_id, provider_id, final_price, commission_amount, provider_payout_amount, payment_status')
-    .eq('id', bookingId)
-    .eq('customer_id', customer.id)
-    .single()
-
-  // Only allow confirming accepted bookings (provider has done the work)
-  if (!booking || booking.status !== 'accepted') return
-  if (booking.payment_status !== 'captured') return
-
-  const admin = createAdminClient()
-  await admin.from('bookings').update({
-    status: 'completed',
-    updated_at: new Date().toISOString(),
-  }).eq('id', bookingId)
-
-  await admin.from('booking_status_history').insert({
-    booking_id: bookingId,
-    from_status: 'accepted',
-    to_status: 'completed',
-    actor_type: 'customer',
-    actor_id: customer.id,
+  // transitionBooking creates the provider_payouts row (idempotently) and
+  // emails both parties. The payout amounts are the ones frozen at booking
+  // time, so a later commission-config change cannot alter an agreed price.
+  const result = await transitionBooking({
+    bookingId,
+    to: 'completed',
+    actorType: 'customer',
+    actorId: customer.id,
   })
 
-  const gross = Math.round(Number(booking.final_price))
-  const commission = Math.round(Number(booking.commission_amount))
-  const net = Math.round(Number(booking.provider_payout_amount))
-
-  await admin.from('provider_payouts').upsert(
-    {
-      booking_id: bookingId,
-      provider_id: booking.provider_id,
-      gross_amount: gross,
-      commission_amount: commission,
-      net_payout_amount: net,
-      status: 'pending',
-    },
-    { onConflict: 'booking_id' },
-  )
-
   revalidateAll()
-  redirect('/customer-account/reviews')
+  if (result.ok) redirect('/customer-account/reviews')
 }
 
-// ── Booking: dispute (soft flag — booking cancelled with __dispute__ reason) ──
+// ── Booking: raise an issue ──────────────────────────────────────────────────
+//
+// `disputed` is now a real status. This previously wrote a 'cancelled' row
+// carrying cancellation_reason = '__dispute__' because the enum could not be
+// extended safely at the time; that marker still exists on historical rows and
+// lib/domain/booking-status.ts folds it into `disputed` for display.
+//
+// Raising the flag is all this does — no refund, no resolution workflow
+// (explicitly out of scope). Support handles it from here.
 
 export async function disputeBooking(formData: FormData) {
   const { customer } = await requireCustomerSession()
   const bookingId = formData.get('bookingId') as string
+  const reason =
+    (formData.get('reason') as string | null)?.trim() || 'Issue raised by customer'
 
-  const supabase = await createClient()
-  const { data: booking } = await supabase
-    .from('bookings')
-    .select('id, status, customer_id')
-    .eq('id', bookingId)
-    .eq('customer_id', customer.id)
-    .single()
-
-  if (!booking || !['requested', 'accepted'].includes(booking.status)) return
-
-  const admin = createAdminClient()
-  await admin.from('bookings').update({
-    status: 'cancelled',
-    cancellation_reason: '__dispute__',
-    updated_at: new Date().toISOString(),
-  }).eq('id', bookingId)
-
-  await admin.from('booking_status_history').insert({
-    booking_id: bookingId,
-    from_status: booking.status,
-    to_status: 'cancelled',
-    actor_type: 'customer',
-    actor_id: customer.id,
+  await transitionBooking({
+    bookingId,
+    to: 'disputed',
+    actorType: 'customer',
+    actorId: customer.id,
+    note: reason,
   })
-
-  // No auto-refund on accepted disputes — work may have started; support handles manually.
 
   revalidateAll()
 }
@@ -151,29 +98,43 @@ export async function submitReview(formData: FormData) {
   const serviceId = formData.get('serviceId') as string
   const packageId = (formData.get('packageId') as string | null) || null
 
-  if (!bookingId || !comment || rating < 1 || rating > 5) return
+  if (!bookingId || !comment || !isValidRating(rating)) return
+
+  // Optional sub-ratings — supplementary, never required.
+  const subRating = (field: string): number | null => {
+    const raw = formData.get(field)
+    if (raw === null || raw === '') return null
+    const value = Number(raw)
+    return isValidRating(value) ? value : null
+  }
 
   const supabase = await createClient()
 
-  // Gate: booking must be completed and belong to this customer (REV-001)
   const { data: booking } = await supabase
     .from('bookings')
     .select('id, status, provider_id, customer_id')
     .eq('id', bookingId)
     .eq('customer_id', customer.id)
-    .eq('status', 'completed')
     .single()
 
   if (!booking) return
 
-  // Gate: no duplicate review
   const { data: existing } = await supabase
     .from('reviews')
     .select('id')
     .eq('booking_id', bookingId)
-    .single()
+    .maybeSingle()
 
-  if (existing) return
+  // Gate: completed booking, owned by this customer, not already reviewed.
+  // Also enforced in RLS — this is the friendly layer, not the boundary.
+  const eligibility = canWriteReview({
+    bookingStatus: booking.status,
+    bookingCustomerId: booking.customer_id,
+    actorCustomerId: customer.id,
+    existingReview: !!existing,
+  })
+
+  if (!eligibility.ok) return
 
   const admin = createAdminClient()
   await admin.from('reviews').insert({
@@ -184,10 +145,53 @@ export async function submitReview(formData: FormData) {
     package_id: packageId,
     rating,
     comment,
+    rating_quality: subRating('rating_quality'),
+    rating_communication: subRating('rating_communication'),
+    rating_timeliness: subRating('rating_timeliness'),
+    rating_value: subRating('rating_value'),
   })
 
   revalidateAll()
   redirect('/customer-account/reviews')
+}
+
+// ── Review: edit within the editable window, then locked ────────────────────
+
+export async function updateReview(formData: FormData) {
+  const { customer } = await requireCustomerSession()
+  const reviewId = formData.get('reviewId') as string
+  const rating = Number(formData.get('rating'))
+  const comment = ((formData.get('comment') as string) || '').trim()
+
+  if (!reviewId || !comment || !isValidRating(rating)) return
+
+  const supabase = await createClient()
+  const { data: review } = await supabase
+    .from('reviews')
+    .select('id, customer_id, created_at')
+    .eq('id', reviewId)
+    .eq('customer_id', customer.id)
+    .maybeSingle()
+
+  if (!review) return
+
+  // Locked after the configured window. TODO(aya): confirm — suggested 14 days.
+  if (
+    !canEditReview({
+      createdAt: review.created_at,
+      editableForDays: REVIEW_EDITABLE_FOR_DAYS,
+    })
+  ) {
+    return
+  }
+
+  const admin = createAdminClient()
+  await admin
+    .from('reviews')
+    .update({ rating, comment, updated_at: new Date().toISOString() })
+    .eq('id', reviewId)
+
+  revalidateAll()
 }
 
 // ── Account: update personal details ──

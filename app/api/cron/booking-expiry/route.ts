@@ -2,7 +2,11 @@ import { NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { loadPlatformConfig } from '@/lib/platform-config'
 import { getConfigNumber, CONFIG_KEYS } from '@/lib/domain/config'
-import { refundBookingCredits } from '@/lib/actions/credits'
+import { transitionBooking } from '@/lib/actions/booking-transitions'
+import {
+  AUTO_COMPLETE_DAYS,
+  AUTO_COMPLETE_ENABLED,
+} from '@/lib/booking-lifecycle-config'
 
 export async function GET(request: Request) {
   const cronSecret = process.env.CRON_SECRET
@@ -31,26 +35,64 @@ export async function GET(request: Request) {
   let processed = 0
 
   for (const booking of staleBookings ?? []) {
-    await admin.from('bookings').update({
-      status: 'declined',
-      cancellation_reason: 'Auto-expired — provider did not respond in time',
-      updated_at: new Date().toISOString(),
-    }).eq('id', booking.id)
-
-    await admin.from('booking_status_history').insert({
-      booking_id: booking.id,
-      from_status: 'requested',
-      to_status: 'declined',
-      actor_type: 'system',
-      actor_id: null,
-    })
-
-    if (booking.payment_status === 'captured') {
-      await refundBookingCredits(booking.id)
+    // Routed through the single status writer: it refunds the credits via the
+    // existing path and writes the audit row. No direct status update here.
+    try {
+      const result = await transitionBooking({
+        bookingId: booking.id,
+        to: 'declined',
+        actorType: 'system',
+        actorId: null,
+        note: 'Auto-expired — provider did not respond in time',
+      })
+      if (result.ok && !result.noop) processed += 1
+    } catch (err) {
+      console.error('Auto-expiry failed for booking', booking.id, err)
     }
-
-    processed += 1
   }
 
-  return NextResponse.json({ processed })
+  // ── Auto-completion sweep ──────────────────────────────────────────────
+  //
+  // Bookings sitting in completed_by_provider past the configured window.
+  // Ships DISABLED: the window is TODO(aya): confirm, so until
+  // config/booking-lifecycle.json sets autoComplete.enabled to true this
+  // reports what it would have done and transitions nothing.
+
+  const autoCompleteCutoff = new Date(
+    Date.now() - AUTO_COMPLETE_DAYS * 24 * 3_600_000,
+  ).toISOString()
+
+  const { data: awaitingConfirmation } = await admin
+    .from('bookings')
+    .select('id')
+    .eq('status', 'completed_by_provider')
+    .lt('provider_completed_at', autoCompleteCutoff)
+    .limit(100)
+
+  const eligible = awaitingConfirmation ?? []
+  let autoCompleted = 0
+
+  if (AUTO_COMPLETE_ENABLED) {
+    for (const booking of eligible) {
+      try {
+        const result = await transitionBooking({
+          bookingId: booking.id,
+          to: 'completed',
+          actorType: 'system',
+          actorId: null,
+          note: `Auto-completed after ${AUTO_COMPLETE_DAYS} days without customer confirmation`,
+        })
+        if (result.ok && !result.noop) autoCompleted += 1
+      } catch (err) {
+        console.error('Auto-completion failed for booking', booking.id, err)
+      }
+    }
+  }
+
+  return NextResponse.json({
+    processed,
+    autoCompleted,
+    autoCompleteEnabled: AUTO_COMPLETE_ENABLED,
+    autoCompleteEligible: eligible.length,
+  })
 }

@@ -5,12 +5,20 @@ import { ConfigStore, CONFIG_KEYS, getConfigNumber } from "./config";
 
 // ---------- Types mirroring schema enums and booking fields ----------
 
+// The stored vocabulary. "requested" is the DB value for the concept the
+// lifecycle spec calls `pending_acceptance` — see the enum-decision note in
+// supabase/migrations/20260818000000_booking_lifecycle.sql for why the value
+// was added to, not renamed in, the live enum. Display labelling lives in
+// lib/domain/booking-status.ts; nothing here should render a raw status.
 export type BookingStatus =
   | "requested"
   | "accepted"
-  | "declined"
+  | "in_progress"
+  | "completed_by_provider"
   | "completed"
-  | "cancelled";
+  | "declined"
+  | "cancelled"
+  | "disputed";
 
 export type PaymentStatus = "pending" | "captured" | "failed" | "refunded";
 
@@ -24,6 +32,8 @@ export interface BookingRow {
   paymentStatus: PaymentStatus | null;
   cancellationReason: string | null;
   requestedAt: Date;
+  /** Set when the provider marks the work done — drives auto-completion. */
+  providerCompletedAt?: Date | null;
 }
 
 // A new status history entry to be written — returned by each transition function
@@ -49,6 +59,11 @@ const TERMINAL_STATES = new Set<BookingStatus>([
   "declined",
   "cancelled",
 ]);
+
+// "disputed" is deliberately NOT terminal: a dispute is a flag raised on work
+// that has been marked done, and resolution (out of scope for this pass) has
+// to be able to move the booking on to completed or cancelled.
+
 
 export function isTerminalState(status: BookingStatus): boolean {
   return TERMINAL_STATES.has(status);
@@ -249,6 +264,163 @@ export function completeBooking(
       actorId: actorType === "system" ? null : actorId,
     },
   };
+}
+
+// ---------- Lifecycle transitions added by the booking-lifecycle build ----------
+//
+// The declarative table below is the single authority on which moves are legal
+// and who may make them. lib/actions/booking-transitions.ts's transitionBooking()
+// is the only writer of bookings.status in the application; every UI surface
+// goes through it.
+
+export interface TransitionRule {
+  from: BookingStatus[];
+  /** Roles permitted to make this move. "system" covers cron sweeps. */
+  actors: ActorType[];
+  /** Free-text reason required for the move to be legal. */
+  requiresNote?: boolean;
+}
+
+export const TRANSITION_RULES: Record<BookingStatus, TransitionRule> = {
+  // Never a transition target — bookings are created in this state.
+  requested: { from: [], actors: [] },
+
+  accepted: { from: ["requested"], actors: ["provider"] },
+  declined: { from: ["requested"], actors: ["provider", "system"] },
+
+  in_progress: { from: ["accepted"], actors: ["provider"] },
+  completed_by_provider: {
+    from: ["accepted", "in_progress"],
+    actors: ["provider"],
+  },
+
+  // The customer confirms; the system may auto-confirm after the configured
+  // window (gated off until the window is confirmed). Provider cannot
+  // self-confirm — that is the whole point of the two-step completion.
+  completed: {
+    from: ["accepted", "in_progress", "completed_by_provider", "disputed"],
+    actors: ["customer", "system"],
+  },
+
+  // Cancellation is only available before work is finished.
+  cancelled: {
+    from: ["requested", "accepted", "in_progress"],
+    actors: ["customer", "provider", "system"],
+    requiresNote: true,
+  },
+
+  // Raised by the customer once the provider claims the work is done.
+  disputed: {
+    from: ["in_progress", "completed_by_provider"],
+    actors: ["customer"],
+    requiresNote: true,
+  },
+};
+
+/** Which statuses refund the customer's credits to their wallet. */
+export const REFUNDING_STATUSES: BookingStatus[] = ["declined", "cancelled"];
+
+export function isRefundingStatus(status: BookingStatus): boolean {
+  return REFUNDING_STATUSES.includes(status);
+}
+
+/**
+ * Pure guard for a proposed transition. Returns the history entry to persist,
+ * or throws. Actor identity is checked against the booking's own parties, so a
+ * provider cannot act on a booking that is not theirs even if their role is
+ * permitted for the move.
+ */
+export function evaluateTransition(
+  booking: BookingRow,
+  toStatus: BookingStatus,
+  actorType: ActorType,
+  actorId: string | null,
+  note?: string | null,
+): TransitionResult {
+  const rule = TRANSITION_RULES[toStatus];
+
+  if (!rule || rule.from.length === 0) {
+    throw new BookingTransitionError(
+      `"${toStatus}" is not a valid transition target.`,
+    );
+  }
+
+  if (!rule.from.includes(booking.status)) {
+    throw new BookingTransitionError(
+      `Booking ${booking.id} cannot move from "${booking.status}" to "${toStatus}".`,
+    );
+  }
+
+  if (!rule.actors.includes(actorType)) {
+    throw new BookingAuthorizationError(
+      `A ${actorType} may not move booking ${booking.id} to "${toStatus}".`,
+    );
+  }
+
+  // A disputed booking can still be completed if the customer and provider
+  // resolve it in chat, but it must be the customer's explicit confirmation.
+  // Auto-completion/system completion must never close an active dispute.
+  if (booking.status === "disputed" && toStatus === "completed" && actorType !== "customer") {
+    throw new BookingAuthorizationError(
+      `Only the customer may confirm completion after a dispute on booking ${booking.id}.`,
+    );
+  }
+
+  // Identity check: the actor must be the booking's own customer/provider.
+  if (actorType === "customer" && actorId !== booking.customerId) {
+    throw new BookingAuthorizationError(
+      `Only the booking's customer may move booking ${booking.id} to "${toStatus}".`,
+    );
+  }
+  if (actorType === "provider" && actorId !== booking.providerId) {
+    throw new BookingAuthorizationError(
+      `Only the booking's provider may move booking ${booking.id} to "${toStatus}".`,
+    );
+  }
+
+  const trimmedNote = note?.trim() || null;
+  if (rule.requiresNote && !trimmedNote) {
+    throw new BookingTransitionError(
+      `Moving booking ${booking.id} to "${toStatus}" requires a reason.`,
+    );
+  }
+
+  const updatedFields: Partial<BookingRow> = { status: toStatus };
+  if (toStatus === "cancelled" && trimmedNote) {
+    updatedFields.cancellationReason = trimmedNote;
+  }
+
+  return {
+    updatedFields,
+    historyEntry: {
+      bookingId: booking.id,
+      fromStatus: booking.status,
+      toStatus,
+      actorType,
+      actorId: actorType === "system" ? null : actorId,
+    },
+  };
+}
+
+/**
+ * Should this booking auto-complete? Pure, so `now` and the window come from
+ * the caller. Returns null unless the booking has been sitting in
+ * completed_by_provider past the configured window.
+ */
+export function evaluateAutoCompletion(
+  booking: BookingRow,
+  now: Date,
+  windowDays: number,
+): TransitionResult | null {
+  if (booking.status !== "completed_by_provider") return null;
+  if (!booking.providerCompletedAt) return null;
+
+  const dueAt = new Date(
+    booking.providerCompletedAt.getTime() + windowDays * 24 * 60 * 60 * 1000,
+  );
+  if (now < dueAt) return null;
+
+  return evaluateTransition(booking, "completed", "system", null);
 }
 
 // ---------- Auto-expiry (BOOK-LOGIC-005) ----------
