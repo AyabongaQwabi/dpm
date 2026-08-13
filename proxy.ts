@@ -29,11 +29,12 @@ export async function proxy(request: NextRequest) {
 
   // No Supabase config available in this environment: forward the request
   // and treat it as the home marketplace (no tenant headers), but still pass
-  // through the visitor's geo city for the nav.
+  // through a ZA visitor's geo city for the nav.
   if (!supabase) {
     const headers = new Headers(request.headers)
     const ipCity = request.headers.get('x-vercel-ip-city')
-    if (ipCity) {
+    const ipCountry = request.headers.get('x-vercel-ip-country')
+    if (ipCity && ipCountry === 'ZA') {
       try {
         headers.set('x-user-city', decodeURIComponent(ipCity))
       } catch {
@@ -52,10 +53,13 @@ export async function proxy(request: NextRequest) {
   const requestHeaders = new Headers(request.headers)
 
   // Forward the visitor's geo city (set by Vercel's edge network) so the nav
-  // can surface "providers near you" instead of a hardcoded city. Decoded
-  // because Vercel URL-encodes city names with spaces/accents.
+  // can surface "providers near you" instead of a hardcoded city. Only ZA
+  // cities are useful for this South African directory; otherwise the nav can
+  // show irrelevant places like Columbus. Decoded because Vercel URL-encodes
+  // city names with spaces/accents.
   const ipCity = request.headers.get('x-vercel-ip-city')
-  if (ipCity) {
+  const ipCountry = request.headers.get('x-vercel-ip-country')
+  if (ipCity && ipCountry === 'ZA') {
     try {
       requestHeaders.set('x-user-city', decodeURIComponent(ipCity))
     } catch {

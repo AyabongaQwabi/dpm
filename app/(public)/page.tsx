@@ -55,9 +55,10 @@ export default async function LandingPage() {
     getLocations(supabase),
     getRecommendedServices({ config, categorySlug: tenant.categorySlug, limit: 6 }),
   ])
+  const visibleCategories = categories.filter((category) => category.providerCount > 0)
 
   const [{ providers: featured, verifiedPoolSize }, withCompleteProfile, recent] = await Promise.all([
-    getFeaturedProvidersWithSponsored(supabase, categories, { limit: 6, categorySlug: tenant.categorySlug ?? undefined }),
+    getFeaturedProvidersWithSponsored(supabase, visibleCategories, { limit: 6, categorySlug: tenant.categorySlug ?? undefined }),
     getPublishedProviders(supabase, { withCompleteProfile: true, limit: 6, categorySlug: tenant.categorySlug ?? undefined }),
     getPublishedProviders(supabase, { limit: 6, categorySlug: tenant.categorySlug ?? undefined }),
   ])
@@ -80,7 +81,7 @@ export default async function LandingPage() {
   // lib/public-data.ts withCompleteProfile). The unverified fallbacks below
   // are a stopgap for a thin verified pool, not the intended steady state.
   const providers = featured.length ? featured : withCompleteProfile.length ? withCompleteProfile : recent
-  const totalProviders = categories.reduce((sum, c) => sum + c.providerCount, 0)
+  const totalProviders = visibleCategories.reduce((sum, c) => sum + c.providerCount, 0)
   const cityCount = locations.length
 
   const heading = tenant.isHomeMarketplace
@@ -104,15 +105,15 @@ export default async function LandingPage() {
       <HeroSection
         heading={heading}
         subheading={subheading}
-        categories={categories}
+        categories={visibleCategories}
         totalProviders={totalProviders}
         cityCount={cityCount}
       />
       <FeaturedProviders providers={providers} />
       <RecommendedServices services={recommendedServices} />
-      <CategoryGrid categories={categories} />
+      <CategoryGrid categories={visibleCategories} />
       <RegionalBrowse locations={locations} />
-      <TrustSection providerCount={totalProviders} categoryCount={categories.length} cityCount={cityCount} />
+      <TrustSection providerCount={totalProviders} categoryCount={visibleCategories.length} cityCount={cityCount} />
     </main>
   )
 }
