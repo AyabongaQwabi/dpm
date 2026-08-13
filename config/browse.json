@@ -1,0 +1,12 @@
+{
+  "minTileProviders": {
+    "_comment": "TODO(aya): confirm. Suggested 5 — lower than the liquid-cell threshold (8) because this only means 'not embarrassingly empty' on a homepage tile, not 'operationally liquid' for the internal dashboard.",
+    "value": 5,
+    "confirmed": false
+  },
+  "defaultCity": {
+    "_comment": "TODO(aya): confirm which city. Fallback for the nav 'near you' item when no cookie, browser geolocation, or IP geolocation resolves to a known ZA city with live providers.",
+    "value": "Cape Town",
+    "confirmed": false
+  }
+}

@@ -215,6 +215,19 @@ Imported by `lib/nurture-emails-config.ts`, then used by `lib/actions/nurture-em
 
 Delivery state lives in `nurture_email_queue`; the config owns sequence copy and timing. Signup hooks enqueue the full sequence once, then send the day-0 welcome immediately. `/api/cron/nurture-emails` drains later due rows once per day.
 
+## `browse.json`
+
+Thresholds for the homepage/browse category and city tile grids.
+
+Values whose `confirmed` flag is `false` are **suggested defaults awaiting sign-off** (`TODO(aya): confirm` in the entry's `_comment`). Do not treat them as agreed commercial terms.
+
+- `minTileProviders.value`: minimum published providers for a category or city tile to appear on the homepage grid and browse category/city lists. Below this, the category/city page itself still renders (reachable by direct URL) but is `noindex, follow` until it crosses the threshold. **Unconfirmed — suggested 5.** Deliberately lower than `liquidity.json`'s `liquidCell.minProvidersPerCell` (8) — this only means "not embarrassingly empty" for a public tile, not "operationally liquid" for the internal dashboard.
+- `defaultCity.value`: fallback city for the nav "near you" item when no cookie-persisted city, browser geolocation, or IP geolocation resolves to a known ZA city with live providers. **Unconfirmed — suggested "Cape Town".**
+
+Imported by `lib/browse-config.ts`, then used by the homepage category/city filtering, `app/(public)/providers/category/[slug]/page.tsx`, `app/(public)/providers/in/[location]/page.tsx`, `app/(public)/browse/cities/page.tsx`, and `lib/geo-location.ts`.
+
+No database mirror.
+
 ## `booking-lifecycle.json`
 
 Timings, limits and thresholds for the service booking lifecycle: status transitions, the requirement/file exchange, booking messages, and reviews.

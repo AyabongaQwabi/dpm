@@ -12,6 +12,8 @@ import { createClient } from '@/lib/supabase/server'
 import { canonicalAlternates, defaultOpenGraph, defaultTwitter, providerListJsonLd, webSiteJsonLd } from '@/lib/seo'
 import { getTenantContext } from '@/lib/tenant'
 import { InMemoryConfigStore } from '@/lib/domain/config'
+import { filterVisibleTiles } from '@/lib/domain/browse'
+import { MIN_TILE_PROVIDERS } from '@/lib/browse-config'
 
 export const revalidate = 3600
 
@@ -55,7 +57,7 @@ export default async function LandingPage() {
     getLocations(supabase),
     getRecommendedServices({ config, categorySlug: tenant.categorySlug, limit: 6 }),
   ])
-  const visibleCategories = categories.filter((category) => category.providerCount > 0)
+  const visibleCategories = filterVisibleTiles(categories, MIN_TILE_PROVIDERS)
 
   const [{ providers: featured, verifiedPoolSize }, withCompleteProfile, recent] = await Promise.all([
     getFeaturedProvidersWithSponsored(supabase, visibleCategories, { limit: 6, categorySlug: tenant.categorySlug ?? undefined }),

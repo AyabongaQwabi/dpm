@@ -6,7 +6,8 @@ import { JsonLd } from '@/components/seo/JsonLd'
 import { getCategories, getLocations, getPublishedProvidersPage, titleFromSlug } from '@/lib/public-data'
 import { createClient } from '@/lib/supabase/server'
 import { createStaticClient } from '@/lib/supabase/static'
-import { breadcrumbJsonLd, canonicalAlternates, defaultOpenGraph, defaultTwitter, providerListJsonLd } from '@/lib/seo'
+import { breadcrumbJsonLd, canonicalAlternates, defaultOpenGraph, defaultTwitter, providerListJsonLd, seoIndexPolicy } from '@/lib/seo'
+import { MIN_TILE_PROVIDERS } from '@/lib/browse-config'
 
 interface PageProps {
   params: Promise<{ location: string }>
@@ -30,13 +31,17 @@ export async function generateMetadata({ params, searchParams }: PageProps): Pro
   const title = `Providers in ${city}, South Africa`
   const description = `Find trusted providers in ${city}. Compare services, reviews, profiles, and recent provider posts on ServicePros.`
   const path = `/providers/in/${location}`
+
+  const supabase = await createClient()
+  const { total } = await getPublishedProvidersPage(supabase, { city: location, page: 1, pageSize: 1 })
+
   return {
     title,
     description,
     alternates: canonicalAlternates(path),
     openGraph: defaultOpenGraph(title, description, path),
     twitter: defaultTwitter(title, description),
-    robots: page > 1 ? { index: false, follow: true } : undefined,
+    robots: page > 1 ? { index: false, follow: true } : seoIndexPolicy(total, MIN_TILE_PROVIDERS),
   }
 }
 
