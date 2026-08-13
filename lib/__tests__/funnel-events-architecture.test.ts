@@ -29,7 +29,7 @@ describe('funnel events — table shape', () => {
   it('creates funnel_events with the closed pre-booking event vocabulary only', () => {
     expect(migration).toContain('CREATE TABLE IF NOT EXISTS funnel_events')
     expect(migration).toContain('funnel_events_type_check')
-    for (const value of ['search_performed', 'service_viewed', 'review_submitted']) {
+    for (const value of ['search_performed', 'profile_viewed', 'service_viewed', 'review_submitted']) {
       expect(migration).toContain(`'${value}'`)
     }
     // Booking-lifecycle steps must not be duplicated into this table.

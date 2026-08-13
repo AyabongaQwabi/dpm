@@ -60,6 +60,7 @@ CREATE TABLE IF NOT EXISTS funnel_events (
   CONSTRAINT funnel_events_type_check CHECK (
     event_type IN (
       'search_performed',
+      'profile_viewed',
       'service_viewed',
       'review_submitted'
     )

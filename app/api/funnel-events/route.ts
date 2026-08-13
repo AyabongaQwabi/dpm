@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import type { FunnelEventType } from '@/lib/db'
 import { logFunnelEvent } from '@/lib/liquidity/log-funnel-event'
 
-const EVENT_TYPES: FunnelEventType[] = ['search_performed', 'service_viewed', 'review_submitted']
+const EVENT_TYPES: FunnelEventType[] = ['search_performed', 'profile_viewed', 'service_viewed', 'review_submitted']
 
 function stringValue(value: unknown, max = 200): string | null {
   if (typeof value !== 'string') return null

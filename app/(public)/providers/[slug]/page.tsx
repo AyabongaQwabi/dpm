@@ -39,6 +39,10 @@ import { reviewerDisplayName } from '@/lib/domain/reviews'
 import { UnclaimedProfileBanner } from '@/components/providers/UnclaimedProfileBanner'
 import { StoriesStrip } from '@/components/providers/StoriesStrip'
 import { ProviderTagScroller } from '@/components/providers/ProviderTagScroller'
+import { ProviderAnalyticsTracker } from '@/components/analytics/ProviderAnalyticsTracker'
+import { FunnelEventTracker } from '@/components/analytics/FunnelEventTracker'
+import { TrackedLink } from '@/components/analytics/TrackedLink'
+import { ProfileShareButtons } from '@/components/providers/ProfileShareButtons'
 
 const RECOMMENDATION_DEFAULTS: Record<string, number> = {
   min_reviews_for_recommendation: 5,
@@ -356,6 +360,14 @@ export default async function ProviderProfilePage({ params }: ProfilePageProps) 
 
   return (
     <main>
+      <ProviderAnalyticsTracker providerId={provider.id} eventType="profile_view" />
+      <FunnelEventTracker
+        eventType="profile_viewed"
+        category={category?.slug ?? providerType?.slug ?? null}
+        city={provider.location_city}
+        providerId={provider.id}
+        dedupeKey={provider.id}
+      />
       <JsonLd
         data={[
           breadcrumbJsonLd([
@@ -711,6 +723,18 @@ export default async function ProviderProfilePage({ params }: ProfilePageProps) 
               </dl>
             </div>
 
+            <div className="rounded-[var(--radius)] border border-border bg-card p-5">
+              <h3 className="font-display font-semibold text-sm text-foreground">Share this profile</h3>
+              <p className="mt-1 text-sm leading-6 text-muted-foreground">
+                Send this provider to someone who needs their services.
+              </p>
+              <ProfileShareButtons
+                providerId={provider.id}
+                businessName={provider.business_name}
+                profilePath={`/providers/${profilePath}`}
+              />
+            </div>
+
             {languages.length > 0 && (
               <div className="rounded-[var(--radius)] border border-border bg-card p-5">
                 <h3 className="font-display font-semibold text-sm text-foreground mb-3 flex items-center gap-2">
@@ -749,9 +773,12 @@ export default async function ProviderProfilePage({ params }: ProfilePageProps) 
                 const defaultPkg = packages.find((p) => p.is_default) ?? packages[0]
                 const isPinned = service.id === pinnedService?.id
                 return (
-                  <Link
+                  <TrackedLink
                     key={service.id}
                     href={`/services/${service.id}`}
+                    providerId={provider.id}
+                    serviceId={service.id}
+                    eventType="profile_service_click"
                     className="rounded-2xl border border-border bg-card overflow-hidden flex flex-col hover:shadow-md hover:border-primary-accent/30 transition-all duration-200 cursor-pointer"
                     style={isPinned && accentColor ? { borderColor: `${accentColor}88` } : undefined}
                   >
@@ -810,7 +837,7 @@ export default async function ProviderProfilePage({ params }: ProfilePageProps) 
                         )}
                       </div>
                     </div>
-                  </Link>
+                  </TrackedLink>
                 )
               })}
             </div>

@@ -32,7 +32,7 @@ export type ProviderAnalyticsEventType =
   | 'profile_contact_click'
   | 'profile_service_click'
   | 'profile_share_click'
-export type FunnelEventType = 'search_performed' | 'service_viewed' | 'review_submitted'
+export type FunnelEventType = 'search_performed' | 'profile_viewed' | 'service_viewed' | 'review_submitted'
 export type BookingSource = 'site' | 'embed'
 export type InputType =
   | 'short_text'

@@ -52,6 +52,18 @@ export async function sendNurtureEmail({
   return sendEmail({ to, subject, html })
 }
 
+export async function sendAnalyticsDigestEmail({
+  to,
+  subject,
+  html,
+}: {
+  to: string
+  subject: string
+  html: string
+}) {
+  return sendEmail({ to, subject, html })
+}
+
 export async function sendFeatureRequestNotificationEmail({
   to,
   replyTo,

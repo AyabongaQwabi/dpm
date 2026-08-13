@@ -43,6 +43,20 @@ describe('membershipGrants', () => {
     const membership = { status: 'active' as const, source: 'granted' as const, current_period_end: null }
     expect(membershipGrants(membership, ENTITLEMENT_KEYS.CUSTOM_SLUG)).toBe(true)
   })
+
+  it('denies analytics for a package 1 provider without Pro', () => {
+    expect(membershipGrants(null, ENTITLEMENT_KEYS.ANALYTICS)).toBe(false)
+  })
+
+  it('allows analytics for a package 2 provider via the package_included Pro row', () => {
+    const membership = { status: 'active' as const, source: 'package_included' as const, current_period_end: null }
+    expect(membershipGrants(membership, ENTITLEMENT_KEYS.ANALYTICS)).toBe(true)
+  })
+
+  it('allows analytics for a package 1 provider with standalone Pro', () => {
+    const membership = { status: 'active' as const, source: 'purchased' as const, current_period_end: null }
+    expect(membershipGrants(membership, ENTITLEMENT_KEYS.ANALYTICS)).toBe(true)
+  })
 })
 
 // ---------- Package 2-5 inclusion rule ----------

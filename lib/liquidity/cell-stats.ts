@@ -117,7 +117,7 @@ async function loadCompletedBookings30d(
   return byProvider
 }
 
-interface ResponseStats {
+export interface ProviderResponseStats {
   respondedByProvider: Map<string, number>
   totalAcceptedByProvider: Map<string, number>
   responseMinutesByProvider: Map<string, number[]>
@@ -131,15 +131,18 @@ interface ResponseStats {
  * One pass over the accepted/messages data feeds both the response-rate
  * and median-response-time figures, rather than querying it twice.
  */
-async function loadResponseStats(admin: ReturnType<typeof createAdminClient>): Promise<ResponseStats> {
-  const since = new Date(Date.now() - ROLLING_WINDOW_MS).toISOString()
-
+export async function loadProviderResponseStats(
+  admin: ReturnType<typeof createAdminClient>,
+  since: string,
+  providerIds?: string[],
+): Promise<ProviderResponseStats> {
   const { data: accepted } = await admin
     .from('booking_status_history')
     .select('booking_id, created_at, bookings!inner(id, provider_id)')
     .eq('to_status', 'accepted')
     .gte('created_at', since)
 
+  const providerFilter = providerIds ? new Set(providerIds) : null
   const acceptedRows = (accepted ?? [])
     .map((row) => {
       const booking = Array.isArray(row.bookings) ? row.bookings[0] : row.bookings
@@ -150,6 +153,7 @@ async function loadResponseStats(admin: ReturnType<typeof createAdminClient>): P
       }
     })
     .filter((r): r is { bookingId: string; acceptedAt: string; providerId: string } => Boolean(r.providerId))
+    .filter((r) => !providerFilter || providerFilter.has(r.providerId))
 
   const totalAcceptedByProvider = new Map<string, number>()
   for (const r of acceptedRows) {
@@ -218,6 +222,10 @@ async function loadResponseStats(admin: ReturnType<typeof createAdminClient>): P
   }
 
   return { respondedByProvider, totalAcceptedByProvider, responseMinutesByProvider }
+}
+
+async function loadResponseStats(admin: ReturnType<typeof createAdminClient>): Promise<ProviderResponseStats> {
+  return loadProviderResponseStats(admin, new Date(Date.now() - ROLLING_WINDOW_MS).toISOString())
 }
 
 /** Funnel counts from funnel_events, grouped by (category, city). Booking-lifecycle steps come from booking_status_history separately. */

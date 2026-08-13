@@ -117,6 +117,9 @@
     "businessDays": 5,
     "minimumRequestAmount": 500
   },
+  "analytics": {
+    "minComparisonSample": 5
+  },
   "support": {
     "email": "support@servicepros.co.za"
   },
