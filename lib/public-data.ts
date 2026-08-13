@@ -548,13 +548,35 @@ export async function getCategories(supabase: SupabaseClient): Promise<CategoryV
   }))
 }
 
+/**
+ * Raw `providers.location_city` values and counts as of 2026-08-13, before
+ * any metro/suburb rollup exists (see AGENTS prompt "Homepage and browse
+ * fixes" Part 2). 60 distinct free-text values, many of which are suburbs of
+ * the same metro (e.g. Sandton/Randburg/Roodepoort under Johannesburg,
+ * Durban North/Berea/Bluff under Durban). Kept here so future `metro` table
+ * work (needed for price guides and programmatic city x category SEO) has a
+ * starting point instead of re-deriving this from the DB from scratch:
+ *
+ * Cape Town 305, Durban 186, Johannesburg 177, Pretoria 97, Randburg 42,
+ * Sandton 31, Durban North 20, Roodepoort 14, Berea 14, Johannesburg South 10,
+ * Centurion 9, Edenvale 8, Midrand 6, Alberton 6, Ballito 5, and 45 more
+ * cities/suburbs with fewer than 5 providers each (Westville, Kempton Park,
+ * Newlands West, Ntuzuma, uMhlanga, Walkerville, Somerset West, Akasia,
+ * Bluff, Hillcrest, Pinetown, Verulam, Gillitts, Germiston, Komani, Gauteng,
+ * Pretoria West, Chartwell, Benoni, Kingsburgh, Durbanville, Pietermaritzburg,
+ * Lethabong, Sharonlea, Silver Lakes Golf Estate, and others).
+ */
 export async function getLocations(supabase: SupabaseClient, limit = 8) {
+  // No .limit() here: counts must be aggregated over every published
+  // provider, not a capped sample, or every city's count is understated and
+  // the top-N picked from an arbitrary DB-order slice instead of the true
+  // ranking. supabase-js has no GROUP BY, so this fetches the (currently
+  // small) full location_city column and aggregates in JS.
   const { data } = await supabase
     .from('providers')
     .select('location_city')
     .eq('is_published', true)
     .not('location_city', 'is', null)
-    .limit(200)
 
   const counts = new Map<string, number>()
   for (const row of (data ?? []) as Array<{ location_city: string | null }>) {
