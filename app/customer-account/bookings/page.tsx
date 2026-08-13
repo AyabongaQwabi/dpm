@@ -3,8 +3,14 @@ import { requireCustomerSession } from '@/lib/session'
 import { createClient } from '@/lib/supabase/server'
 import { Avatar } from '@/components/ui/Avatar'
 import { BookingStatusBadge } from '@/components/customer-account/BookingStatusBadge'
-import { cancelBooking, confirmCompletion, disputeBooking } from '@/lib/actions/customer'
+import { cancelBooking, confirmCompletion } from '@/lib/actions/customer'
 import { formatCredits } from '@/lib/format-credits'
+import {
+  CUSTOMER_CANCELLABLE,
+  OPEN_STATUSES,
+  effectiveStatus,
+} from '@/lib/domain/booking-status'
+import type { BookingStatus } from '@/lib/domain/booking'
 
 interface Props {
   searchParams: Promise<{ filter?: string }>
@@ -32,9 +38,9 @@ export default async function MyBookingsPage({ searchParams }: Props) {
     .from('bookings')
     .select(`
       id, status, final_price, requested_at, updated_at, cancellation_reason,
-      service:services(id, title),
-      provider:providers(id, business_name, slug, profile_image),
-      service_package:service_packages(id, name),
+      service:services!bookings_service_id_fkey(id, title),
+      provider:providers!bookings_provider_id_fkey(id, business_name, slug, profile_image),
+      service_package:service_packages!bookings_package_id_fkey(id, name),
       reviews(id),
       message_threads(id)
     `)
@@ -67,7 +73,7 @@ export default async function MyBookingsPage({ searchParams }: Props) {
   }))
 
   const filtered = all.filter((b) => {
-    if (filter === 'active') return ['requested', 'accepted'].includes(b.status)
+    if (filter === 'active') return OPEN_STATUSES.includes(b.status as BookingStatus)
     if (filter === 'completed') return b.status === 'completed'
     if (filter === 'closed') return ['cancelled', 'declined'].includes(b.status)
     return true
@@ -113,10 +119,12 @@ export default async function MyBookingsPage({ searchParams }: Props) {
       ) : (
         <div className="space-y-4">
           {filtered.map((booking) => {
-            const canCancel = booking.status === 'requested'
-            const canConfirm = booking.status === 'accepted'
+            const canCancel = CUSTOMER_CANCELLABLE.includes(booking.status as BookingStatus)
+            // The customer confirms only after the provider says the work is done.
+            const canConfirm = booking.status === 'completed_by_provider' || booking.status === 'disputed'
             const canReview = booking.status === 'completed' && booking.reviews.length === 0
-            const isDispute = booking.status === 'cancelled' && booking.cancellation_reason === '__dispute__'
+            const isDispute =
+              effectiveStatus(booking.status as BookingStatus, booking.cancellation_reason) === 'disputed'
             const threadId = booking.message_threads[0]?.id ?? null
 
             return (
@@ -136,9 +144,12 @@ export default async function MyBookingsPage({ searchParams }: Props) {
                   <div className="flex-1 min-w-0">
                     <div className="flex flex-wrap items-start justify-between gap-2">
                       <div>
-                        <p className="font-semibold text-sm leading-snug">
+                        <Link
+                          href={`/customer-account/bookings/${booking.id}`}
+                          className="font-semibold text-sm leading-snug hover:underline"
+                        >
                           {booking.service?.title ?? 'Service'}
-                        </p>
+                        </Link>
                         <p className="text-xs text-muted-foreground mt-0.5">
                           {booking.provider?.business_name}
                           {booking.service_package ? ` · ${booking.service_package.name} package` : ''}
@@ -162,8 +173,15 @@ export default async function MyBookingsPage({ searchParams }: Props) {
                 </div>
 
                 {/* Actions bar */}
-                {(canConfirm || canCancel || canReview || threadId || isDispute) && (
-                  <div className="border-t border-border bg-muted/30 px-5 py-3 flex flex-wrap items-center gap-3">
+                <div className="border-t border-border bg-muted/30 px-5 py-3 flex flex-wrap items-center gap-3">
+                  <Link
+                    href={`/customer-account/bookings/${booking.id}`}
+                    className="inline-flex items-center gap-1.5 text-xs font-medium text-primary hover:underline cursor-pointer"
+                  >
+                    View booking
+                  </Link>
+                  {(canConfirm || canCancel || canReview || threadId || isDispute) && (
+                  <>
                     {threadId && (
                       <Link
                         href={`/customer-account/messages/${threadId}`}
@@ -201,15 +219,14 @@ export default async function MyBookingsPage({ searchParams }: Props) {
                     )}
 
                     {canConfirm && (
-                      <form action={disputeBooking}>
-                        <input type="hidden" name="bookingId" value={booking.id} />
-                        <button
-                          type="submit"
-                          className="inline-flex items-center gap-1.5 rounded-lg border border-orange-300 bg-orange-50 px-3 py-1.5 text-xs font-semibold text-orange-700 hover:bg-orange-100 transition-colors cursor-pointer"
-                        >
-                          Dispute
-                        </button>
-                      </form>
+                      // Raising an issue needs a reason, which does not fit a
+                      // list row — the detail page carries the full form.
+                      <Link
+                        href={`/customer-account/bookings/${booking.id}`}
+                        className="inline-flex items-center gap-1.5 rounded-lg border border-orange-300 bg-orange-50 px-3 py-1.5 text-xs font-semibold text-orange-700 hover:bg-orange-100 transition-colors cursor-pointer"
+                      >
+                        Raise an issue
+                      </Link>
                     )}
 
                     {canCancel && (
@@ -227,11 +244,12 @@ export default async function MyBookingsPage({ searchParams }: Props) {
 
                     {isDispute && (
                       <span className="text-xs text-orange-700 bg-orange-50 border border-orange-200 rounded-lg px-3 py-1.5">
-                        Dispute raised — our team will be in touch.
+                        Issue raised — our team will be in touch.
                       </span>
                     )}
-                  </div>
-                )}
+                  </>
+                  )}
+                </div>
               </article>
             )
           })}
