@@ -12,6 +12,7 @@ import { NameSearchBar } from '@/components/NameSearchBar'
 import { SearchFilters } from '@/components/SearchFilters'
 import { Pagination } from '@/components/Pagination'
 import { JsonLd } from '@/components/seo/JsonLd'
+import { FunnelEventTracker } from '@/components/analytics/FunnelEventTracker'
 import {
   breadcrumbJsonLd,
   canonicalAlternates,
@@ -116,6 +117,11 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
 
   return (
     <main className="mx-auto max-w-7xl px-4 py-10">
+      <FunnelEventTracker
+        eventType="search_performed"
+        category={typeSlug || null}
+        dedupeKey={`${query}:${typeSlug}:${tagFilter.join(',')}:${page}`}
+      />
       <JsonLd
         data={[
           breadcrumbJsonLd([

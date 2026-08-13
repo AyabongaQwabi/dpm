@@ -1,0 +1,22 @@
+{
+  "batchSize": 40,
+  "maxAttempts": 5,
+  "customer": {
+    "_comment": "TODO(aya): confirm delayHours — how long after booking completion the customer NPS email fires, so it doesn't collide with the immediate review-prompt email. Suggested default 24.",
+    "delayHoursConfirmed": false,
+    "delayHours": 24,
+    "subject": "How did it go?",
+    "heading": "Quick question about your booking",
+    "body": "On a scale of 0 to 10, how likely are you to recommend ServicePros to a friend or colleague?"
+  },
+  "provider": {
+    "_comment": "TODO(aya): confirm both — firstSurveyDays is days after claim/signup before the first provider NPS email (suggested 30). quarterlyIntervalDays is the gap between repeat sends (suggested 90).",
+    "firstSurveyDaysConfirmed": false,
+    "firstSurveyDays": 30,
+    "quarterlyIntervalDaysConfirmed": false,
+    "quarterlyIntervalDays": 90,
+    "subject": "How's ServicePros working for your business?",
+    "heading": "Quick question about your experience",
+    "body": "On a scale of 0 to 10, how likely are you to recommend ServicePros to another business owner?"
+  }
+}

@@ -25,6 +25,15 @@ export type SponsoredPlacementSource = 'purchased' | 'rescue_grant'
 export type SponsoredPlacementStatus = 'active' | 'paused' | 'expired' | 'cancelled'
 export type NurtureEmailAudience = 'provider' | 'customer'
 export type NurtureEmailStatus = 'queued' | 'sending' | 'sent' | 'skipped' | 'failed'
+export type ProviderAnalyticsEventType =
+  | 'profile_view'
+  | 'service_view'
+  | 'service_booking_click'
+  | 'profile_contact_click'
+  | 'profile_service_click'
+  | 'profile_share_click'
+export type FunnelEventType = 'search_performed' | 'service_viewed' | 'review_submitted'
+export type BookingSource = 'site' | 'embed'
 export type InputType =
   | 'short_text'
   | 'rich_text'
@@ -233,6 +242,80 @@ export interface NurtureEmailQueue {
   updated_at: string
 }
 
+export interface ProviderAnalyticsEvent {
+  id: string
+  provider_id: string
+  service_id: string | null
+  event_type: ProviderAnalyticsEventType
+  source: string
+  path: string | null
+  referrer: string | null
+  session_hash: string | null
+  user_agent: string | null
+  metadata: Record<string, unknown>
+  created_at: string
+}
+
+export interface FunnelEvent {
+  id: string
+  event_type: FunnelEventType
+  category: string | null
+  city: string | null
+  provider_id: string | null
+  session_id: string
+  metadata: Record<string, unknown>
+  created_at: string
+}
+
+export interface LiquidityCellSnapshot {
+  id: string
+  category: string
+  city: string
+  provider_count: number
+  completed_bookings_30d: number
+  response_rate_24h: number | null
+  median_response_minutes: number | null
+  search_performed_count: number
+  service_viewed_count: number
+  booking_started_count: number
+  booking_completed_count: number
+  is_liquid: boolean
+  computed_at: string
+}
+
+export type SatisfactionSide = 'customer' | 'provider'
+export type NpsSurveyStatus = 'queued' | 'sending' | 'sent' | 'skipped' | 'failed'
+
+export interface NpsSurveyQueue {
+  id: string
+  side: SatisfactionSide
+  recipient_id: string
+  to_email: string
+  recipient_name: string | null
+  booking_id: string | null
+  survey_token: string
+  scheduled_for: string
+  status: NpsSurveyStatus
+  attempts: number
+  sent_at: string | null
+  last_error: string | null
+  idempotency_key: string
+  created_at: string
+  updated_at: string
+}
+
+export interface SatisfactionResponse {
+  id: string
+  side: SatisfactionSide
+  score: number
+  verbatim: string | null
+  category: string | null
+  city: string | null
+  booking_id: string | null
+  survey_id: string | null
+  created_at: string
+}
+
 export interface Service {
   id: string
   provider_id: string
@@ -341,6 +424,8 @@ export interface Booking {
   commission_amount: number
   provider_payout_amount: number
   cancellation_reason: string | null
+  source: BookingSource
+  origin_domain: string | null
   requested_at: string
   created_at: string
   updated_at: string

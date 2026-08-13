@@ -35,6 +35,7 @@ import {
 } from '@/lib/domain/booking'
 import { refundBookingCredits } from '@/lib/actions/credits'
 import { sendBookingLifecycleEmail } from '@/lib/booking-emails'
+import { enqueueCustomerNps } from '@/lib/actions/nps'
 
 export interface TransitionOutcome {
   ok: boolean
@@ -154,6 +155,11 @@ export async function transitionBooking(params: {
 
   if (to === 'completed') {
     await recordPayout(row)
+    // Fire-and-forget, same as the lifecycle email below: an NPS-enqueue
+    // failure must never roll back the transition. Idempotent per booking
+    // (idempotency_key = `customer:${bookingId}`), so a retried/no-op
+    // transition never double-queues.
+    void enqueueCustomerNps(bookingId)
   }
 
   // Fire-and-forget: a Resend failure must never roll back the transition.

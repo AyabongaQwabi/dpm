@@ -9,6 +9,8 @@ import { PackageSelector } from '@/components/PackageSelector'
 import { JsonLd } from '@/components/seo/JsonLd'
 import type { DiscountType, ServiceType } from '@/lib/db'
 import { breadcrumbJsonLd, canonicalAlternates, serviceJsonLd } from '@/lib/seo'
+import { ProviderAnalyticsTracker } from '@/components/analytics/ProviderAnalyticsTracker'
+import { FunnelEventTracker } from '@/components/analytics/FunnelEventTracker'
 
 interface Props {
   params: Promise<{ id: string }>
@@ -171,6 +173,14 @@ export default async function ServiceDetailPage({ params }: Props) {
 
   return (
     <main className="mx-auto max-w-6xl px-4 py-10">
+      <ProviderAnalyticsTracker providerId={provider.id} serviceId={service.id} eventType="service_view" />
+      <FunnelEventTracker
+        eventType="service_viewed"
+        category={category?.slug ?? providerType?.slug ?? null}
+        city={provider.location_city}
+        providerId={provider.id}
+        dedupeKey={service.id}
+      />
       <JsonLd
         data={[
           breadcrumbJsonLd([
@@ -417,6 +427,7 @@ export default async function ServiceDetailPage({ params }: Props) {
             isSignedIn={!!user}
             signInUrl={signInUrl}
             providerSlug={providerSlug}
+            providerId={provider.id}
           />
         </aside>
       </div>

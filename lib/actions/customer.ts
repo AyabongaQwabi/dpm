@@ -12,6 +12,7 @@ import {
   isValidRating,
 } from '@/lib/domain/reviews'
 import { REVIEW_EDITABLE_FOR_DAYS } from '@/lib/booking-lifecycle-config'
+import { logFunnelEvent } from '@/lib/liquidity/log-funnel-event'
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -149,6 +150,26 @@ export async function submitReview(formData: FormData) {
     rating_communication: subRating('rating_communication'),
     rating_timeliness: subRating('rating_timeliness'),
     rating_value: subRating('rating_value'),
+  })
+
+  const { data: providerForEvent } = await admin
+    .from('providers')
+    .select('location_city, provider_types(provider_categories(slug))')
+    .eq('id', booking.provider_id)
+    .maybeSingle()
+  const providerType = Array.isArray(providerForEvent?.provider_types)
+    ? providerForEvent.provider_types[0]
+    : providerForEvent?.provider_types
+  const category = Array.isArray(providerType?.provider_categories)
+    ? providerType.provider_categories[0]
+    : providerType?.provider_categories
+
+  await logFunnelEvent({
+    eventType: 'review_submitted',
+    category: category?.slug ?? null,
+    city: providerForEvent?.location_city ?? null,
+    providerId: booking.provider_id,
+    sessionId: customer.id,
   })
 
   revalidateAll()

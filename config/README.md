@@ -237,3 +237,35 @@ Values whose `*Confirmed` flag is `false` are **suggested defaults awaiting sign
 Imported by `lib/booking-lifecycle-config.ts`, then used by `lib/actions/booking-transitions.ts`, `lib/actions/booking-files.ts`, `lib/actions/booking-messages.ts`, `lib/actions/reviews.ts`, `lib/booking-emails.ts`, both booking detail pages, and `/api/cron/booking-expiry`.
 
 **Database mirror:** `files.maxFileSizeMb` (20 MB) is mirrored as the `booking-files` storage bucket's `file_size_limit` (`20971520` bytes) in `supabase/migrations/20260818000001_booking_lifecycle_tables.sql`. Edit both together — the bucket limit is enforced by Supabase independently of the application check.
+
+## `liquidity.json`
+
+Thresholds for the internal liquid-cell dashboard and leakage-measurement tooling (admin-only; nothing here changes what a customer or provider sees).
+
+Values whose `*Confirmed` flag is `false` are **suggested defaults awaiting sign-off** (`TODO(aya): confirm` in the section's `_comment`). Do not treat them as agreed commercial terms.
+
+- `liquidCell.minProvidersPerCell`: minimum claimed, bookable providers for a category x city cell to count as liquid. **Unconfirmed — suggested 8.**
+- `liquidCell.minResponseRate24h`: minimum share of bookings with a provider's first message within 24h of acceptance. **Unconfirmed — suggested 0.80.**
+- `liquidCell.minCompletedBookings30d`: minimum completed bookings in the trailing 30 days. **Unconfirmed — suggested 1.**
+- `leakage.windowDays`: days after a `service_viewed` funnel event before it counts as "viewed, never booked." **Unconfirmed — suggested 30.**
+- `leakage.csvSampleSize`: max rows in one manual leakage-sample CSV export. **Unconfirmed — suggested 50.** This only backs a human-triggered export for phone/WhatsApp follow-up — nothing here sends outreach automatically.
+
+Imported by `lib/liquidity-config.ts`, then used by the internal liquidity dashboard queries and the manual leakage-sample export.
+
+No database mirror.
+
+## `satisfaction.json`
+
+Timing and copy for the two independent NPS survey flows: customer (fired once at booking completion) and provider (day 30 post-claim, then quarterly). The two sides are never blended — every read of `satisfaction_responses` filters on `side`.
+
+Values whose `*Confirmed` flag is `false` are **suggested defaults awaiting sign-off** (`TODO(aya): confirm` in the section's `_comment`). Do not treat them as agreed commercial terms.
+
+- `batchSize` / `maxAttempts`: cron batch size and max send attempts before a survey email is marked `failed`. Code constants, not commercial values — matches `nurture-emails.json`'s shape.
+- `customer.delayHours`: hours after booking completion before the customer NPS email sends, offset from the immediate review-prompt email. **Unconfirmed — suggested 24.**
+- `provider.firstSurveyDays`: days after claim (or signup, for providers with no claim flow) before the first provider NPS email. **Unconfirmed — suggested 30.**
+- `provider.quarterlyIntervalDays`: gap between repeat provider NPS sends after the first. **Unconfirmed — suggested 90.**
+- `customer.subject` / `.heading` / `.body` and `provider.subject` / `.heading` / `.body`: survey email copy, one set per side.
+
+Imported by `lib/satisfaction-config.ts`, then used by `lib/actions/nps.ts` (enqueue, send, and submit) and the `/api/cron/nps-surveys` job.
+
+No database mirror.

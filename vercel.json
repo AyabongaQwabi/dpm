@@ -3,6 +3,8 @@
     { "path": "/api/cron/booking-expiry", "schedule": "0 5 * * *" },
     { "path": "/api/cron/subscription-expiry", "schedule": "0 6 * * *" },
     { "path": "/api/cron/story-expiry", "schedule": "0 7 * * *" },
-    { "path": "/api/cron/nurture-emails", "schedule": "0 8 * * *" }
+    { "path": "/api/cron/nurture-emails", "schedule": "0 8 * * *" },
+    { "path": "/api/cron/liquidity-rollup", "schedule": "0 4 * * *" },
+    { "path": "/api/cron/nps-surveys", "schedule": "0 9 * * *" }
   ]
 }

@@ -1,0 +1,18 @@
+{
+  "liquidCell": {
+    "_comment": "TODO(aya): confirm all three — thresholds a category x city cell must clear to be flagged 'liquid' on the internal dashboard. minProvidersPerCell is the count of claimed, bookable providers (suggested 8). minResponseRate24h is the share of bookings with a provider's first message (booking_messages or messages, whichever comes first) within 24h of acceptance (suggested 0.80). minCompletedBookings30d is the minimum completed-booking count in the trailing 30 days (suggested 1).",
+    "minProvidersPerCellConfirmed": false,
+    "minProvidersPerCell": 8,
+    "minResponseRate24hConfirmed": false,
+    "minResponseRate24h": 0.80,
+    "minCompletedBookings30dConfirmed": false,
+    "minCompletedBookings30d": 1
+  },
+  "leakage": {
+    "_comment": "TODO(aya): confirm both — windowDays is how long after a service_viewed funnel event we wait before counting it as 'viewed, never booked' (suggested 30). csvSampleSize is the max rows a manual leakage-sample export pulls at once (suggested 50); this only backs a human-triggered export, never automated outreach.",
+    "windowDaysConfirmed": false,
+    "windowDays": 30,
+    "csvSampleSizeConfirmed": false,
+    "csvSampleSize": 50
+  }
+}
