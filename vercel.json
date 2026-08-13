@@ -1,4 +1,10 @@
 {
+  "functions": {
+    "app/api/providers/[id]/print-kit/**/route.ts": {
+      "memory": 2048,
+      "maxDuration": 60
+    }
+  },
   "crons": [
     { "path": "/api/cron/booking-expiry", "schedule": "0 5 * * *" },
     { "path": "/api/cron/subscription-expiry", "schedule": "0 6 * * *" },

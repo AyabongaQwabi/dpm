@@ -7,6 +7,7 @@ import { profileCompleteness } from '@/lib/domain/profile-completeness'
 import { hasEntitlement } from '@/lib/actions/pro-membership'
 import { ENTITLEMENT_KEYS } from '@/lib/entitlements'
 import { loadProviderAnalyticsSummary } from '@/lib/provider-analytics'
+import { providerHasPrintEligibility } from '@/lib/domain/print-kit'
 import Link from 'next/link'
 import { Icon } from '@/components/ui/Icon'
 
@@ -48,6 +49,7 @@ export default async function ProviderDashboardHome() {
         location_city,
         phone,
         is_published,
+        claim_status,
         verified_contact,
         verified_google,
         verified_cipc,
@@ -92,6 +94,7 @@ export default async function ProviderDashboardHome() {
     location_city: null,
     phone: null,
     is_published: provider.is_published,
+    claim_status: 'claimed',
     verified_contact: false,
     verified_google: false,
     verified_cipc: false,
@@ -116,6 +119,7 @@ export default async function ProviderDashboardHome() {
       profile.verified_fica,
     ].filter(Boolean).length,
   })
+  const printKitEligible = providerHasPrintEligibility(profile)
 
   return (
     <div>
@@ -196,6 +200,7 @@ export default async function ProviderDashboardHome() {
           }))}
           completeness={completeness}
           analytics={analytics}
+          printKitEligible={printKitEligible}
         />
       </div>
     </div>

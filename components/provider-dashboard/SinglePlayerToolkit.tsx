@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react'
 import Link from 'next/link'
-import { ArrowRight, BadgeCheck, Copy, MessageCircle, QrCode } from 'lucide-react'
+import { ArrowRight, BadgeCheck, Copy, FileText, MessageCircle, QrCode, Sticker } from 'lucide-react'
 import type { ProfileCompletenessItem } from '@/lib/domain/profile-completeness'
 import type { AnalyticsRangeDays, ProviderAnalyticsMetric, ProviderAnalyticsSummary } from '@/lib/domain/provider-analytics'
 
@@ -27,6 +27,7 @@ interface SinglePlayerToolkitProps {
     nextItems: ProfileCompletenessItem[]
   }
   analytics: ProviderAnalyticsSummary
+  printKitEligible: boolean
 }
 
 function CopyButton({ value, label = 'Copy' }: { value: string; label?: string }) {
@@ -95,6 +96,7 @@ export function SinglePlayerToolkit({
   services,
   completeness,
   analytics,
+  printKitEligible,
 }: SinglePlayerToolkitProps) {
   const publishedServices = services.filter((service) => service.isPublished)
   const [rangeDays, setRangeDays] = useState<AnalyticsRangeDays>(30)
@@ -194,6 +196,43 @@ export function SinglePlayerToolkit({
             Profile QR
           </a>
         </div>
+
+        {printKitEligible ? (
+          <div className="mt-3">
+            <p className="text-xs font-semibold uppercase tracking-wide text-primary-accent">Evangelism kit</p>
+            <p className="mt-1 text-xs text-muted-foreground">Print-ready PDFs, regenerated fresh on every download so badge status is always current.</p>
+            <div className="mt-3 grid gap-3 sm:grid-cols-3">
+              <a
+                href={`/api/providers/${providerId}/print-kit/decal-a5.pdf`}
+                download
+                className="inline-flex items-center justify-center gap-2 rounded-xl border bg-background px-4 py-3 text-sm font-semibold hover:bg-muted"
+              >
+                <Sticker className="h-4 w-4" />
+                A5 decal
+              </a>
+              <a
+                href={`/api/providers/${providerId}/print-kit/certificate-a4.pdf`}
+                download
+                className="inline-flex items-center justify-center gap-2 rounded-xl border bg-background px-4 py-3 text-sm font-semibold hover:bg-muted"
+              >
+                <FileText className="h-4 w-4" />
+                A4 certificate
+              </a>
+              <a
+                href={`/api/providers/${providerId}/print-kit/sticker-circular.pdf`}
+                download
+                className="inline-flex items-center justify-center gap-2 rounded-xl border bg-background px-4 py-3 text-sm font-semibold hover:bg-muted"
+              >
+                <QrCode className="h-4 w-4" />
+                60mm sticker
+              </a>
+            </div>
+          </div>
+        ) : (
+          <div className="mt-3 rounded-xl border border-dashed bg-muted/20 p-4 text-xs text-muted-foreground">
+            Claim your profile and earn at least one verification badge to unlock the print-ready evangelism kit (decal, certificate, sticker).
+          </div>
+        )}
       </section>
 
       <aside className="space-y-6">

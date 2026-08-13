@@ -1,0 +1,265 @@
+# Claude Code prompt — Service Booking Lifecycle (ServicePros / DPM engine)
+
+Repository: `/Users/nonwork/dev/servicepros/dpm`
+Stack: Next.js (App Router) + TypeScript, Supabase (DB / Auth / Storage), Tailwind, Resend, Yoco, pnpm, Vitest.
+
+---
+
+## STEP 0 — READ THE CODEBASE FIRST. WRITE NOTHING YET.
+
+Do not create a single file, migration, or component until you have completed this step and I have replied.
+
+Read the actual code and report back on **exactly** what exists today. Do not guess, do not infer from file names, and do not assume anything in this prompt is already true of the codebase. Where this prompt describes something that already exists in a different shape, **the codebase wins** — flag the difference and stop.
+
+Report on:
+
+### Data layer
+1. Every migration in `supabase/migrations/` that touches: `bookings`, `services`, `service_packages`, `providers`, `customers`, `reviews`, `messages`, `credit_*`, `notifications`.
+2. The current `bookings` table (if it exists): every column, its type, defaults, foreign keys, and — critically — **the exact current status/state values** (enum type, CHECK constraint, or free text) and where those values are read or written in application code.
+3. The credit wallet as it actually stands: the `credit_wallet_spend` function signature and its parameters, where `credit_balance` lives, what the credit transaction table is called and its columns, and whether any refund path exists.
+4. **The existing service requirements feature.** Providers can already add requirements to a service — find it and document it fully: the table name and every column, how requirements attach to a service (and whether they can attach per package), whether they support a required/optional flag, accepted file types, multiple-file allowance, and ordering. Find the provider-side form that creates them and note its file path. Report whether requirements are currently surfaced anywhere customer-facing at all.
+5. Any existing `reviews`, `ratings`, `messages`, `conversations`, `threads`, `attachments`, or `files` tables — including ones that are defined but unused.
+6. Any cached aggregate rating columns on `providers` or `services` (e.g. `rating`, `review_count`, `average_rating`) and whether they are maintained by trigger, by application code, or not at all.
+7. All existing Supabase Storage buckets, their public/private setting, and the RLS policies on `storage.objects`.
+8. The RLS policy pattern used across the project — how a customer row and a provider row are matched to `auth.uid()`. I need the exact pattern so new policies match it.
+
+### Application layer
+9. The customer dashboard routes and layout — file paths, and how the nav/sidebar is composed.
+10. The provider dashboard routes and layout — same.
+11. Every existing booking-related route, server action, API route, and component.
+12. The Resend integration: where the client lives, where templates live, how emails are currently composed and sent, and what the sender identity is.
+13. The Yoco integration: where the checkout is created, where the webhook handler is, and what it currently does on success. Confirm whether the credit purchase flow is live end to end or only partially built.
+14. Where commercial values are read from (`platform_config`, `config/*.json`, env, or hardcoded) — specifically commission brackets, package ceilings, and credit promotion settings.
+15. The Vitest setup and where existing tests live.
+
+### Then answer these questions directly
+
+- Does the existing service requirements feature already carry a required/optional flag, accepted file types, and a multiple-file allowance? If any of those are missing, say so — I need to know before you propose a migration.
+- Does a booking record already exist end to end (create → provider sees it), or is this greenfield?
+- Can a customer today buy credits and have the balance land correctly? Yes/no, and where it breaks if no.
+- What is the current status vocabulary for a booking, and does it need extending or replacing?
+- Is there any existing messaging primitive I should extend rather than build new?
+- Is there any existing file-upload primitive (provider portfolio, verification documents) whose bucket, helper functions, and validation I should reuse?
+
+**Then stop and wait for my go-ahead.** Do not begin Part 1.
+
+---
+
+## Ground rules for the whole build
+
+- **No invented commercial values.** Commission rates, credit pack amounts, package ceilings, file size limits, timeout windows — none of these get hardcoded. Read them from `platform_config` or a JSON config file at runtime. Where a value is not yet confirmed, write `TODO(aya): confirm` in the config with a suggested default clearly marked as a suggestion.
+- **Yoco stays isolated.** All Yoco-specific code stays behind a single payment provider module. Switching to PayFast or Paystack later must remain a one-file change. Do not let Yoco types or field names leak into booking or wallet code.
+- **Money is integers.** Follow whatever convention already exists in the codebase. If conventions are mixed, tell me before writing anything new.
+- **Providers never pay to compete for leads.** Nothing in this build charges a provider to receive, view, or respond to a booking. Commission is charged on completed, paid work only.
+- **Legal and policy copy** (cancellation terms, refund terms, dispute wording) gets a `TODO(aya): legal review` placeholder. Do not draft it.
+- **Every new table gets RLS.** No table ships with RLS disabled. Every policy gets a test.
+- **Migrations are idempotent and additive.** Never drop or rewrite an existing column without flagging it to me first.
+- Build in the order below. After each Part, run `pnpm typecheck`, `pnpm lint`, `pnpm test`, and report before moving on.
+
+---
+
+## PART 1 — Credits into the wallet (verify, don't rebuild)
+
+Only build what your Step 0 report shows is missing.
+
+The customer must be able to buy credits (1 credit = R1) and see the balance move. Credits are purchased through Yoco checkout and are only credited **on webhook receipt**, never on client-side redirect success. The webhook handler must be idempotent — a replayed webhook must not double-credit.
+
+Required outcomes:
+- Balance visible on the customer dashboard overview and on any screen where credits are about to be spent.
+- A transaction history on the customer's account page: date, type (purchase / spend / refund), amount, and what it was for (service name, provider name, booking reference).
+- Insufficient balance at booking time shows the shortfall and links to top-up with the shortfall pre-filled.
+
+If all of this already works, say so and move on. Do not refactor a working wallet.
+
+---
+
+## PART 2 — The booking record and its lifecycle
+
+### Status model
+
+Reconcile this against the existing status vocabulary you found in Step 0. If the existing values differ, propose a mapping and wait for my approval before migrating.
+
+```
+pending_acceptance   → customer has booked and paid credits; provider has not yet responded
+accepted             → provider accepted; requirements outstanding
+in_progress          → work underway
+completed_by_provider→ provider marked work done; awaiting customer confirmation
+completed            → customer confirmed; payout recorded; review window opens
+declined             → provider declined; credits refunded to wallet
+cancelled            → cancelled before work began; credits refunded to wallet
+disputed             → customer raised an issue after provider marked complete
+```
+
+Rules:
+- Credits are debited at the moment the booking is confirmed, not at completion.
+- `declined` and `cancelled` refund **credits to the wallet**, never cash. This is deliberate and must be consistent everywhere.
+- Transitions are enforced server-side in one place — a single `transitionBooking()` function that validates the from-state, the actor's role, and writes an audit row. No component or route may write `status` directly.
+- Every transition writes to a `booking_events` table: booking_id, from_status, to_status, actor_id, actor_role, note, created_at. This table is the source of truth for the customer-facing timeline.
+- `TODO(aya): confirm` — how many days after `completed_by_provider` a booking auto-completes if the customer does nothing. Suggested default: 7 days. Build the config key and the job stub; do not enable auto-completion until I confirm.
+
+### Payout on completion
+
+On transition to `completed`, create a `provider_payouts` row (extend the existing table if Step 0 found one): booking_id, provider_id, gross_amount, commission_amount, net_payout_amount, status `pending`, created_at. Commission is calculated by reading the bracket configuration at runtime. Do not process any automated payout. Show the provider: "Payout of R[X] is being processed."
+
+---
+
+## PART 3 — Surfacing requirements to the customer, and file exchange
+
+### The requirements feature already exists. Do not rebuild it.
+
+Providers can already add requirements to a service, and there is already a form for it. **Do not create a second requirements table, a second editor, or a parallel model.** Everything below builds on whatever you found in Step 0.
+
+What is missing is the other three quarters of the loop:
+
+1. The customer never sees the requirements before or after booking.
+2. The customer has no way to upload files against them.
+3. The provider has no way to view or download what was uploaded.
+
+Build those three things on top of the existing definition.
+
+If the existing requirements shape is missing a field this build needs — a required/optional flag, accepted file types, a multiple-file allowance, or a sort order — do **not** silently work around it and do not invent a default. Propose an additive migration plus the small edit to the existing provider form, show me the diff, and wait. Adding a nullable column to the existing table is fine; changing its meaning is not.
+
+### The customer must see requirements before they commit
+
+Requirements are part of what the customer is agreeing to, so they cannot first appear after payment.
+
+- On the service page, show a plain-language block: "What this provider will need from you", listing each requirement's label and description, with required items marked. Read-only, no upload here.
+- In the booking confirmation step, repeat the list compactly above the confirm-and-pay action so nobody is surprised by what they owe after credits leave their wallet.
+- If a service has no requirements defined, render nothing at all — no empty state, no "none required" line.
+
+### Requirements are snapshotted at booking
+
+When a booking is created, copy the service's current requirements into `booking_requirements` rows tied to that booking — label, description, required flag, accepted types, multiple-file allowance, sort order, plus a `source_requirement_id` pointing back at the original row.
+
+This snapshot is deliberate. If the provider later edits or deletes a requirement on the service, bookings already in flight must not change underneath the customer. Every customer-facing and provider-facing screen in this build reads `booking_requirements`, never the live service requirements.
+
+### Customer uploads
+
+- Uploads go to a **private** Supabase Storage bucket. Never public. Access is always through short-lived signed URLs generated server-side after an authorisation check.
+- Path convention: `bookings/{booking_id}/{requirement_id}/{uuid}-{sanitised_filename}`.
+- Validate on the server, not only the client: file type against the requirement's accepted types, and file size.
+- `TODO(aya): confirm` — max file size per upload and max total per booking. Suggested defaults: 10 MB per file, 50 MB per booking. Put both in config.
+- Store an `booking_files` row per upload: booking_id, requirement_id (nullable, so ad-hoc files are allowed), uploaded_by, uploader_role, storage_path, original_filename, mime_type, size_bytes, created_at, deleted_at.
+- The customer can replace or remove a file while the booking is not yet `completed`. Removal is a soft delete; the storage object is removed by a cleanup job, not inline.
+- Providers can upload too — quotes, before/after photos, completion certificates. Same table, `uploader_role = 'provider'`.
+
+### Progress surface
+
+Both dashboards show requirement completion as a count and a list: "3 of 5 requirements uploaded", each item showing outstanding or uploaded, and when uploaded the file name, size, upload date and a download control.
+
+**Customer side:** the panel sits high on the booking page and stays visually prominent while any required item is outstanding. Uploading is the primary action of the page until it isn't.
+
+**Provider side:** the same list in read-and-download mode. The provider sees each requirement, whether it has been met, and can download every file the customer has uploaded — individually, and as a single zip of all files on the booking. A clear indicator shows what is still outstanding, alongside the nudge action described in Part 5.
+
+Downloads for both sides go through a server route that checks the requester is a party to the booking, then issues a short-lived signed URL. Never expose a storage path to the client. Log every download to `booking_events` as a non-status event so there is a record of when the provider actually collected the files.
+
+---
+
+## PART 4 — Booking messages
+
+One message thread per booking. Not a general inbox — scope it tightly.
+
+- `booking_messages`: booking_id, sender_id, sender_role, body (plain text; sanitise on the way in), created_at, read_at.
+- Attachments in messages reuse `booking_files` with a nullable `message_id` — one file system, not two.
+- RLS: only the booking's customer and the booking's provider can select or insert. Platform admins per the existing admin pattern.
+- Realtime: use Supabase realtime subscriptions if the project already uses them; otherwise poll on a sensible interval and note the tradeoff. Do not add a new realtime dependency without telling me.
+- Unread count badge on both dashboards.
+- Messaging closes to new messages `TODO(aya): confirm` days after `completed`. Suggested default: 30 days, then read-only.
+- Do not build contact-detail scrubbing or off-platform-leakage detection in this pass. Flag it as a future item.
+
+---
+
+## PART 5 — The two booking detail pages
+
+### Customer: `/dashboard/bookings/[id]`
+
+- Header: service name, provider name (linking to the provider profile), booking reference, current status as a plain-language badge, total credits spent.
+- A vertical timeline built from `booking_events` — plain language, not enum names. "You booked this service" → "Provider accepted" → "Work started" → and so on.
+- The requirements panel with upload controls, prominent while requirements are outstanding.
+- The message thread.
+- Actions available by state: cancel (only before work begins), confirm completion, raise an issue, leave a review.
+
+### Provider: `/dashboard/bookings/[id]`
+
+- The same booking, from the provider's side.
+- Customer name and the contact details the customer agreed to share. Nothing more.
+- Accept / decline actions while `pending_acceptance`, with an optional decline reason that goes into the customer email.
+- Mark as started, mark as complete.
+- The requirements panel in read-and-download mode, with a clear indicator when the customer still owes files, and a "nudge customer" action that sends a reminder email (rate-limited — `TODO(aya): confirm`, suggested max once per 24 hours).
+- The message thread.
+- Payout state once complete.
+
+Also add booking **list** views for both dashboards: filterable by status, sorted with action-needed items first.
+
+---
+
+## PART 6 — Emails (Resend)
+
+Use the existing Resend client and template pattern. Match the existing brand treatment — do not invent new styling. If templates are currently inline strings, follow that; if there is a template directory, add to it.
+
+Every email needs a plain-text alternative and a single clear primary button.
+
+| Trigger | To | Contains |
+|---|---|---|
+| Booking confirmed | Customer | Confirmation, what was booked and from whom, credits spent, **the full list of requirements they must upload**, and a primary button "Upload your requirements" linking to the booking in their dashboard |
+| New booking | Provider | Service, customer first name, amount, requirement summary, button to the booking |
+| Provider accepted | Customer | Confirmation plus outstanding requirements if any, button to booking |
+| Provider declined | Customer | Decline reason if given, credits returned to wallet, button to browse alternatives |
+| Requirements reminder | Customer | Outstanding items only, button to upload |
+| All requirements received | Provider | Button to the booking |
+| Work marked complete | Customer | Button to confirm and review |
+| Booking completed | Both | Customer: receipt plus review prompt. Provider: payout pending notice |
+| New message | Recipient | Sender name, a short preview, button to the thread. Rate-limited — do not send one per message in a rapid exchange. `TODO(aya): confirm` batching window, suggested 15 minutes |
+
+All email sending is fire-and-forget relative to the transaction: a Resend failure must never roll back a booking or a credit debit. Log failures.
+
+---
+
+## PART 7 — Reviews and ratings
+
+### Gating
+
+A review can only be written by the customer on a booking with status `completed`. One review per booking, editable by the customer for `TODO(aya): confirm` days (suggested 14), then locked. This gating is non-negotiable — it is what makes ServicePros reviews mean something. Enforce it in RLS, not only in the UI.
+
+### Shape
+
+`reviews`: booking_id (unique), customer_id, provider_id, service_id, rating (integer 1–5), body (text, optional), created_at, updated_at, status (`published` / `hidden` / `flagged`), provider_reply (text, nullable), provider_replied_at.
+
+Optionally capture sub-ratings if the schema is cheap to extend: quality, communication, timeliness, value. If you add them, the headline rating stays the single overall figure — sub-ratings are supplementary and must not be required.
+
+- The provider may reply once per review. The reply is public and cannot be edited after `TODO(aya): confirm` hours (suggested 24).
+- Providers cannot delete, hide, or hide-by-flagging a review. Flagging opens an admin review only.
+- Admin moderation uses the existing admin pattern. Hidden reviews are excluded from aggregates.
+
+### Display
+
+- On the provider profile: average rating, review count, distribution bar, and the review list with reviewer first name and initial, date, rating, body, provider reply, and the service that was booked.
+- On the service page: reviews for that service specifically, with a link to all reviews for the provider.
+- On search and listing cards: rating and count only if the provider has at least `TODO(aya): confirm` reviews (suggested 1 — but make it a config key so a minimum threshold can be raised later).
+- Maintain aggregates by database trigger on insert/update/delete, not by application code, and reconcile with whatever Step 0 found already on `providers`.
+- Add JSON-LD `AggregateRating` and `Review` structured data to provider profile pages, following the existing SEO/schema helpers in the project. Do not emit ratings markup for providers with zero published reviews.
+
+---
+
+## PART 8 — Tests, then a report
+
+Vitest, following existing test conventions:
+
+- State machine: every legal transition passes, every illegal one throws. Cover role checks — a customer cannot mark work complete, a provider cannot confirm completion.
+- Credits: debit on booking, refund on decline, refund on cancel, no double-debit on a retried submit, no double-credit on a replayed Yoco webhook.
+- RLS: a customer cannot read another customer's booking, files, or messages; a provider cannot read a booking they are not party to; an unauthenticated request gets nothing.
+- Uploads: type and size rejection server-side, signed URL issued only to parties to the booking.
+- Reviews: cannot review an incomplete booking, cannot review twice, cannot review someone else's booking, aggregates recompute correctly when a review is hidden.
+- Commission: bracket selection at each boundary, read from config not hardcoded.
+
+Then report back with: files created and modified, migrations added, every config key introduced with its `TODO(aya): confirm` status, anything in this prompt that conflicted with the codebase and how you resolved it, and anything you deliberately did not build.
+
+---
+
+## Out of scope for this pass — do not build
+
+Service Journeys and multi-provider bundles, disputes resolution workflow beyond raising the flag, automated provider payouts, off-platform contact detection, review incentives, scheduled/recurring bookings.
+
+Also out of scope: any redesign of the existing provider-side requirements form. Touch it only if Part 3 requires a new field, and only with my approval on the diff first.
+
+Note where the schema should leave room for these, but build none of them.

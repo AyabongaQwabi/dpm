@@ -55,6 +55,7 @@ const RECOMMENDATION_DEFAULTS: Record<string, number> = {
 
 interface ProfilePageProps {
   params: Promise<{ slug: string }>
+  searchParams: Promise<{ src?: string }>
 }
 
 export const revalidate = 1800
@@ -71,7 +72,7 @@ function isStoryStillLive(expiresAt: string): boolean {
 
 async function getProvider(slug: string) {
   const supabase = await createClient()
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from('providers')
     .select(`
       id,
@@ -122,6 +123,13 @@ async function getProvider(slug: string) {
     .order('created_at', { referencedTable: 'content_posts', ascending: false })
     .single()
 
+  // PGRST116 = no row matched the filter, i.e. a genuine 404. Any other
+  // error (rate limit, network hiccup, auth thrashing) should not be
+  // silently treated as "not found" — surface it instead.
+  if (error && error.code !== 'PGRST116') {
+    throw new Error(`Failed to load provider "${slug}": ${error.message}`)
+  }
+
   return data
 }
 
@@ -133,11 +141,15 @@ export async function generateMetadata({ params }: ProfilePageProps): Promise<Me
 
   const title = `${provider.business_name}${provider.location_city ? ` in ${provider.location_city}` : ''}`
   const profilePath = provider.slug ?? provider.id
+  const description = provider.bio?.slice(0, 160) ?? `View services, reviews, posts, and contact details for ${provider.business_name}.`
   return {
     title,
-    description: provider.bio?.slice(0, 160) ?? `View services, reviews, posts, and contact details for ${provider.business_name}.`,
+    description,
     alternates: canonicalAlternates(`/providers/${profilePath}`),
-    openGraph: provider.profile_image ? { images: [provider.profile_image] } : undefined,
+    // No explicit openGraph.images here — app/(public)/providers/[slug]/opengraph-image.tsx
+    // (name, badges, rating) is auto-discovered by Next and takes over the OG image.
+    openGraph: { type: 'website', locale: 'en_ZA', title, description },
+    twitter: { card: 'summary_large_image', title, description },
   }
 }
 
@@ -174,8 +186,10 @@ function tagNamesFromValue(value: unknown): string[] {
   return []
 }
 
-export default async function ProviderProfilePage({ params }: ProfilePageProps) {
+export default async function ProviderProfilePage({ params, searchParams }: ProfilePageProps) {
   const { slug } = await params
+  const { src } = await searchParams
+  const attributionSource = src === 'qr' ? 'qr' : 'site'
   const supabase = await createClient()
   const provider = await getProvider(slug)
 
@@ -361,13 +375,14 @@ export default async function ProviderProfilePage({ params }: ProfilePageProps) 
 
   return (
     <main>
-      <ProviderAnalyticsTracker providerId={provider.id} eventType="profile_view" />
+      <ProviderAnalyticsTracker providerId={provider.id} eventType="profile_view" source={attributionSource} />
       <FunnelEventTracker
         eventType="profile_viewed"
         category={category?.slug ?? providerType?.slug ?? null}
         city={provider.location_city}
         providerId={provider.id}
         dedupeKey={provider.id}
+        metadata={{ source: attributionSource }}
       />
       <JsonLd
         data={[

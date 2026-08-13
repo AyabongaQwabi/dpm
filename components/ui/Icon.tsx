@@ -44,6 +44,9 @@ import {
   LinkSimple,
   UsersThree,
   CaretDown,
+  Copy,
+  QrCode,
+  WhatsappLogo,
 } from "@phosphor-icons/react/ssr";
 import type { IconProps, Icon as PhosphorIcon } from "@phosphor-icons/react";
 
@@ -100,6 +103,10 @@ export const Icon = {
   link: make(LinkSimple),
   users: make(UsersThree),
   chevronDown: make(CaretDown),
+  copy: make(Copy),
+  qrCode: make(QrCode),
+  message: make(WhatsappLogo),
+  badgeCheck: make(SealCheck),
 };
 
 // Resolve a brand icon for a provider category by slug (falls back gracefully).

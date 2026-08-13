@@ -1,0 +1,17 @@
+{
+  "dpi": 300,
+  "decalA5": {
+    "widthMm": 148,
+    "heightMm": 210,
+    "bleedMm": 3
+  },
+  "certificateA4": {
+    "widthMm": 210,
+    "heightMm": 297,
+    "bleedMm": 0
+  },
+  "stickerCircular": {
+    "diameterMm": 60,
+    "bleedMm": 2
+  }
+}

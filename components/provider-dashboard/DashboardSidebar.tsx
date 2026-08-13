@@ -5,6 +5,17 @@ import { usePathname } from 'next/navigation'
 
 const NAV_ITEMS = [
   {
+    href: '/provider-dashboard',
+    label: 'Growth Hub',
+    exact: true,
+    icon: (
+      <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M3 17l6-6 4 4 7-7" />
+        <path d="M14 8h6v6" />
+      </svg>
+    ),
+  },
+  {
     href: '/provider-dashboard/bookings',
     label: 'Bookings',
     icon: (
@@ -148,7 +159,9 @@ export function DashboardSidebar({ hasProvider }: DashboardSidebarProps) {
     <aside className="w-56 flex-shrink-0 border-r bg-background hidden md:flex flex-col py-6 px-3 gap-1">
       {hasProvider
         ? NAV_ITEMS.map((item) => {
-            const active = pathname.startsWith(item.href)
+            const active = 'exact' in item && item.exact
+              ? pathname === item.href
+              : pathname.startsWith(item.href)
             return (
               <Link
                 key={item.href}

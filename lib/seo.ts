@@ -82,7 +82,10 @@ export function defaultOpenGraph(
   title: string,
   description: string,
   path = '/',
-  image: { url: string; width: number; height: number; alt: string } = DEFAULT_OG_IMAGE,
+  // Pass `null` to omit `images` entirely, e.g. for routes with a colocated
+  // opengraph-image.tsx — Next only falls back to that file convention when
+  // generateMetadata doesn't set openGraph.images itself.
+  image: { url: string; width: number; height: number; alt: string } | null = DEFAULT_OG_IMAGE,
 ): NonNullable<Metadata['openGraph']> {
   return {
     type: 'website',
@@ -91,20 +94,23 @@ export function defaultOpenGraph(
     siteName: SITE_NAME,
     title,
     description,
-    images: [image],
+    ...(image ? { images: [image] } : {}),
   }
 }
 
 export function defaultTwitter(
   title: string,
   description: string,
-  image: { url: string } = DEFAULT_OG_IMAGE,
+  // Pass `null` to omit `images` for routes with a colocated twitter-image
+  // or opengraph-image.tsx (Twitter falls back to opengraph-image when no
+  // twitter-image is defined).
+  image: { url: string } | null = DEFAULT_OG_IMAGE,
 ): NonNullable<Metadata['twitter']> {
   return {
     card: 'summary_large_image',
     title,
     description,
-    images: [image.url],
+    ...(image ? { images: [image.url] } : {}),
   }
 }
 

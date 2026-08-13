@@ -39,8 +39,10 @@ export async function generateMetadata({ params, searchParams }: PageProps): Pro
     title,
     description,
     alternates: canonicalAlternates(path),
-    openGraph: defaultOpenGraph(title, description, path),
-    twitter: defaultTwitter(title, description),
+    // images omitted — the colocated opengraph-image.tsx generates a
+    // city-specific image (name + provider count) instead of the default.
+    openGraph: defaultOpenGraph(title, description, path, null),
+    twitter: defaultTwitter(title, description, null),
     robots: page > 1 ? { index: false, follow: true } : seoIndexPolicy(total, MIN_TILE_PROVIDERS),
   }
 }

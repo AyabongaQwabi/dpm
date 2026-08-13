@@ -4,6 +4,17 @@ Configuration in this folder is for business-editable values that should not be 
 
 When adding a new `config/*.json` file, document it here in the same change: what each setting means, where it is imported, and whether it mirrors database or migration values.
 
+## `brand.json`
+
+House colours and wordmark shared by every generated-image feature (evangelism kit PDFs, dynamic OG images).
+
+- `colors.primary` / `.accent` / `.ink` / `.paper`: mirrors `--primary` / `--accent` in `app/globals.css` (default/Highveld theme; not per-vertical). `ink` and `paper` are print/image-specific near-black and off-white tones with no direct CSS variable equivalent.
+- `wordmark`: "Verified on ServicePros" wordmark text.
+
+Imported by `lib/brand-config.ts`, then re-exported through `lib/print-kit-config.ts` for the print-kit PDF routes and used directly by the OG image routes under `app/(public)/**/opengraph-image.tsx`.
+
+No database mirror.
+
 ## `contact-details.json`
 
 Named contacts and reason-specific inboxes for `/contact`.
@@ -130,6 +141,19 @@ Pro membership commercial and limit configuration.
 Imported by `lib/entitlements.ts`, then used by Pro purchase, cancellation, package-included Pro, gallery/listing caps, and entitlement tests.
 
 Mirrors the Pro membership migration’s intended commercial values; keep migration comments/seeds aligned if that migration changes.
+
+## `print-kit.json`
+
+Layout constants for the provider evangelism kit PDFs (A5 decal, A4 certificate, 60mm circular sticker).
+
+- `dpi`: target print resolution for generated PDFs.
+- `decalA5.widthMm` / `.heightMm` / `.bleedMm`: A5 decal artwork dimensions and bleed.
+- `certificateA4.widthMm` / `.heightMm` / `.bleedMm`: A4 verification certificate dimensions.
+- `stickerCircular.diameterMm` / `.bleedMm`: 60mm circular sticker dimensions and bleed.
+
+Imported by `lib/print-kit-config.ts`, then used by the three PDF route handlers under `app/api/providers/[id]/print-kit/`.
+
+No database mirror. Fulfilment/shipping pricing is out of scope for this pass — digital download only.
 
 ## `provider-wallet.json`
 
