@@ -10,6 +10,9 @@ import { canAfford, shortfall } from '@/lib/domain/credits'
 import { formatCredits } from '@/lib/format-credits'
 import type { ServicePricing } from '@/lib/domain/payments'
 import { canonicalAlternates } from '@/lib/seo'
+import { snapshotBookingRequirements } from '@/lib/actions/booking-requirements'
+import { sendBookingCreatedEmails } from '@/lib/booking-emails'
+import { RequirementsPreview } from '@/components/booking/RequirementsPreview'
 
 export const metadata: Metadata = {
   title: 'Checkout',
@@ -103,12 +106,22 @@ async function createBooking(formData: FormData) {
     booking_id: bookingId,
   })
 
+  // Freeze the package's current requirements onto the booking. If the
+  // provider later edits or deletes a slot, this booking does not change
+  // underneath the customer. Idempotent, so a retried submit is safe.
+  await snapshotBookingRequirements({ bookingId, packageId })
+
+  // Fire-and-forget: a Resend failure must never roll back the booking or the
+  // credit debit that already committed above.
+  void sendBookingCreatedEmails(bookingId)
+
   revalidatePath('/customer-account')
   revalidatePath('/customer-account/credits')
   revalidatePath('/provider-dashboard/messages')
   revalidatePath('/provider-dashboard/sales')
+  revalidatePath('/provider-dashboard/bookings')
 
-  redirect(`/checkout/confirmation?bookingId=${bookingId}`)
+  redirect(`/customer-account/bookings/${bookingId}`)
 }
 
 export default async function CheckoutPage({ searchParams }: Props) {
@@ -130,14 +143,15 @@ export default async function CheckoutPage({ searchParams }: Props) {
       .from('services')
       .select(`
         id, title, description, image, service_type,
-        provider:providers!inner(id, business_name, slug)
+        provider:providers!services_provider_id_fkey!inner(id, business_name, slug, is_published)
       `)
       .eq('id', serviceId)
       .eq('is_published', true)
+      .eq('provider.is_published', true)
       .single(),
     supabase
       .from('service_packages')
-      .select('id, name, description, price, discount_type, discount_amount, delivery_time, offerings')
+      .select('id, name, description, price, discount_type, discount_amount, delivery_time, offerings, requirements, requirement_file_slots')
       .eq('id', packageId)
       .eq('service_id', serviceId)
       .single(),
@@ -278,6 +292,14 @@ export default async function CheckoutPage({ searchParams }: Props) {
             className="w-full rounded-xl border border-input bg-background px-4 py-3 text-sm resize-y"
           />
         </div>
+
+        {/* Requirements repeated compactly above confirm-and-pay, so nobody
+            is surprised by what they owe after credits leave their wallet. */}
+        <RequirementsPreview
+          compact
+          requirements={pkg.requirements}
+          requirementFileSlots={pkg.requirement_file_slots}
+        />
 
         <p className="text-xs text-muted-foreground">
           Credits will be deducted immediately when you confirm. Your booking request will be sent to{' '}

@@ -91,7 +91,8 @@ export default async function ServiceDetailPage({ params }: Props) {
         ),
         service_packages:service_packages!service_packages_service_id_fkey(
           id, name, description, price, discount_type, discount_amount,
-          offerings, requirements, delivery_time, is_default, display_order
+          offerings, requirements, requirement_file_slots, delivery_time,
+          is_default, display_order
         ),
         reviews:reviews!reviews_service_id_fkey(
           id, rating, comment, created_at,
@@ -143,7 +144,8 @@ export default async function ServiceDetailPage({ params }: Props) {
   const packages = ((service.service_packages ?? []) as {
     id: string; name: string; description: string; price: number
     discount_type: DiscountType; discount_amount: number | null
-    offerings: unknown; requirements: string; delivery_time: string
+    offerings: unknown; requirements: string; requirement_file_slots: unknown
+    delivery_time: string
     is_default: boolean; display_order: number
   }[]).sort((a, b) => a.display_order - b.display_order)
 
@@ -406,7 +408,6 @@ export default async function ServiceDetailPage({ params }: Props) {
               discount_type: pkg.discount_type,
               discount_amount: pkg.discount_amount !== null ? Number(pkg.discount_amount) : null,
               offerings: Array.isArray(pkg.offerings) ? (pkg.offerings as string[]) : [],
-              requirements: pkg.requirements,
               delivery_time: pkg.delivery_time,
               is_default: pkg.is_default,
             }))}

@@ -13,7 +13,6 @@ interface Package {
   discount_type: DiscountType
   discount_amount: number | null
   offerings: string[]
-  requirements: string
   delivery_time: string
   is_default: boolean
 }
@@ -165,14 +164,6 @@ export function PackageSelector({ packages, serviceId, serviceName, ctaVerb, isS
                     </li>
                   ))}
                 </ul>
-              </div>
-            )}
-
-            {/* Requirements */}
-            {selectedPkg.requirements && (
-              <div className="rounded-xl bg-amber-50 border border-amber-200 px-4 py-3">
-                <p className="text-xs font-semibold text-amber-800 mb-1">Requirements</p>
-                <p className="text-xs text-amber-700 leading-relaxed">{selectedPkg.requirements}</p>
               </div>
             )}
 
