@@ -34,6 +34,8 @@ export async function proxy(request: NextRequest) {
     const headers = new Headers(request.headers)
     const ipCity = request.headers.get('x-vercel-ip-city')
     const ipCountry = request.headers.get('x-vercel-ip-country')
+    const ipLat = request.headers.get('x-vercel-ip-latitude')
+    const ipLng = request.headers.get('x-vercel-ip-longitude')
     if (ipCity && ipCountry === 'ZA') {
       try {
         headers.set('x-user-city', decodeURIComponent(ipCity))
@@ -41,6 +43,9 @@ export async function proxy(request: NextRequest) {
         headers.set('x-user-city', ipCity)
       }
     }
+    if (ipCountry) headers.set('x-user-ip-country', ipCountry)
+    if (ipLat) headers.set('x-user-ip-lat', ipLat)
+    if (ipLng) headers.set('x-user-ip-lng', ipLng)
     return NextResponse.next({ request: { headers } })
   }
 
@@ -59,6 +64,8 @@ export async function proxy(request: NextRequest) {
   // city names with spaces/accents.
   const ipCity = request.headers.get('x-vercel-ip-city')
   const ipCountry = request.headers.get('x-vercel-ip-country')
+  const ipLat = request.headers.get('x-vercel-ip-latitude')
+  const ipLng = request.headers.get('x-vercel-ip-longitude')
   if (ipCity && ipCountry === 'ZA') {
     try {
       requestHeaders.set('x-user-city', decodeURIComponent(ipCity))
@@ -66,6 +73,12 @@ export async function proxy(request: NextRequest) {
       requestHeaders.set('x-user-city', ipCity)
     }
   }
+  // Forwarded unsnapped so lib/tenant.ts can run nearest-known-city matching
+  // against the live DB city list, rather than trusting Vercel's city name
+  // verbatim (see ARCH note in getUserLocation).
+  if (ipCountry) requestHeaders.set('x-user-ip-country', ipCountry)
+  if (ipLat) requestHeaders.set('x-user-ip-lat', ipLat)
+  if (ipLng) requestHeaders.set('x-user-ip-lng', ipLng)
 
   if (tenant) {
     // ARCH-002/003: attach resolved category filter (null = home marketplace per TEN-005)

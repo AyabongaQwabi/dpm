@@ -224,7 +224,18 @@ Values whose `confirmed` flag is `false` are **suggested defaults awaiting sign-
 - `minTileProviders.value`: minimum published providers for a category or city tile to appear on the homepage grid and browse category/city lists. Below this, the category/city page itself still renders (reachable by direct URL) but is `noindex, follow` until it crosses the threshold. **Unconfirmed — suggested 5.** Deliberately lower than `liquidity.json`'s `liquidCell.minProvidersPerCell` (8) — this only means "not embarrassingly empty" for a public tile, not "operationally liquid" for the internal dashboard.
 - `defaultCity.value`: fallback city for the nav "near you" item when no cookie-persisted city, browser geolocation, or IP geolocation resolves to a known ZA city with live providers. **Unconfirmed — suggested "Cape Town".**
 
-Imported by `lib/browse-config.ts`, then used by the homepage category/city filtering, `app/(public)/providers/category/[slug]/page.tsx`, `app/(public)/providers/in/[location]/page.tsx`, `app/(public)/browse/cities/page.tsx`, and `lib/geo-location.ts`.
+Imported by `lib/browse-config.ts`, then used by the homepage category/city filtering, `app/(public)/providers/category/[slug]/page.tsx`, `app/(public)/providers/in/[location]/page.tsx`, `app/(public)/browse/cities/page.tsx`, and `lib/tenant.ts` (nav geo-location fallback and eligibility).
+
+No database mirror.
+
+## `city-coordinates.json`
+
+Static lat/lng reference for South African cities/suburbs, used only to compute distance for nearest-known-city geolocation snapping. This is geographic reference data, not the platform's known-city list — the known-city list is always the live DB query `getLocations()` in `lib/public-data.ts`. A live city with no matching entry here is simply not eligible for distance-based snapping (not an error).
+
+- `cities[].city`: display name, matched case-insensitively against `providers.location_city`.
+- `cities[].lat` / `.lng`: coordinates used by the Haversine calculation in `lib/domain/geo-location.ts`.
+
+Imported by `lib/city-coordinates.ts`, which joins this table against live city provider counts to build the `KnownCity[]` list passed into `snapToNearestCity()`. Used by `lib/tenant.ts`'s nav geo-location resolution.
 
 No database mirror.
 
