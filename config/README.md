@@ -102,11 +102,14 @@ JSON-backed replacement for the old `platform_config` database table.
 - `creditWallet`: customer credit pack denominations and min/max purchase amounts.
 - `providerPayout.businessDays`: payout timing copy/config.
 - `providerPayout.minimumRequestAmount`: provider payout request floor in rand.
+- `customQuotes.validityDays`: default validity window for provider-issued custom quotes. **Unconfirmed — suggested 14.**
+- `customQuotes.minLineItems`: minimum structured line items on a provider-issued quote. **Unconfirmed — suggested 1.**
+- `customQuotes.maxLineItems`: maximum structured line items on a provider-issued quote. **Unconfirmed — suggested 20.**
 - `support.email`: support address.
 - `referralProgram`: referral agent commission percent and active-month cap.
 - `upload.maxFileSizeMb`: provider asset upload size cap.
 
-Imported by `lib/platform-config.ts`, which exposes `loadPlatformConfig()`, `PRICE_CHANGE_BANDS`, `REFERRAL_PROGRAM`, and `MAX_UPLOAD_FILE_SIZE_MB`. Downstream consumers include pricing, payments, ranking, booking expiry, upload, referral copy, and credit flows.
+Imported by `lib/platform-config.ts`, which exposes `loadPlatformConfig()`, `PRICE_CHANGE_BANDS`, `REFERRAL_PROGRAM`, `CUSTOM_QUOTE_VALIDITY_DAYS`, and `MAX_UPLOAD_FILE_SIZE_MB`. Downstream consumers include pricing, payments, ranking, booking expiry, upload, referral copy, custom quotes, and credit flows.
 
 This intentionally supersedes `platform_config` DB reads. If old migrations still seed `platform_config`, treat those rows as legacy until migrations are cleaned up.
 

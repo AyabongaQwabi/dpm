@@ -269,6 +269,29 @@ export async function sendBookingConfirmedCustomerEmail({
   })
 }
 
+export async function sendCustomQuoteReadyCustomerEmail({
+  to,
+  serviceTitle,
+  providerName,
+  quoteUrl,
+}: {
+  to: string
+  serviceTitle: string
+  providerName: string
+  quoteUrl: string
+}) {
+  return sendEmail({
+    to,
+    subject: `${providerName} sent your custom quote`,
+    html: `
+      <p><strong>${esc(providerName)}</strong> has sent a custom quote for <strong>${esc(serviceTitle)}</strong>.</p>
+      <p>You can review and respond to it in your ServicePros account.</p>
+      ${button(quoteUrl, 'Review your quote')}
+      <p>TODO(aya): legal review — quote validity and acceptance terms summary belongs here.</p>
+    `,
+  })
+}
+
 export async function sendNewBookingProviderEmail({
   to,
   serviceTitle,

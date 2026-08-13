@@ -17,7 +17,7 @@ export default async function ServicesPage() {
   const { data: services } = await supabase
     .from('services')
     .select(`
-      id, title, description, image, is_published, service_type,
+      id, title, description, image, is_published, service_type, accepts_custom_quotes,
       service_packages(id, price, discount_type, discount_amount, is_default, name)
     `)
     .eq('provider_id', provider.id)
@@ -30,6 +30,7 @@ export default async function ServicesPage() {
     image: string | null
     is_published: boolean
     service_type: string
+    accepts_custom_quotes: boolean
     service_packages: {
       id: string
       price: number
@@ -95,7 +96,9 @@ export default async function ServicesPage() {
                   <p className="text-sm text-muted-foreground mt-0.5">
                     {packages.length > 0
                       ? `${packages.length} package${packages.length !== 1 ? 's' : ''} · from ${formatCredits(finalPrice ?? Number(defaultPkg?.price ?? 0))}`
-                      : 'No packages yet'}
+                      : svc.accepts_custom_quotes
+                        ? 'Custom quotes enabled'
+                        : 'No packages yet'}
                   </p>
                 </div>
                 <div className="flex items-center gap-2 flex-shrink-0">

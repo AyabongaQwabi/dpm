@@ -34,6 +34,8 @@ export type ProviderAnalyticsEventType =
   | 'profile_share_click'
 export type FunnelEventType = 'search_performed' | 'profile_viewed' | 'service_viewed' | 'review_submitted'
 export type BookingSource = 'site' | 'embed'
+export type QuoteRequestStatus = 'requested' | 'quoted' | 'accepted' | 'declined' | 'expired'
+export type QuoteStatus = 'sent' | 'accepted' | 'declined' | 'expired' | 'superseded'
 export type InputType =
   | 'short_text'
   | 'rich_text'
@@ -329,7 +331,41 @@ export interface Service {
   article_text: string | null
   service_type: ServiceType
   is_published: boolean
+  accepts_custom_quotes: boolean
   is_seed: boolean
+  created_at: string
+  updated_at: string
+}
+
+export interface QuoteRequest {
+  id: string
+  customer_id: string
+  provider_id: string
+  service_id: string
+  description: string
+  decline_reason: string | null
+  status: QuoteRequestStatus
+  created_at: string
+  updated_at: string
+}
+
+export interface QuoteLineItem {
+  description: string
+  quantity: number
+  unit_price: number
+}
+
+export interface Quote {
+  id: string
+  quote_request_id: string
+  provider_id: string
+  line_items: QuoteLineItem[]
+  total_amount: number
+  validity_date: string
+  terms_text: string
+  decline_reason: string | null
+  status: QuoteStatus
+  booking_id: string | null
   created_at: string
   updated_at: string
 }
@@ -426,6 +462,8 @@ export interface Booking {
   cancellation_reason: string | null
   source: BookingSource
   origin_domain: string | null
+  quote_request_id: string | null
+  quote_id: string | null
   requested_at: string
   created_at: string
   updated_at: string

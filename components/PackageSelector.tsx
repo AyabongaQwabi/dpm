@@ -4,6 +4,8 @@ import { useState } from 'react'
 import Link from 'next/link'
 import type { DiscountType } from '@/lib/db'
 import { formatCredits } from '@/lib/format-credits'
+import { trackProviderEvent } from '@/components/analytics/ProviderAnalyticsTracker'
+import type { CreateQuoteRequestResult } from '@/lib/actions/custom-quotes'
 
 interface Package {
   id: string
@@ -25,6 +27,9 @@ interface Props {
   isSignedIn: boolean
   signInUrl: string
   providerSlug: string
+  providerId: string
+  acceptsCustomQuotes: boolean
+  quoteRequestAction?: (formData: FormData) => Promise<CreateQuoteRequestResult>
 }
 
 function effectivePrice(price: number, type: DiscountType, amount: number | null): number {
@@ -39,16 +44,66 @@ function discountLabel(type: DiscountType, amount: number | null): string | null
   return `${formatCredits(Number(amount))} off`
 }
 
-export function PackageSelector({ packages, serviceId, serviceName, ctaVerb, isSignedIn, signInUrl, providerSlug }: Props) {
+export function PackageSelector({ packages, serviceId, serviceName, ctaVerb, isSignedIn, signInUrl, providerSlug, providerId, acceptsCustomQuotes, quoteRequestAction }: Props) {
   const defaultPkg = packages.find((p) => p.is_default) ?? packages[0]
   const [selected, setSelected] = useState<string>(defaultPkg?.id ?? '')
+  const [quoteMessage, setQuoteMessage] = useState<string | null>(null)
 
   const selectedPkg = packages.find((p) => p.id === selected) ?? packages[0]
 
   if (!packages.length) {
+    async function requestQuote(formData: FormData) {
+      if (!quoteRequestAction) return
+      setQuoteMessage(null)
+      const result = await quoteRequestAction(formData)
+      setQuoteMessage(result.ok ? 'Quote request sent.' : result.error)
+    }
+
     return (
-      <div className="rounded-2xl border border-border bg-card p-6 text-center text-sm text-muted-foreground">
-        No pricing packages available yet.
+      <div className="rounded-2xl border border-border bg-card p-6 text-center">
+        {acceptsCustomQuotes ? (
+          <div className="space-y-4">
+            {/* TODO(aya): confirm custom-quote CTA copy. */}
+            <p className="text-lg font-semibold text-foreground">Get a custom quote</p>
+            <p className="mt-2 text-sm text-muted-foreground">
+              This service is priced after the provider reviews your request.
+            </p>
+            {isSignedIn && quoteRequestAction ? (
+              <form action={requestQuote} className="space-y-3 text-left">
+                <input type="hidden" name="serviceId" value={serviceId} />
+                <label className="block text-sm">
+                  <span className="font-medium">What do you need?</span>
+                  <textarea
+                    name="description"
+                    rows={4}
+                    required
+                    className="mt-1.5 w-full rounded-lg border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                  />
+                </label>
+                <button
+                  type="submit"
+                  className="w-full rounded-xl bg-primary-accent px-4 py-3 text-sm font-semibold text-primary-accent-foreground hover:opacity-90"
+                >
+                  Send request
+                </button>
+              </form>
+            ) : (
+              <Link
+                href={signInUrl}
+                className="inline-flex w-full items-center justify-center rounded-xl bg-primary-accent px-4 py-3 text-sm font-semibold text-primary-accent-foreground hover:opacity-90"
+              >
+                Sign in to request
+              </Link>
+            )}
+            {quoteMessage && (
+              <p className="rounded-lg border bg-muted/40 px-3 py-2 text-sm text-muted-foreground">
+                {quoteMessage}
+              </p>
+            )}
+          </div>
+        ) : (
+          <p className="text-sm text-muted-foreground">No pricing packages available yet.</p>
+        )}
       </div>
     )
   }
@@ -170,6 +225,14 @@ export function PackageSelector({ packages, serviceId, serviceName, ctaVerb, isS
             {/* CTA */}
             <Link
               href={checkoutUrl}
+              onClick={() => {
+                trackProviderEvent({
+                  providerId,
+                  serviceId,
+                  eventType: 'service_booking_click',
+                  metadata: { packageId: selected },
+                })
+              }}
               className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary-accent px-4 py-3.5 text-sm font-semibold text-primary-accent-foreground hover:opacity-90 transition-opacity"
             >
               {ctaVerb} — {selectedPkg.name}

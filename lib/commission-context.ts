@@ -91,3 +91,49 @@ export async function calculateBookingCommission(
     config,
   )
 }
+
+/**
+ * Compute commission for a quote-originated booking.
+ *
+ * Quote bookings have package_id = null in v1, so they deliberately do not
+ * participate in package-keyed prior-sale checks or the Discount 4 Discount
+ * bonus. They still use the same bracket, ceiling, temporary reduction and
+ * stacking-floor calculation as every other booking.
+ */
+export async function calculateQuoteBookingCommission(
+  supabase: SupabaseClient,
+  providerId: string,
+  quoteTotalAmount: number,
+): Promise<FullCommissionResult> {
+  const now = new Date().toISOString()
+
+  const [plan, { data: tempReduction }] = await Promise.all([
+    loadProviderPlan(supabase, providerId, { activeOnly: true }),
+    supabase
+      .from('provider_temp_reductions')
+      .select('reduction_points')
+      .eq('provider_id', providerId)
+      .is('cancelled_at', null)
+      .gt('active_until', now)
+      .maybeSingle(),
+  ])
+
+  const config = await loadPlatformConfig()
+
+  return calculateCommissionFull(
+    {
+      pricing: {
+        price: quoteTotalAmount,
+        discountType: 'none',
+        discountAmount: null,
+      },
+      ceilingRate: plan.ceilingRate,
+      discountBonusEligible: false,
+      discountBonusOptedIn: false,
+      activeTemporaryReduction: tempReduction
+        ? Number(tempReduction.reduction_points)
+        : null,
+    },
+    config,
+  )
+}

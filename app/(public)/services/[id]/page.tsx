@@ -11,6 +11,7 @@ import type { DiscountType, ServiceType } from '@/lib/db'
 import { breadcrumbJsonLd, canonicalAlternates, serviceJsonLd } from '@/lib/seo'
 import { ProviderAnalyticsTracker } from '@/components/analytics/ProviderAnalyticsTracker'
 import { FunnelEventTracker } from '@/components/analytics/FunnelEventTracker'
+import { createQuoteRequest } from '@/lib/actions/custom-quotes'
 
 interface Props {
   params: Promise<{ id: string }>
@@ -22,7 +23,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { data: service, error } = await supabase
     .from('services')
     .select(`
-      title, description, image,
+      title, description, image, accepts_custom_quotes,
       service_packages:service_packages!service_packages_service_id_fkey(price, discount_type, discount_amount),
       provider:providers!services_provider_id_fkey!inner(business_name, location_city, is_published)
     `)
@@ -49,7 +50,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const title = `${service.title} by ${provider.business_name}`
   const city = provider.location_city ? ` in ${provider.location_city}` : ''
   const priceText = lowestPrice !== null ? ` from R${lowestPrice.toFixed(0)}` : ''
-  const description = `Book ${service.title} from ${provider.business_name}${city}. Compare packages${priceText}, reviews, and provider details on ServicePros.`
+  const description = service.accepts_custom_quotes && lowestPrice === null
+    ? `Request a custom quote for ${service.title} from ${provider.business_name}${city}. View reviews and provider details on ServicePros.`
+    : `Book ${service.title} from ${provider.business_name}${city}. Compare packages${priceText}, reviews, and provider details on ServicePros.`
 
   return {
     title,
@@ -77,7 +80,7 @@ export default async function ServiceDetailPage({ params }: Props) {
     supabase
       .from('services')
       .select(`
-        id, title, description, image, article_json, service_type, is_published,
+        id, title, description, image, article_json, service_type, is_published, accepts_custom_quotes,
         provider:providers!services_provider_id_fkey!inner(
           id, business_name, slug, profile_image, bio,
           location_city, location_state,
@@ -428,6 +431,8 @@ export default async function ServiceDetailPage({ params }: Props) {
             signInUrl={signInUrl}
             providerSlug={providerSlug}
             providerId={provider.id}
+            acceptsCustomQuotes={!!service.accepts_custom_quotes}
+            quoteRequestAction={createQuoteRequest}
           />
         </aside>
       </div>

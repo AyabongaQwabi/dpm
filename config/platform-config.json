@@ -120,6 +120,11 @@
   "analytics": {
     "minComparisonSample": 5
   },
+  "customQuotes": {
+    "validityDays": 14,
+    "minLineItems": 1,
+    "maxLineItems": 20
+  },
   "support": {
     "email": "support@servicepros.co.za"
   },

@@ -2,17 +2,14 @@ import { notFound, redirect } from 'next/navigation'
 import Link from 'next/link'
 import type { Metadata } from 'next'
 import { createClient } from '@/lib/supabase/server'
-import { createAdminClient } from '@/lib/supabase/admin'
-import { revalidatePath } from 'next/cache'
 import type { DiscountType, ServiceType } from '@/lib/db'
 import { calculateBookingCommission } from '@/lib/commission-context'
 import { canAfford, shortfall } from '@/lib/domain/credits'
 import { formatCredits } from '@/lib/format-credits'
 import type { ServicePricing } from '@/lib/domain/payments'
 import { canonicalAlternates } from '@/lib/seo'
-import { snapshotBookingRequirements } from '@/lib/actions/booking-requirements'
-import { sendBookingCreatedEmails } from '@/lib/booking-emails'
 import { RequirementsPreview } from '@/components/booking/RequirementsPreview'
+import { createBookingWithCredits } from '@/lib/actions/booking-creation'
 
 export const metadata: Metadata = {
   title: 'Checkout',
@@ -80,48 +77,25 @@ async function createBooking(formData: FormData) {
     redirect(`/customer-account/credits?amount=${gap}`)
   }
 
-  const admin = createAdminClient()
-  const { data: bookingId, error } = await admin.rpc('create_booking_with_credit_spend', {
-    p_customer_id: customer.id,
-    p_provider_id: service.provider_id,
-    p_service_id: serviceId,
-    p_package_id: packageId,
-    p_notes: notes,
-    p_final_price: commission.finalPrice,
-    p_commission_amount: commission.commissionAmount,
-    p_provider_payout_amount: commission.providerPayoutAmount,
-    p_spend_credits: spendCredits,
-    p_description: `Booking: ${service.title}`,
+  const booking = await createBookingWithCredits({
+    customerId: customer.id,
+    customerCreditBalance: customer.credit_balance,
+    providerId: service.provider_id,
+    serviceId,
+    packageId,
+    notes,
+    commission,
+    description: `Booking: ${service.title}`,
   })
 
-  if (error || !bookingId) {
-    const gap = shortfall(customer.credit_balance, spendCredits)
+  if (!booking.ok) {
+    const gap = booking.reason === 'insufficient_credits'
+      ? booking.shortfall
+      : shortfall(customer.credit_balance, spendCredits)
     redirect(`/customer-account/credits?amount=${gap}`)
   }
 
-  await admin.from('message_threads').insert({
-    provider_id: service.provider_id,
-    customer_id: customer.id,
-    service_id: serviceId,
-    booking_id: bookingId,
-  })
-
-  // Freeze the package's current requirements onto the booking. If the
-  // provider later edits or deletes a slot, this booking does not change
-  // underneath the customer. Idempotent, so a retried submit is safe.
-  await snapshotBookingRequirements({ bookingId, packageId })
-
-  // Fire-and-forget: a Resend failure must never roll back the booking or the
-  // credit debit that already committed above.
-  void sendBookingCreatedEmails(bookingId)
-
-  revalidatePath('/customer-account')
-  revalidatePath('/customer-account/credits')
-  revalidatePath('/provider-dashboard/messages')
-  revalidatePath('/provider-dashboard/sales')
-  revalidatePath('/provider-dashboard/bookings')
-
-  redirect(`/customer-account/bookings/${bookingId}`)
+  redirect(`/customer-account/bookings/${booking.bookingId}`)
 }
 
 export default async function CheckoutPage({ searchParams }: Props) {

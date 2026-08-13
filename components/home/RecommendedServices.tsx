@@ -34,7 +34,8 @@ function RatingStars({ rating }: { rating: number }) {
 function ServiceCard({ service }: { service: RecommendedService }) {
   const price = service.defaultPrice
   const finalPrice = price !== null ? effectivePrice(price, service.defaultDiscountType, service.defaultDiscountAmount) : null
-  const ctaLabel = service.serviceType === 'time_based' ? 'Book' : 'Order'
+  const quoteOnly = service.acceptsCustomQuotes && service.defaultPackageId === null
+  const ctaLabel = quoteOnly ? 'Quote' : service.serviceType === 'time_based' ? 'Book' : 'Order'
   const providerHref = service.providerSlug
     ? `/providers/${service.providerSlug}`
     : `/providers/${service.providerId}`
@@ -78,7 +79,10 @@ function ServiceCard({ service }: { service: RecommendedService }) {
                 )}
               </>
             ) : (
-              <span className="text-muted-foreground text-sm">Price on request</span>
+              <>
+                {/* TODO(aya): confirm custom-quote CTA copy. */}
+                <span className="text-sm font-semibold text-foreground">Get a custom quote</span>
+              </>
             )}
           </div>
           <Link

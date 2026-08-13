@@ -39,7 +39,7 @@ export default async function ServiceEditorPage({ params, searchParams }: PagePr
   const { data: service } = await supabase
     .from('services')
     .select(`
-      id, title, description, image, is_published, service_type,
+      id, title, description, image, is_published, service_type, accepts_custom_quotes,
       article_json, article_text,
       service_packages(id, name, description, price, discount_type, discount_amount, offerings, requirements, requirement_file_slots, delivery_time, is_default, display_order)
     `)
@@ -74,7 +74,12 @@ export default async function ServiceEditorPage({ params, searchParams }: PagePr
     .eq('service_id', serviceId)
 
   const hasBookings = (bookingCount ?? 0) > 0
-  const canPublish = !!service.article_json && packages.length > 0
+  const acceptsCustomQuotes = !!service.accepts_custom_quotes
+  const canPublish = !!service.article_json && (packages.length > 0 || acceptsCustomQuotes)
+  const missingPublishRequirements = [
+    !service.article_json ? 'a written article' : null,
+    packages.length === 0 && !acceptsCustomQuotes ? 'at least one pricing package or custom quotes enabled' : null,
+  ].filter((item): item is string => Boolean(item))
 
   return (
     <div className="mx-auto max-w-5xl space-y-8 px-4 py-6 sm:px-6 lg:px-8 lg:py-10">
@@ -111,7 +116,7 @@ export default async function ServiceEditorPage({ params, searchParams }: PagePr
               <button
                 type="submit"
                 disabled={!canPublish}
-                title={!canPublish ? 'Add an article and at least one package before publishing' : undefined}
+                title={!canPublish ? 'Add an article and at least one package, or enable custom quotes, before publishing' : undefined}
                 className="text-xs bg-primary text-primary-foreground rounded-lg px-3 py-1.5 hover:opacity-90 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
               >
                 Publish
@@ -124,9 +129,7 @@ export default async function ServiceEditorPage({ params, searchParams }: PagePr
       {!canPublish && (
         <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
           <strong>Not publishable yet</strong> — this service needs{' '}
-          {!service.article_json && 'a written article'}
-          {!service.article_json && packages.length === 0 && ' and '}
-          {packages.length === 0 && 'at least one pricing package'}
+          {missingPublishRequirements.join(' and ')}
           {' '}before it can go live.
         </div>
       )}
@@ -173,6 +176,20 @@ export default async function ServiceEditorPage({ params, searchParams }: PagePr
                 <option value="time_based">Book / Request to Book (time-based)</option>
               </select>
             </div>
+            <label className="flex items-start gap-3 rounded-lg border bg-muted/30 px-3 py-3 text-sm">
+              <input
+                type="checkbox"
+                name="acceptsCustomQuotes"
+                defaultChecked={acceptsCustomQuotes}
+                className="mt-1 h-4 w-4 rounded border-border"
+              />
+              <span>
+                <span className="block font-medium">Accept custom quote requests</span>
+                <span className="mt-0.5 block text-muted-foreground">
+                  Allows this service to publish without fixed-price packages and lets customers request bespoke pricing.
+                </span>
+              </span>
+            </label>
             <button
               type="submit"
               className="text-sm bg-primary text-primary-foreground rounded-lg px-4 py-2 hover:opacity-90 transition-opacity cursor-pointer"
@@ -225,12 +242,12 @@ export default async function ServiceEditorPage({ params, searchParams }: PagePr
         <CardHeader>
           <CardTitle className="text-base">
             Pricing packages
-            {packages.length === 0 && (
+            {packages.length === 0 && !acceptsCustomQuotes && (
               <span className="ml-2 text-xs font-normal text-destructive">(required to publish)</span>
             )}
           </CardTitle>
           <CardDescription>
-            Add one or more packages. Mark one as default — its price shows on service cards and listings.
+            Add one or more packages. Mark one as default, or enable custom quotes for bespoke work.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">

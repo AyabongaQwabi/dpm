@@ -58,6 +58,7 @@ export interface ServiceView {
   description: string
   /** Lowest effective package price — use this for display on cards */
   price: number
+  acceptsCustomQuotes: boolean
   discount_type: DiscountType
   discount_amount: number | null
   image: string | null
@@ -612,6 +613,7 @@ export async function getServices(
       discount_type,
       discount_amount,
       image,
+      accepts_custom_quotes,
       service_packages:service_packages!service_packages_service_id_fkey(
         id,
         name,
@@ -690,6 +692,7 @@ export async function getServices(
     discount_type: DiscountType
     discount_amount: number | null
     image: string | null
+    accepts_custom_quotes?: boolean | null
     service_packages?: RawPackage[] | null
     provider: RawProvider | RawProvider[]
   }>).map((service) => {
@@ -722,6 +725,7 @@ export async function getServices(
       title: service.title,
       description: service.description,
       price: lowestPrice,
+      acceptsCustomQuotes: !!service.accepts_custom_quotes,
       discount_type: defaultPkg?.discount_type ?? service.discount_type,
       discount_amount: defaultPkg?.discount_amount ?? service.discount_amount,
       image: service.image,

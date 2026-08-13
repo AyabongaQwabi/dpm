@@ -107,7 +107,7 @@ async function getProvider(slug: string) {
       cta_target_url,
       provider_types!inner(name, slug, provider_categories(name, slug)),
       provider_tags(tag:tags(name)),
-      services:services!services_provider_id_fkey(id, title, description, image, is_published, service_type,
+      services:services!services_provider_id_fkey(id, title, description, image, is_published, service_type, accepts_custom_quotes,
         service_packages(id, name, price, discount_type, discount_amount, is_default, delivery_time, display_order)),
       reviews(id, rating, comment, created_at, package_id,
         customer:customers(name),
@@ -278,6 +278,7 @@ export default async function ProviderProfilePage({ params }: ProfilePageProps) 
       delivery_time: string
       display_order: number
     }[]
+    accepts_custom_quotes?: boolean | null
   }[]
   const publishedServices = services.filter((s) => s.is_published)
   const pinnedServiceId = (provider.pinned_service_id as string | null) ?? null
@@ -819,7 +820,12 @@ export default async function ProviderProfilePage({ params }: ProfilePageProps) 
                         </div>
                       )}
                       <div className="mt-4 pt-4 border-t border-border flex items-center justify-between gap-3">
-                        {defaultPkg && (
+                        {service.accepts_custom_quotes && packages.length === 0 ? (
+                          <div>
+                            {/* TODO(aya): confirm custom-quote CTA copy. */}
+                            <span className="font-bold text-foreground">Get a custom quote</span>
+                          </div>
+                        ) : defaultPkg && (
                           <div>
                             <span className="font-bold text-foreground">from {formatCredits(Number(defaultPkg.price))}</span>
                             {defaultPkg.delivery_time && (

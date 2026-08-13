@@ -22,6 +22,7 @@ export function ServiceListingCard({ service }: { service: ServiceView }) {
   const hasDiscount = defaultPkg
     ? defaultPkg.discount_type !== 'none' && defaultPkg.discount_amount !== null
     : false
+  const quoteOnly = service.acceptsCustomQuotes && packages.length === 0
 
   return (
     <Link
@@ -86,16 +87,23 @@ export function ServiceListingCard({ service }: { service: ServiceView }) {
         {/* Price + CTA */}
         <div className="mt-4 pt-4 border-t border-border flex items-center justify-between gap-3">
           <div>
-            <div className="flex items-baseline gap-2">
-              <span className="text-lg font-bold text-foreground">
-                from {formatCredits(lowestPrice)}
-              </span>
-              {hasDiscount && defaultPkg && (
-                <span className="text-sm text-muted-foreground line-through">
-                  {formatCredits(defaultPkg.price)}
+            {/* TODO(aya): confirm custom-quote CTA copy. */}
+            {quoteOnly ? (
+              <div className="text-lg font-bold text-foreground">
+                Get a custom quote
+              </div>
+            ) : (
+              <div className="flex items-baseline gap-2">
+                <span className="text-lg font-bold text-foreground">
+                  from {formatCredits(lowestPrice)}
                 </span>
-              )}
-            </div>
+                {hasDiscount && defaultPkg && (
+                  <span className="text-sm text-muted-foreground line-through">
+                    {formatCredits(defaultPkg.price)}
+                  </span>
+                )}
+              </div>
+            )}
             {packages.length > 1 && (
               <p className="text-xs text-muted-foreground mt-0.5">{packages.length} packages</p>
             )}

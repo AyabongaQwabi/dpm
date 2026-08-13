@@ -78,6 +78,9 @@ function flattenPlatformConfig(): Record<string, unknown> {
   flat.provider_payout_business_days = c.providerPayout.businessDays
   flat.provider_payout_minimum_request_amount = c.providerPayout.minimumRequestAmount
   flat.analytics_min_comparison_sample = c.analytics.minComparisonSample
+  flat.custom_quote_validity_days = c.customQuotes.validityDays
+  flat.custom_quote_min_line_items = c.customQuotes.minLineItems
+  flat.custom_quote_max_line_items = c.customQuotes.maxLineItems
   flat.support_email = c.support.email
 
   return flat
@@ -129,6 +132,15 @@ export const PROVIDER_PAYOUT_MINIMUM_REQUEST_AMOUNT = platformConfig.providerPay
 
 /** Minimum provider count in a category-city cell before analytics comparisons are shown. TODO(aya): confirm — suggested 5. */
 export const ANALYTICS_MIN_COMPARISON_SAMPLE = platformConfig.analytics.minComparisonSample
+
+/** Days a custom quote remains valid by default. TODO(aya): confirm — suggested 14. */
+export const CUSTOM_QUOTE_VALIDITY_DAYS = platformConfig.customQuotes.validityDays
+
+/** Minimum structured line items on a custom quote. TODO(aya): confirm — suggested 1. */
+export const CUSTOM_QUOTE_MIN_LINE_ITEMS = platformConfig.customQuotes.minLineItems
+
+/** Maximum structured line items on a custom quote. TODO(aya): confirm — suggested 20. */
+export const CUSTOM_QUOTE_MAX_LINE_ITEMS = platformConfig.customQuotes.maxLineItems
 
 /** Direct-value accessor for callers that don't need the full ConfigStore round trip — see lib/domain/payments.ts's PriceChangeBands. */
 export const PRICE_CHANGE_BANDS = {

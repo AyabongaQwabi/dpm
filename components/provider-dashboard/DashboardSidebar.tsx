@@ -17,6 +17,18 @@ const NAV_ITEMS = [
     ),
   },
   {
+    href: '/provider-dashboard/quotes',
+    label: 'Quotes',
+    icon: (
+      <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M7 7h10" />
+        <path d="M7 11h7" />
+        <path d="M7 15h4" />
+        <path d="M5 3h14a2 2 0 0 1 2 2v14l-4-3H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z" />
+      </svg>
+    ),
+  },
+  {
     href: '/provider-dashboard/messages',
     label: 'Messages',
     icon: (

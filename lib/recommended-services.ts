@@ -21,6 +21,7 @@ export interface RecommendedService {
   defaultPrice: number | null
   defaultDiscountType: DiscountType | null
   defaultDiscountAmount: number | null
+  acceptsCustomQuotes: boolean
   avgRating: number | null
   reviewCount: number
   score: number
@@ -52,7 +53,7 @@ export async function getRecommendedServices(params: {
   let servicesQuery = supabase
     .from('services')
     .select(`
-      id, title, description, image, service_type, is_published,
+      id, title, description, image, service_type, is_published, accepts_custom_quotes,
       provider:providers!inner(id, business_name, slug, provider_type_id, is_published,
         provider_types!inner(category_id)),
       service_packages(id, name, price, discount_type, discount_amount, is_default),
@@ -141,6 +142,7 @@ export async function getRecommendedServices(params: {
       defaultPrice: defaultPkg ? Number(defaultPkg.price) : null,
       defaultDiscountType: defaultPkg ? (defaultPkg.discount_type as DiscountType) : null,
       defaultDiscountAmount: defaultPkg?.discount_amount ? Number(defaultPkg.discount_amount) : null,
+      acceptsCustomQuotes: !!row.accepts_custom_quotes,
       avgRating,
       reviewCount: reviews.length,
       score: r.score,

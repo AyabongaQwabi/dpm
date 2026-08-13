@@ -80,7 +80,12 @@ export default async function ProvidersByServicePage({ params }: PageProps) {
                 <p className="mt-1 text-sm text-muted-foreground">{service.description}</p>
                 <p className="mt-3 text-sm">by {service.providerName}{service.locationCity ? ` in ${service.locationCity}` : ''}</p>
               </div>
-              <p className="font-semibold">R {Number(service.price).toFixed(2)}</p>
+              {/* TODO(aya): confirm custom-quote CTA copy. */}
+              <p className="font-semibold">
+                {service.acceptsCustomQuotes && service.packages.length === 0
+                  ? 'Get a custom quote'
+                  : `R ${Number(service.price).toFixed(2)}`}
+              </p>
             </div>
           </Link>
         ))}

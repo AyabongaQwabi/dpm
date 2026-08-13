@@ -66,6 +66,7 @@ export async function updateServiceMeta(formData: FormData) {
   const title = (formData.get('title') as string).trim()
   const description = (formData.get('description') as string).trim()
   const serviceType = (formData.get('serviceType') as ServiceType) ?? 'fixed_deliverable'
+  const acceptsCustomQuotes = formData.get('acceptsCustomQuotes') === 'on'
 
   const { data: existing } = await supabase
     .from('services')
@@ -84,8 +85,10 @@ export async function updateServiceMeta(formData: FormData) {
   const admin = createAdminClient()
   await admin
     .from('services')
-    .update({ title, description, service_type: serviceType })
+    .update({ title, description, service_type: serviceType, accepts_custom_quotes: acceptsCustomQuotes })
     .eq('id', serviceId)
+
+  await maybePublishService(admin, supabase, serviceId)
 
   revalidatePath(`/provider-dashboard/services/${serviceId}`)
   revalidatePath('/provider-dashboard/services')
@@ -160,7 +163,7 @@ export async function publishService(formData: FormData) {
 
   const { data: existing } = await supabase
     .from('services')
-    .select('id, article_json')
+    .select('id, article_json, accepts_custom_quotes')
     .eq('id', serviceId)
     .eq('provider_id', provider.id)
     .single()
@@ -174,8 +177,9 @@ export async function publishService(formData: FormData) {
 
   const hasArticle = !!existing.article_json
   const hasPackages = (pkgCount ?? 0) > 0
+  const acceptsCustomQuotes = !!existing.accepts_custom_quotes
 
-  if (!hasArticle || !hasPackages) {
+  if (!hasArticle || (!hasPackages && !acceptsCustomQuotes)) {
     revalidatePath(`/provider-dashboard/services/${serviceId}`)
     return
   }
@@ -427,8 +431,8 @@ export async function setDefaultPackage(formData: FormData) {
 
 // ---- Internal helper ----
 
-// Auto-publish if service has both an article and at least one package.
-// Auto-unpublish if either is removed.
+// Auto-publish if service has an article and either packages or custom quotes.
+// Auto-unpublish if the service no longer satisfies either publishable path.
 async function maybePublishService(
   admin: ReturnType<typeof createAdminClient>,
   supabase: Awaited<ReturnType<typeof createClient>>,
@@ -436,7 +440,7 @@ async function maybePublishService(
 ) {
   const { data: svc } = await supabase
     .from('services')
-    .select('article_json, is_published')
+    .select('article_json, is_published, accepts_custom_quotes')
     .eq('id', serviceId)
     .single()
 
@@ -445,7 +449,8 @@ async function maybePublishService(
     .select('id', { count: 'exact', head: true })
     .eq('service_id', serviceId)
 
-  const shouldPublish = !!svc?.article_json && (pkgCount ?? 0) > 0
+  const shouldPublish =
+    !!svc?.article_json && ((pkgCount ?? 0) > 0 || !!svc?.accepts_custom_quotes)
 
   if (shouldPublish !== svc?.is_published) {
     await admin.from('services').update({ is_published: shouldPublish }).eq('id', serviceId)
