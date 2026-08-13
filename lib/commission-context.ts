@@ -1,5 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { loadPlatformConfig, PRICE_CHANGE_BANDS } from '@/lib/platform-config'
+import { loadProviderPlan } from '@/lib/provider-plan'
 import {
   calculateCommissionFull,
   checkDiscountEligibility,
@@ -20,13 +21,8 @@ export async function loadCommissionContext(
 ): Promise<CommissionContext> {
   const now = new Date().toISOString()
 
-  const [{ data: ceiling }, { data: bonusOpt }, { data: tempReduction }] = await Promise.all([
-    supabase
-      .from('provider_ceiling_subscriptions')
-      .select('ceiling_rate')
-      .eq('provider_id', providerId)
-      .is('active_to', null)
-      .maybeSingle(),
+  const [plan, { data: bonusOpt }, { data: tempReduction }] = await Promise.all([
+    loadProviderPlan(supabase, providerId, { activeOnly: true }),
     supabase
       .from('service_discount_bonus_opts')
       .select('id')
@@ -43,7 +39,7 @@ export async function loadCommissionContext(
   ])
 
   return {
-    ceilingRate: ceiling ? Number(ceiling.ceiling_rate) : null,
+    ceilingRate: plan.ceilingRate,
     discountBonusOptedIn: !!bonusOpt,
     activeTemporaryReduction: tempReduction ? Number(tempReduction.reduction_points) : null,
   }

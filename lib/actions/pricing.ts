@@ -11,6 +11,7 @@ import {
   type PricingNotification,
 } from '@/lib/domain/payments'
 import { PRICE_CHANGE_BANDS } from '@/lib/platform-config'
+import { loadProviderPlan } from '@/lib/provider-plan'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // updatePackagePrice
@@ -93,15 +94,7 @@ export async function updatePackagePrice(
     completedSalesInQualifyingBand = count ?? 0
   }
 
-  // Get provider's active ceiling package (if any)
-  const { data: ceilingSub } = await supabase
-    .from('provider_ceiling_subscriptions')
-    .select('ceiling_rate')
-    .eq('provider_id', providerId)
-    .is('active_to', null)
-    .maybeSingle()
-
-  const ceilingRate = ceilingSub ? Number(ceilingSub.ceiling_rate) : null
+  const { ceilingRate } = await loadProviderPlan(supabase, providerId, { activeOnly: true })
 
   // Run domain evaluation — pure, no side effects
   const checkInput: PriceEditCheckInput = {
@@ -198,17 +191,9 @@ export async function optInDiscountBonus(serviceId: string): Promise<{ ok: boole
 
   if (!service) return { ok: false, error: 'Service not found or unauthorized' }
 
-  // Load active ceiling subscription
-  const { data: ceilingSub } = await supabase
-    .from('provider_ceiling_subscriptions')
-    .select('ceiling_rate')
-    .eq('provider_id', providerId)
-    .is('active_to', null)
-    .maybeSingle()
+  const { ceilingRate } = await loadProviderPlan(supabase, providerId, { activeOnly: true })
 
-  if (!ceilingSub) return { ok: false, error: 'No active ceiling package — bonus requires a ceiling subscription' }
-
-  const ceilingRate = Number(ceilingSub.ceiling_rate)
+  if (ceilingRate === null) return { ok: false, error: 'No active ceiling package — bonus requires a ceiling subscription' }
 
   // Bonus rate points per ceiling tier (matches CONFIG_KEYS.DISCOUNT_BONUS_*)
   const bonusMap: Record<string, number> = {
@@ -249,8 +234,6 @@ export async function optInDiscountBonus(serviceId: string): Promise<{ ok: boole
 
 async function dispatchNotifications(notifications: PricingNotification[]): Promise<void> {
   if (notifications.length === 0) return
-
-  const admin = createAdminClient()
 
   // Persist to a provider_notifications table if it exists, otherwise log.
   // The notifications table is assumed to be created separately if needed;
