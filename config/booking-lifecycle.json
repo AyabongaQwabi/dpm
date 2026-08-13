@@ -1,0 +1,37 @@
+{
+  "autoComplete": {
+    "_comment": "TODO(aya): confirm — days after completed_by_provider before a booking auto-completes if the customer does nothing. Suggested default: 7. enabled=false means the cron job stub runs but takes no action; do not flip to true until confirmed.",
+    "confirmed": false,
+    "daysAfterProviderComplete": 7,
+    "enabled": false
+  },
+  "files": {
+    "_comment": "maxFileSizeMb is CONFIRMED at 20 MB by the product owner. maxTotalPerBookingMb is TODO(aya): confirm — deliberately generous so it never blocks normal use; suggested default 500.",
+    "maxFileSizeMbConfirmed": true,
+    "maxFileSizeMb": 20,
+    "maxTotalPerBookingMbConfirmed": false,
+    "maxTotalPerBookingMb": 500
+  },
+  "messaging": {
+    "_comment": "TODO(aya): confirm — days after a booking reaches completed before the thread goes read-only. Suggested default: 30. pollIntervalMs is a code constant, not a commercial value: the project has no realtime subscriptions today, so booking threads poll.",
+    "closeAfterCompletedDaysConfirmed": false,
+    "closeAfterCompletedDays": 30,
+    "pollIntervalMs": 20000
+  },
+  "notifications": {
+    "_comment": "TODO(aya): confirm both — nudgeRateLimitHours is the minimum gap between provider 'nudge customer' reminder emails on one booking (suggested 24). newMessageBatchWindowMinutes suppresses a new-message email if one was already sent for that booking within the window (suggested 15).",
+    "nudgeRateLimitHoursConfirmed": false,
+    "nudgeRateLimitHours": 24,
+    "newMessageBatchWindowMinutesConfirmed": false,
+    "newMessageBatchWindowMinutes": 15
+  },
+  "reviews": {
+    "_comment": "TODO(aya): confirm all three — editableForDays is how long a customer may edit their review before it locks (suggested 14). providerReplyEditableForHours is how long a provider may edit their public reply (suggested 24). minReviewsToDisplayRating is the minimum published review count before a rating is shown on search/listing cards (suggested 1, config key exists so the threshold can be raised later).",
+    "editableForDaysConfirmed": false,
+    "editableForDays": 14,
+    "providerReplyEditableForHoursConfirmed": false,
+    "providerReplyEditableForHours": 24,
+    "minReviewsToDisplayRatingConfirmed": false,
+    "minReviewsToDisplayRating": 1
+  }
+}

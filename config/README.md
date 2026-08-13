@@ -101,6 +101,7 @@ JSON-backed replacement for the old `platform_config` database table.
 - `booking.autoExpiryHours`: booking request auto-expiry window.
 - `creditWallet`: customer credit pack denominations and min/max purchase amounts.
 - `providerPayout.businessDays`: payout timing copy/config.
+- `providerPayout.minimumRequestAmount`: provider payout request floor in rand.
 - `support.email`: support address.
 - `referralProgram`: referral agent commission percent and active-month cap.
 - `upload.maxFileSizeMb`: provider asset upload size cap.
@@ -213,3 +214,26 @@ New provider and customer onboarding email sequence configuration.
 Imported by `lib/nurture-emails-config.ts`, then used by `lib/actions/nurture-emails.ts`.
 
 Delivery state lives in `nurture_email_queue`; the config owns sequence copy and timing. Signup hooks enqueue the full sequence once, then send the day-0 welcome immediately. `/api/cron/nurture-emails` drains later due rows once per day.
+
+## `booking-lifecycle.json`
+
+Timings, limits and thresholds for the service booking lifecycle: status transitions, the requirement/file exchange, booking messages, and reviews.
+
+Values whose `*Confirmed` flag is `false` are **suggested defaults awaiting sign-off** (`TODO(aya): confirm` in the section's `_comment`). Do not treat them as agreed commercial terms.
+
+- `autoComplete.daysAfterProviderComplete`: days a booking may sit in `completed_by_provider` before the system auto-confirms it. **Unconfirmed — suggested 7.**
+- `autoComplete.enabled`: master switch for the auto-completion sweep. Ships `false`; `/api/cron/booking-expiry` reports how many bookings *would* auto-complete but transitions none until this is `true`.
+- `autoComplete.confirmed`: tracks whether the window above has been signed off.
+- `files.maxFileSizeMb`: **confirmed at 20 MB.** Largest single upload accepted on a booking.
+- `files.maxTotalPerBookingMb`: ceiling on the combined size of all live files on one booking, deliberately generous so it never blocks normal use. **Unconfirmed — suggested 500.**
+- `messaging.closeAfterCompletedDays`: days after a booking reaches `completed` before its thread goes read-only. **Unconfirmed — suggested 30.**
+- `messaging.pollIntervalMs`: how often an open booking thread refreshes. A code constant, not a commercial value — the project uses no Supabase realtime, so booking threads poll.
+- `notifications.nudgeRateLimitHours`: minimum gap between provider "nudge customer" reminder emails on one booking. **Unconfirmed — suggested 24.**
+- `notifications.newMessageBatchWindowMinutes`: suppression window that stops a rapid exchange generating one email per message. **Unconfirmed — suggested 15.**
+- `reviews.editableForDays`: how long a customer may edit their review before it locks. **Unconfirmed — suggested 14.**
+- `reviews.providerReplyEditableForHours`: how long a provider may edit their public reply. **Unconfirmed — suggested 24.**
+- `reviews.minReviewsToDisplayRating`: minimum published review count before a rating appears on search and listing cards. **Unconfirmed — suggested 1**; the key exists so the threshold can be raised later.
+
+Imported by `lib/booking-lifecycle-config.ts`, then used by `lib/actions/booking-transitions.ts`, `lib/actions/booking-files.ts`, `lib/actions/booking-messages.ts`, `lib/actions/reviews.ts`, `lib/booking-emails.ts`, both booking detail pages, and `/api/cron/booking-expiry`.
+
+**Database mirror:** `files.maxFileSizeMb` (20 MB) is mirrored as the `booking-files` storage bucket's `file_size_limit` (`20971520` bytes) in `supabase/migrations/20260818000001_booking_lifecycle_tables.sql`. Edit both together — the bucket limit is enforced by Supabase independently of the application check.
