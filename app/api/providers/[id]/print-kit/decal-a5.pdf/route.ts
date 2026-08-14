@@ -15,6 +15,7 @@ export async function GET(
   return handlePrintKitPdfRequest(id, {
     size: { widthMm: widthMm + bleedMm * 2, heightMm: heightMm + bleedMm * 2 },
     filenameSuffix: 'servicepros-decal-a5',
+    qrSource: 'qr_decal',
     renderPdf: renderDecalPdf,
   })
 }

@@ -38,9 +38,14 @@ interface ProviderRow {
   verified_fica: boolean | null
 }
 
+interface ProfileClaimRow {
+  verified_at: string | null
+}
+
 interface RenderPrintKitPdfOptions {
   size: PdfSize
   filenameSuffix: string
+  qrSource: 'qr_certificate' | 'qr_decal' | 'qr_sticker'
   renderPdf: (params: PrintKitRenderParams, size: PdfSize) => Promise<Buffer>
   qrSize?: number
 }
@@ -68,16 +73,35 @@ export async function handlePrintKitPdfRequest(
     cipc: provider.verified_cipc,
     fica: provider.verified_fica,
   })
-  const profileUrl = `${PUBLIC_SITE_URL}/providers/${provider.slug ?? provider.id}?src=qr`
+  const profileUrl = `${PUBLIC_SITE_URL}/providers/${provider.slug ?? provider.id}?src=${options.qrSource}`
 
   try {
-    const qr = await qrDataUri(profileUrl, options.qrSize)
+    const [qr, claimResult, countResult] = await Promise.all([
+      qrDataUri(profileUrl, options.qrSize),
+      admin
+        .from('profile_claims')
+        .select('verified_at')
+        .eq('provider_id', provider.id)
+        .eq('status', 'verified')
+        .not('verified_at', 'is', null)
+        .order('verified_at', { ascending: true })
+        .limit(1)
+        .maybeSingle<ProfileClaimRow>(),
+      admin
+        .from('providers')
+        .select('id', { count: 'exact', head: true })
+        .eq('is_published', true)
+        .eq('claim_status', 'claimed')
+        .or('verified_contact.eq.true,verified_google.eq.true,verified_cipc.eq.true,verified_fica.eq.true'),
+    ])
     const pdf = await options.renderPdf(
       {
         businessName: provider.business_name,
         tiers,
         qr,
         profileUrl,
+        recognizedSince: claimResult.data?.verified_at ?? null,
+        verifiedProviderCount: countResult.error ? null : countResult.count,
       },
       options.size,
     )

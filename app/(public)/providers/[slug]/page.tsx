@@ -200,7 +200,8 @@ function tagNamesFromValue(value: unknown): string[] {
 export default async function ProviderProfilePage({ params, searchParams }: ProfilePageProps) {
   const { slug } = await params
   const { src } = await searchParams
-  const attributionSource = src === 'qr' ? 'qr' : 'site'
+  const qrSources = new Set(['qr', 'qr_certificate', 'qr_decal', 'qr_sticker'])
+  const attributionSource = src && qrSources.has(src) ? src : 'site'
   const supabase = await createClient()
   const provider = await getProvider(slug)
 

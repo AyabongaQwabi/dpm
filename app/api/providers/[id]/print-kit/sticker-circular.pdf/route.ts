@@ -15,6 +15,7 @@ export async function GET(
   return handlePrintKitPdfRequest(id, {
     size: { widthMm: diameterMm + bleedMm * 2, heightMm: diameterMm + bleedMm * 2 },
     filenameSuffix: 'servicepros-sticker-60mm',
+    qrSource: 'qr_sticker',
     renderPdf: renderStickerPdf,
     qrSize: 260,
   })

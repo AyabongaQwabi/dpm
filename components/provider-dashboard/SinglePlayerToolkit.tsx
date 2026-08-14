@@ -200,7 +200,7 @@ export function SinglePlayerToolkit({
         {printKitEligible ? (
           <div className="mt-3">
             <p className="text-xs font-semibold uppercase tracking-wide text-primary-accent">Evangelism kit</p>
-            <p className="mt-1 text-xs text-muted-foreground">Print-ready PDFs, regenerated fresh on every download so badge status is always current.</p>
+            <p className="mt-1 text-xs text-muted-foreground">Print your verified status for your shopfront, counter, quotes, or handouts. Each PDF uses your current badges and a tracked QR link.</p>
             <div className="mt-3 grid gap-3 sm:grid-cols-3">
               <a
                 href={`/api/providers/${providerId}/print-kit/decal-a5.pdf`}
@@ -230,7 +230,7 @@ export function SinglePlayerToolkit({
           </div>
         ) : (
           <div className="mt-3 rounded-xl border border-dashed bg-muted/20 p-4 text-xs text-muted-foreground">
-            Claim your profile and earn at least one verification badge to unlock the print-ready evangelism kit (decal, certificate, sticker).
+            Claim your profile and earn one verification badge to unlock your certificate, window decal, and QR sticker.
           </div>
         )}
       </section>

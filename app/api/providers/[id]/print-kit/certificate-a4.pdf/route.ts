@@ -15,6 +15,7 @@ export async function GET(
   return handlePrintKitPdfRequest(id, {
     size: { widthMm: widthMm + bleedMm * 2, heightMm: heightMm + bleedMm * 2 },
     filenameSuffix: 'servicepros-certificate-a4',
+    qrSource: 'qr_certificate',
     renderPdf: renderCertificatePdf,
   })
 }

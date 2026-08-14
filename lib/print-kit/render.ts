@@ -4,7 +4,7 @@
 
 import { PDFDocument, StandardFonts, rgb, type PDFPage, type PDFFont, type RGB } from 'pdf-lib'
 import { TIER_META, type VerificationTier } from '@/components/ui/VerifiedBadge'
-import { PRINT_KIT_COLORS, PRINT_KIT_WORDMARK } from '@/lib/print-kit-config'
+import { PRINT_KIT_COLORS } from '@/lib/print-kit-config'
 
 export interface PdfSize {
   widthMm: number
@@ -16,8 +16,11 @@ export interface PrintKitRenderParams {
   tiers: VerificationTier[]
   qr: string | null
   profileUrl: string
+  recognizedSince: string | null
+  verifiedProviderCount: number | null
 }
 
+const ALL_TIERS: VerificationTier[] = ['contact', 'google', 'cipc', 'fica']
 const PT_PER_MM = 72 / 25.4
 
 function mm(value: number): number {
@@ -55,6 +58,12 @@ function wrapText(text: string, font: PDFFont, size: number, maxWidth: number): 
 
   if (current) lines.push(current)
   return lines.length ? lines : ['']
+}
+
+function fittedSize(text: string, font: PDFFont, preferredSize: number, maxWidth: number, minSize: number): number {
+  let size = preferredSize
+  while (size > minSize && font.widthOfTextAtSize(pdfText(text), size) > maxWidth) size -= 0.5
+  return size
 }
 
 function drawCenteredText(
@@ -105,28 +114,94 @@ async function embedQr(pdf: PDFDocument, qr: string | null) {
   }
 }
 
-function drawBadgeMark(page: PDFPage, x: number, y: number, size: number, color: RGB) {
-  page.drawEllipse({
-    x: x + size / 2,
-    y: y + size / 2,
-    xScale: size / 2,
-    yScale: size / 2,
-    borderColor: color,
-    borderWidth: 1.3,
-  })
+function formatDate(value: string | null): string | null {
+  if (!value) return null
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return null
+  return date.toLocaleDateString('en-ZA', { year: 'numeric', month: 'long', day: 'numeric' })
+}
+
+function countLine(count: number | null): string | null {
+  if (count === null || count < 1) return null
+  return `One of ${new Intl.NumberFormat('en-ZA').format(count)} verified businesses on ServicePros`
+}
+
+function drawCheck(page: PDFPage, x: number, y: number, size: number, color: RGB, thickness = 2) {
   page.drawLine({
-    start: { x: x + size * 0.28, y: y + size * 0.48 },
-    end: { x: x + size * 0.43, y: y + size * 0.33 },
-    thickness: 1.5,
+    start: { x: x + size * 0.25, y: y + size * 0.48 },
+    end: { x: x + size * 0.42, y: y + size * 0.3 },
+    thickness,
     color,
   })
   page.drawLine({
-    start: { x: x + size * 0.43, y: y + size * 0.33 },
-    end: { x: x + size * 0.72, y: y + size * 0.68 },
-    thickness: 1.5,
+    start: { x: x + size * 0.42, y: y + size * 0.3 },
+    end: { x: x + size * 0.76, y: y + size * 0.7 },
+    thickness,
     color,
   })
 }
+
+function drawMedal(page: PDFPage, x: number, y: number, size: number, colors: RenderColors, held = true) {
+  const center = { x: x + size / 2, y: y + size / 2 }
+  const fill = held ? colors.accent : colors.white
+  const stroke = held ? colors.primary : colors.muted
+  const check = held ? colors.primary : colors.muted
+
+  page.drawEllipse({
+    x: center.x,
+    y: center.y,
+    xScale: size / 2,
+    yScale: size / 2,
+    color: fill,
+    borderColor: stroke,
+    borderWidth: held ? 1.8 : 1.2,
+  })
+  page.drawEllipse({
+    x: center.x,
+    y: center.y,
+    xScale: size * 0.36,
+    yScale: size * 0.36,
+    borderColor: held ? colors.white : colors.muted,
+    borderWidth: 1,
+  })
+  drawCheck(page, x + size * 0.18, y + size * 0.16, size * 0.64, check, held ? 2.4 : 1.5)
+}
+
+function drawSealBurst(page: PDFPage, centerX: number, centerY: number, radius: number, color: RGB) {
+  for (let i = 0; i < 28; i += 1) {
+    const angle = (Math.PI * 2 * i) / 28
+    const inner = radius * 0.88
+    const outer = radius
+    page.drawLine({
+      start: { x: centerX + Math.cos(angle) * inner, y: centerY + Math.sin(angle) * inner },
+      end: { x: centerX + Math.cos(angle) * outer, y: centerY + Math.sin(angle) * outer },
+      thickness: 1.2,
+      color,
+    })
+  }
+}
+
+function drawCornerFlourish(page: PDFPage, x: number, y: number, sx: number, sy: number, color: RGB) {
+  page.drawLine({ start: { x, y }, end: { x: x + sx * mm(18), y }, thickness: 1.1, color })
+  page.drawLine({ start: { x, y }, end: { x, y: y + sy * mm(18) }, thickness: 1.1, color })
+  page.drawEllipse({ x: x + sx * mm(7), y: y + sy * mm(7), xScale: mm(1.8), yScale: mm(1.8), color })
+}
+
+function drawRingDots(page: PDFPage, centerX: number, centerY: number, radius: number, color: RGB) {
+  for (let i = 0; i < 34; i += 1) {
+    const angle = (Math.PI * 2 * i) / 34
+    if (Math.abs(Math.sin(angle)) > 0.72) continue
+    page.drawEllipse({
+      x: centerX + Math.cos(angle) * radius,
+      y: centerY + Math.sin(angle) * radius,
+      xScale: mm(0.75),
+      yScale: mm(0.75),
+      color,
+    })
+  }
+}
+
+type RenderColors = Awaited<ReturnType<typeof basePdf>>['colors']
 
 async function basePdf(size: PdfSize) {
   const pdf = await PDFDocument.create()
@@ -139,6 +214,9 @@ async function basePdf(size: PdfSize) {
     ink: hexColor(PRINT_KIT_COLORS.ink),
     paper: hexColor(PRINT_KIT_COLORS.paper),
     white: rgb(1, 1, 1),
+    softGold: rgb(0.97, 0.9, 0.68),
+    muted: rgb(0.68, 0.7, 0.67),
+    pale: rgb(0.96, 0.95, 0.92),
   }
 
   page.drawRectangle({
@@ -161,76 +239,67 @@ export async function renderDecalPdf(params: PrintKitRenderParams, size: PdfSize
   const { pdf, page, regular, bold, colors } = await basePdf(size)
   const pageWidth = page.getWidth()
   const pageHeight = page.getHeight()
-  const cardX = mm(3)
-  const cardY = mm(3)
-  const cardW = pageWidth - mm(6)
-  const cardH = pageHeight - mm(6)
+  const qrImage = await embedQr(pdf, params.qr)
 
   page.drawRectangle({
-    x: cardX,
-    y: cardY,
-    width: cardW,
-    height: cardH,
+    x: mm(4),
+    y: mm(4),
+    width: pageWidth - mm(8),
+    height: pageHeight - mm(8),
     color: colors.white,
     borderColor: colors.primary,
-    borderWidth: mm(2),
+    borderWidth: mm(2.2),
+  })
+  page.drawRectangle({
+    x: mm(9),
+    y: mm(9),
+    width: pageWidth - mm(18),
+    height: pageHeight - mm(18),
+    borderColor: colors.accent,
+    borderWidth: 1.2,
   })
 
-  drawCenteredText(page, PRINT_KIT_WORDMARK, bold, mm(8), pageHeight - mm(27), colors.primary, pageWidth)
-  drawCenteredText(page, 'Scan to view & book', bold, mm(4), pageHeight - mm(39), colors.accent, pageWidth)
+  const markSize = mm(17)
+  drawMedal(page, pageWidth / 2 - markSize / 2, pageHeight - mm(42), markSize, colors, true)
+  drawCenteredText(page, 'VERIFIED', bold, mm(9), pageHeight - mm(57), colors.primary, pageWidth)
+  drawCenteredText(page, 'Booked with confidence.', bold, mm(11), pageHeight - mm(80), colors.ink, pageWidth)
+  drawCenteredWrappedText(
+    page,
+    `${params.businessName} is a verified provider on ServicePros`,
+    regular,
+    mm(5),
+    pageHeight - mm(96),
+    mm(116),
+    mm(6.5),
+    colors.ink,
+    pageWidth,
+  )
+  drawCenteredText(page, 'See real reviews. Book securely. No surprises.', bold, mm(4.2), pageHeight - mm(116), colors.primary, pageWidth)
 
-  const qrImage = await embedQr(pdf, params.qr)
   if (qrImage) {
-    const qrSize = mm(48)
+    const qrSize = mm(58)
+    page.drawRectangle({
+      x: pageWidth / 2 - qrSize / 2 - mm(3),
+      y: pageHeight - mm(185),
+      width: qrSize + mm(6),
+      height: qrSize + mm(6),
+      color: colors.white,
+      borderColor: colors.softGold,
+      borderWidth: 1.4,
+    })
     page.drawImage(qrImage, {
-      x: (pageWidth - qrSize) / 2,
-      y: pageHeight - mm(94),
+      x: pageWidth / 2 - qrSize / 2,
+      y: pageHeight - mm(182),
       width: qrSize,
       height: qrSize,
     })
   } else {
-    drawCenteredWrappedText(page, params.profileUrl, regular, mm(3), pageHeight - mm(62), mm(95), mm(4), colors.ink, pageWidth)
+    drawCenteredWrappedText(page, params.profileUrl, regular, mm(3.2), pageHeight - mm(148), mm(92), mm(4.5), colors.ink, pageWidth)
   }
 
-  const afterNameY = drawCenteredWrappedText(
-    page,
-    params.businessName,
-    bold,
-    mm(6),
-    pageHeight - mm(111),
-    mm(116),
-    mm(7),
-    colors.ink,
-    pageWidth,
-  )
-
-  const chipHeight = mm(8)
-  const gap = mm(2)
-  const chipY = afterNameY - mm(9)
-  const chipWidths = params.tiers.map((tier) => bold.widthOfTextAtSize(TIER_META[tier].short, mm(3.2)) + mm(14))
-  const totalWidth = chipWidths.reduce((sum, width) => sum + width, 0) + gap * Math.max(0, chipWidths.length - 1)
-  let x = (pageWidth - totalWidth) / 2
-
-  params.tiers.forEach((tier, index) => {
-    const width = chipWidths[index] ?? mm(24)
-    page.drawRectangle({
-      x,
-      y: chipY,
-      width,
-      height: chipHeight,
-      borderColor: colors.ink,
-      borderWidth: 1,
-    })
-    drawBadgeMark(page, x + mm(2), chipY + mm(2), mm(4), colors.ink)
-    page.drawText(TIER_META[tier].short, {
-      x: x + mm(8),
-      y: chipY + mm(2.3),
-      size: mm(3.2),
-      font: bold,
-      color: colors.ink,
-    })
-    x += width + gap
-  })
+  drawCenteredText(page, 'Scan to see verified reviews & book', bold, mm(5), mm(25), colors.accent, pageWidth)
+  drawCenteredWrappedText(page, params.businessName, bold, mm(4.5), mm(16), mm(120), mm(5), colors.ink, pageWidth)
+  drawCenteredText(page, 'servicepros.co.za', regular, mm(3.4), mm(10), colors.primary, pageWidth)
 
   return finish(pdf)
 }
@@ -239,68 +308,125 @@ export async function renderCertificatePdf(params: PrintKitRenderParams, size: P
   const { pdf, page, regular, bold, colors } = await basePdf(size)
   const pageWidth = page.getWidth()
   const pageHeight = page.getHeight()
-  const sheetX = mm(10)
-  const sheetY = mm(10)
-  const sheetW = pageWidth - mm(20)
-  const sheetH = pageHeight - mm(20)
+  const qrImage = await embedQr(pdf, params.qr)
+  const recognizedDate = formatDate(params.recognizedSince)
 
   page.drawRectangle({
-    x: sheetX,
-    y: sheetY,
-    width: sheetW,
-    height: sheetH,
+    x: mm(10),
+    y: mm(10),
+    width: pageWidth - mm(20),
+    height: pageHeight - mm(20),
     color: colors.white,
     borderColor: colors.primary,
-    borderWidth: mm(3),
+    borderWidth: mm(2.6),
   })
+  page.drawRectangle({
+    x: mm(16),
+    y: mm(16),
+    width: pageWidth - mm(32),
+    height: pageHeight - mm(32),
+    borderColor: colors.accent,
+    borderWidth: 1.2,
+  })
+  page.drawRectangle({
+    x: mm(21),
+    y: mm(21),
+    width: pageWidth - mm(42),
+    height: pageHeight - mm(42),
+    borderColor: colors.softGold,
+    borderWidth: 0.8,
+  })
+  drawCornerFlourish(page, mm(26), pageHeight - mm(26), 1, -1, colors.accent)
+  drawCornerFlourish(page, pageWidth - mm(26), pageHeight - mm(26), -1, -1, colors.accent)
+  drawCornerFlourish(page, mm(26), mm(26), 1, 1, colors.accent)
+  drawCornerFlourish(page, pageWidth - mm(26), mm(26), -1, 1, colors.accent)
 
-  drawCenteredText(page, 'VERIFICATION CERTIFICATE', bold, mm(5), pageHeight - mm(36), colors.accent, pageWidth)
-  drawCenteredText(page, PRINT_KIT_WORDMARK, bold, mm(12), pageHeight - mm(55), colors.primary, pageWidth)
+  const sealX = pageWidth / 2
+  const sealY = pageHeight - mm(55)
+  drawSealBurst(page, sealX, sealY, mm(20), colors.softGold)
+  page.drawEllipse({ x: sealX, y: sealY, xScale: mm(15), yScale: mm(15), color: colors.accent, borderColor: colors.primary, borderWidth: 1.4 })
+  page.drawEllipse({ x: sealX, y: sealY, xScale: mm(10), yScale: mm(10), borderColor: colors.white, borderWidth: 1 })
+  drawCheck(page, sealX - mm(6), sealY - mm(5), mm(12), colors.primary, 2.8)
 
-  let y = drawCenteredWrappedText(
-    page,
-    params.businessName,
-    bold,
-    mm(10),
-    pageHeight - mm(90),
-    mm(160),
-    mm(11),
-    colors.ink,
-    pageWidth,
-  )
+  drawCenteredText(page, 'RECOGNISED BUSINESS', bold, mm(5), pageHeight - mm(85), colors.accent, pageWidth)
 
+  const nameSize = fittedSize(params.businessName, bold, mm(13), mm(160), mm(8))
+  let y = drawCenteredWrappedText(page, params.businessName, bold, nameSize, pageHeight - mm(108), mm(160), nameSize * 1.16, colors.ink, pageWidth)
+  y = drawCenteredTextReturn(page, 'is recognised on ServicePros', regular, mm(6), y - mm(8), colors.primary, pageWidth)
   y = drawCenteredWrappedText(
     page,
-    "This certifies that the business named above has completed ServicePros' evidence-based verification process for the badge(s) listed below.",
+    "This business has completed ServicePros' evidence-based verification process and is recognised by customers across South Africa who book with confidence.",
     regular,
-    mm(5),
-    y - mm(10),
-    mm(140),
-    mm(7),
+    mm(4.7),
+    y - mm(12),
+    mm(142),
+    mm(6.2),
     colors.ink,
     pageWidth,
   )
 
-  y -= mm(10)
-  params.tiers.forEach((tier) => {
-    const label = TIER_META[tier].label
-    const rowW = bold.widthOfTextAtSize(label, mm(5)) + mm(14)
-    const rowX = (pageWidth - rowW) / 2
-    drawBadgeMark(page, rowX, y - mm(1), mm(6), colors.ink)
-    page.drawText(label, {
-      x: rowX + mm(10),
-      y,
-      size: mm(5),
-      font: bold,
-      color: colors.ink,
-    })
-    y -= mm(12)
+  drawCenteredText(page, 'Verification badges', bold, mm(4.5), y - mm(9), colors.primary, pageWidth)
+  const badgeY = y - mm(31)
+  const badgeGap = mm(8)
+  const badgeSize = mm(18)
+  const totalBadgeWidth = ALL_TIERS.length * mm(33) + (ALL_TIERS.length - 1) * badgeGap
+  let badgeX = (pageWidth - totalBadgeWidth) / 2
+  const held = new Set(params.tiers)
+  ALL_TIERS.forEach((tier) => {
+    const isHeld = held.has(tier)
+    drawMedal(page, badgeX + mm(7.5), badgeY, badgeSize, colors, isHeld)
+    const label = TIER_META[tier].short
+    const labelColor = isHeld ? colors.ink : colors.muted
+    const labelSize = fittedSize(label, bold, mm(3.4), mm(33), mm(2.8))
+    drawCenteredTextInWidth(page, label, bold, labelSize, badgeX, badgeY - mm(7), mm(33), labelColor)
+    badgeX += mm(33) + badgeGap
   })
 
-  const issued = `Issued ${new Date().toLocaleDateString('en-ZA', { year: 'numeric', month: 'long', day: 'numeric' })} - servicepros.co.za`
-  drawCenteredText(page, issued, regular, mm(4), mm(25), colors.ink, pageWidth)
+  const socialLine = countLine(params.verifiedProviderCount)
+  let statusY = badgeY - mm(23)
+  if (recognizedDate) {
+    drawCenteredText(page, `Recognised since ${recognizedDate}`, bold, mm(4.2), statusY, colors.primary, pageWidth)
+    statusY -= mm(8)
+  }
+  if (socialLine) {
+    drawCenteredText(page, socialLine, regular, mm(3.8), statusY, colors.ink, pageWidth)
+  }
+
+  if (qrImage) {
+    const qrSize = mm(23)
+    page.drawImage(qrImage, { x: pageWidth - mm(48), y: mm(34), width: qrSize, height: qrSize })
+    page.drawText('Scan to view profile', { x: pageWidth - mm(52), y: mm(28), size: mm(2.8), font: regular, color: colors.ink })
+  }
+  drawCenteredText(page, 'Recognition reflects current verification status - servicepros.co.za', regular, mm(3.3), mm(18), colors.ink, pageWidth)
 
   return finish(pdf)
+}
+
+function drawCenteredTextReturn(
+  page: PDFPage,
+  text: string,
+  font: PDFFont,
+  size: number,
+  y: number,
+  color: RGB,
+  pageWidth: number,
+): number {
+  drawCenteredText(page, text, font, size, y, color, pageWidth)
+  return y - size * 1.2
+}
+
+function drawCenteredTextInWidth(
+  page: PDFPage,
+  text: string,
+  font: PDFFont,
+  size: number,
+  x: number,
+  y: number,
+  width: number,
+  color: RGB,
+) {
+  const safeText = pdfText(text)
+  page.drawText(safeText, { x: x + (width - font.widthOfTextAtSize(safeText, size)) / 2, y, size, font, color })
 }
 
 export async function renderStickerPdf(params: PrintKitRenderParams, size: PdfSize): Promise<Buffer> {
@@ -309,6 +435,7 @@ export async function renderStickerPdf(params: PrintKitRenderParams, size: PdfSi
   const pageHeight = page.getHeight()
   const centerX = pageWidth / 2
   const centerY = pageHeight / 2
+  const qrImage = await embedQr(pdf, params.qr)
 
   page.drawEllipse({
     x: centerX,
@@ -319,31 +446,31 @@ export async function renderStickerPdf(params: PrintKitRenderParams, size: PdfSi
     borderColor: colors.primary,
     borderWidth: mm(1.2),
   })
+  page.drawEllipse({ x: centerX, y: centerY, xScale: mm(26.5), yScale: mm(26.5), borderColor: colors.accent, borderWidth: 1.1 })
+  drawRingDots(page, centerX, centerY, mm(24), colors.softGold)
+  drawCenteredText(page, 'VERIFIED PROVIDER', bold, mm(3.3), centerY + mm(15), colors.primary, pageWidth)
 
-  drawCenteredText(page, PRINT_KIT_WORDMARK, bold, mm(3.4), centerY + mm(19), colors.primary, pageWidth)
-
-  const qrImage = await embedQr(pdf, params.qr)
   if (qrImage) {
     const qrSize = mm(24)
+    page.drawRectangle({
+      x: centerX - qrSize / 2 - mm(1.5),
+      y: centerY - qrSize / 2 - mm(1.5),
+      width: qrSize + mm(3),
+      height: qrSize + mm(3),
+      color: colors.white,
+    })
     page.drawImage(qrImage, {
       x: centerX - qrSize / 2,
-      y: centerY - mm(7),
+      y: centerY - qrSize / 2,
       width: qrSize,
       height: qrSize,
     })
+  } else {
+    drawCenteredWrappedText(page, params.profileUrl, regular, mm(2.2), centerY + mm(5), mm(35), mm(3), colors.ink, pageWidth)
   }
 
-  drawCenteredWrappedText(
-    page,
-    params.businessName,
-    regular,
-    mm(2.6),
-    centerY - mm(13),
-    mm(40),
-    mm(3.2),
-    colors.ink,
-    pageWidth,
-  )
+  drawCenteredWrappedText(page, params.businessName, regular, mm(2.45), centerY - mm(17.5), mm(43), mm(3), colors.ink, pageWidth)
+  drawCenteredText(page, 'servicepros.co.za', bold, mm(2.4), centerY - mm(22.2), colors.accent, pageWidth)
 
   return finish(pdf)
 }

@@ -7,7 +7,9 @@ const params = {
   businessName: 'Aya Electrical Services',
   tiers: ['contact', 'google', 'cipc'] as const,
   qr: null,
-  profileUrl: 'https://servicepros.co.za/providers/aya-electrical-services?src=qr',
+  profileUrl: 'https://servicepros.co.za/providers/aya-electrical-services?src=qr_certificate',
+  recognizedSince: '2026-08-01T10:30:00.000Z',
+  verifiedProviderCount: 42,
 }
 
 function expectPdf(buffer: Buffer) {
@@ -28,5 +30,14 @@ describe('print-kit PDF renderer', () => {
     expect(source).not.toMatch(/puppeteer/i)
     expect(source).not.toMatch(/chromium/i)
     expect(source).toContain("from 'pdf-lib'")
+  })
+
+  it('keeps print-kit QR sources distinct for downstream analytics', () => {
+    const routeHandler = readFileSync(join(process.cwd(), 'lib/print-kit/route-handler.ts'), 'utf8')
+    const profilePage = readFileSync(join(process.cwd(), 'app/(public)/providers/[slug]/page.tsx'), 'utf8')
+
+    expect(routeHandler).toContain("qrSource: 'qr_certificate' | 'qr_decal' | 'qr_sticker'")
+    expect(profilePage).toContain("'qr_certificate', 'qr_decal', 'qr_sticker'")
+    expect(profilePage).not.toContain("src === 'qr' ? 'qr' : 'site'")
   })
 })
