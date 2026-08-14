@@ -4,12 +4,18 @@
 // loads .woff2 instead, since Puppeteer's real Chrome has no such restriction).
 
 import { readFile } from 'node:fs/promises'
-import { createRequire } from 'node:module'
+import { join } from 'node:path'
 
-const require = createRequire(import.meta.url)
+const bricolage800Path = join(
+  process.cwd(),
+  'node_modules/@fontsource/bricolage-grotesque/files/bricolage-grotesque-latin-800-normal.woff',
+)
+const hanken700Path = join(
+  process.cwd(),
+  'node_modules/@fontsource/hanken-grotesk/files/hanken-grotesk-latin-700-normal.woff',
+)
 
-async function fontBytes(pkgFile: string): Promise<Buffer> {
-  const filePath = require.resolve(pkgFile)
+async function fontBytes(filePath: string): Promise<Buffer> {
   return readFile(filePath)
 }
 
@@ -24,10 +30,7 @@ let cached: Promise<OgImageFont[]> | null = null
 
 export function loadOgImageFonts(): Promise<OgImageFont[]> {
   if (!cached) {
-    cached = Promise.all([
-      fontBytes('@fontsource/bricolage-grotesque/files/bricolage-grotesque-latin-800-normal.woff'),
-      fontBytes('@fontsource/hanken-grotesk/files/hanken-grotesk-latin-700-normal.woff'),
-    ]).then(([bricolage800, hanken700]) => [
+    cached = Promise.all([fontBytes(bricolage800Path), fontBytes(hanken700Path)]).then(([bricolage800, hanken700]) => [
       { name: 'Bricolage Grotesque', data: bricolage800, weight: 800, style: 'normal' },
       { name: 'Hanken Grotesk', data: hanken700, weight: 700, style: 'normal' },
     ] satisfies OgImageFont[])

@@ -17,6 +17,13 @@ const nextConfig: NextConfig = {
   // bundled as-is (not processed by webpack/turbopack) for the print-kit
   // PDF routes to launch it inside a Vercel serverless function.
   serverExternalPackages: ['puppeteer-core', '@sparticuz/chromium'],
+  outputFileTracingIncludes: {
+    '/api/providers/\\[id\\]/print-kit/*': [
+      './node_modules/@puppeteer/**/*',
+      './node_modules/@sparticuz/chromium/**/*',
+      './node_modules/puppeteer-core/**/*',
+    ],
+  },
   experimental: {
     serverActions: {
       // Matches the 10MB cap enforced in lib/actions/upload.ts — the

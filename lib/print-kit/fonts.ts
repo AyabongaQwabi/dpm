@@ -7,12 +7,18 @@
 // Weights used: Bricolage Grotesque 800 (headings), Hanken Grotesk 700 (body/labels).
 
 import { readFile } from 'node:fs/promises'
-import { createRequire } from 'node:module'
+import { join } from 'node:path'
 
-const require = createRequire(import.meta.url)
+const bricolage800Path = join(
+  process.cwd(),
+  'node_modules/@fontsource/bricolage-grotesque/files/bricolage-grotesque-latin-800-normal.woff2',
+)
+const hanken700Path = join(
+  process.cwd(),
+  'node_modules/@fontsource/hanken-grotesk/files/hanken-grotesk-latin-700-normal.woff2',
+)
 
-async function fontDataUri(pkgFile: string): Promise<string> {
-  const filePath = require.resolve(pkgFile)
+async function fontDataUri(filePath: string): Promise<string> {
   const bytes = await readFile(filePath)
   return `data:font/woff2;base64,${bytes.toString('base64')}`
 }
@@ -26,10 +32,8 @@ let cached: Promise<PrintKitFonts> | null = null
 
 export function loadPrintKitFonts(): Promise<PrintKitFonts> {
   if (!cached) {
-    cached = Promise.all([
-      fontDataUri('@fontsource/bricolage-grotesque/files/bricolage-grotesque-latin-800-normal.woff2'),
-      fontDataUri('@fontsource/hanken-grotesk/files/hanken-grotesk-latin-700-normal.woff2'),
-    ]).then(([bricolage800, hanken700]) => ({ bricolage800, hanken700 }))
+    cached = Promise.all([fontDataUri(bricolage800Path), fontDataUri(hanken700Path)])
+      .then(([bricolage800, hanken700]) => ({ bricolage800, hanken700 }))
   }
   return cached
 }
