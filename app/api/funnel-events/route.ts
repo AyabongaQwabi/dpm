@@ -2,7 +2,14 @@ import { NextResponse } from 'next/server'
 import type { FunnelEventType } from '@/lib/db'
 import { logFunnelEvent } from '@/lib/liquidity/log-funnel-event'
 
-const EVENT_TYPES: FunnelEventType[] = ['search_performed', 'profile_viewed', 'service_viewed', 'review_submitted']
+const EVENT_TYPES: FunnelEventType[] = [
+  'search_performed',
+  'profile_viewed',
+  'service_viewed',
+  'review_submitted',
+  'embed_view',
+  'embed_interaction',
+]
 
 function stringValue(value: unknown, max = 200): string | null {
   if (typeof value !== 'string') return null
@@ -30,6 +37,7 @@ export async function POST(request: Request) {
     city: stringValue(body.city, 120),
     providerId: stringValue(body.providerId, 80),
     sessionId,
+    originDomain: stringValue(body.originDomain, 200),
     metadata: typeof body.metadata === 'object' && body.metadata !== null
       ? (body.metadata as Record<string, unknown>)
       : {},

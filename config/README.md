@@ -305,6 +305,20 @@ Imported by `lib/liquidity-config.ts`, then used by the internal liquidity dashb
 
 No database mirror.
 
+## `embed.json`
+
+Embeddable widget (services/card/reviews) configuration.
+
+- `modes`: the three widget modes a script/iframe embed can render — `services`, `card`, `reviews`. Single source of truth for `/embed/v1.js`'s `data-mode` validation and the dashboard generator's mode picker.
+- `rateLimit.maxRequestsPerWindow` / `.windowMinutes`: per-`origin_domain` rate limit on the public widget-data endpoint, so a widget embedded on an unrelated or spam domain cannot hammer it.
+- `commission.embedCommissionDiscountBps`: **TODO(aya): confirm.** Whether embed-originated bookings get a reduced commission bracket as a ceiling-package perk is a pricing decision. Ships at `0` (no special treatment); commission calculation reads this like any other config value and nothing branches on `source === 'embed'` unless it becomes non-zero.
+- `cache.widgetDataMaxAgeSeconds`: `Cache-Control: public, max-age=...` on the public widget-data JSON response.
+- `reviews.maxItems`: max reviews returned to the `mode="reviews"` widget.
+
+Imported by `lib/embed-config.ts`, then used by `app/api/embed/**` route handlers and `components/embed/**`.
+
+No database mirror. `funnel_events.origin_domain` (added in `20260825000000_embed_widgets.sql`) and `bookings.source` / `bookings.origin_domain` (added in `20260820000000_funnel_events.sql`) carry the resulting attribution, not this config.
+
 ## `satisfaction.json`
 
 Timing and copy for the two independent NPS survey flows: customer (fired once at booking completion) and provider (day 30 post-claim, then quarterly). The two sides are never blended — every read of `satisfaction_responses` filters on `side`.

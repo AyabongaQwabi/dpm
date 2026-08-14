@@ -30,6 +30,9 @@ interface Props {
   providerId: string
   acceptsCustomQuotes: boolean
   quoteRequestAction?: (formData: FormData) => Promise<CreateQuoteRequestResult>
+  /** Set when this page was reached via an embedded widget's deep link. */
+  source?: 'embed'
+  originDomain?: string | null
 }
 
 function effectivePrice(price: number, type: DiscountType, amount: number | null): number {
@@ -44,10 +47,14 @@ function discountLabel(type: DiscountType, amount: number | null): string | null
   return `${formatCredits(Number(amount))} off`
 }
 
-export function PackageSelector({ packages, serviceId, serviceName, ctaVerb, isSignedIn, signInUrl, providerSlug, providerId, acceptsCustomQuotes, quoteRequestAction }: Props) {
+export function PackageSelector({ packages, serviceId, serviceName, ctaVerb, isSignedIn, signInUrl, providerSlug, providerId, acceptsCustomQuotes, quoteRequestAction, source, originDomain }: Props) {
   const defaultPkg = packages.find((p) => p.is_default) ?? packages[0]
   const [selected, setSelected] = useState<string>(defaultPkg?.id ?? '')
   const [quoteMessage, setQuoteMessage] = useState<string | null>(null)
+
+  const embedParams = source === 'embed'
+    ? `&source=embed${originDomain ? `&originDomain=${encodeURIComponent(originDomain)}` : ''}`
+    : ''
 
   const selectedPkg = packages.find((p) => p.id === selected) ?? packages[0]
 
@@ -115,7 +122,7 @@ export function PackageSelector({ packages, serviceId, serviceName, ctaVerb, isS
   const label = discountLabel(selectedPkg?.discount_type ?? 'none', selectedPkg?.discount_amount ?? null)
 
   const checkoutUrl = isSignedIn
-    ? `/checkout?serviceId=${serviceId}&packageId=${selected}`
+    ? `/checkout?serviceId=${serviceId}&packageId=${selected}${embedParams}`
     : signInUrl
 
   return (

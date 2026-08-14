@@ -2,7 +2,7 @@ import { notFound, redirect } from 'next/navigation'
 import Link from 'next/link'
 import type { Metadata } from 'next'
 import { createClient } from '@/lib/supabase/server'
-import type { DiscountType, ServiceType } from '@/lib/db'
+import type { BookingSource, DiscountType, ServiceType } from '@/lib/db'
 import { calculateBookingCommission } from '@/lib/commission-context'
 import { canAfford, shortfall } from '@/lib/domain/credits'
 import { formatCredits } from '@/lib/format-credits'
@@ -10,6 +10,7 @@ import type { ServicePricing } from '@/lib/domain/payments'
 import { canonicalAlternates } from '@/lib/seo'
 import { RequirementsPreview } from '@/components/booking/RequirementsPreview'
 import { createBookingWithCredits } from '@/lib/actions/booking-creation'
+import { normalizeOriginDomain } from '@/lib/domain/embed'
 
 export const metadata: Metadata = {
   title: 'Checkout',
@@ -18,7 +19,13 @@ export const metadata: Metadata = {
 }
 
 interface Props {
-  searchParams: Promise<{ serviceId?: string; packageId?: string }>
+  searchParams: Promise<{ serviceId?: string; packageId?: string; source?: string; originDomain?: string }>
+}
+
+function sourceQueryString(source: string | undefined, originDomain: string | undefined): string {
+  if (source !== 'embed') return ''
+  const normalized = normalizeOriginDomain(originDomain ?? null)
+  return `&source=embed${normalized ? `&originDomain=${encodeURIComponent(normalized)}` : ''}`
 }
 
 async function createBooking(formData: FormData) {
@@ -26,10 +33,18 @@ async function createBooking(formData: FormData) {
   const serviceId = formData.get('serviceId') as string
   const packageId = formData.get('packageId') as string
   const notes = (formData.get('notes') as string | null)?.trim() || null
+  const rawSource = formData.get('source') as string | null
+  const source: BookingSource = rawSource === 'embed' ? 'embed' : 'site'
+  const originDomain = source === 'embed'
+    ? normalizeOriginDomain(formData.get('originDomain') as string | null)
+    : null
 
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect(`/sign-in?next=/checkout?serviceId=${serviceId}&packageId=${packageId}`)
+  if (!user) {
+    const next = `/checkout?serviceId=${serviceId}&packageId=${packageId}${sourceQueryString(rawSource ?? undefined, originDomain ?? undefined)}`
+    redirect(`/sign-in?next=${encodeURIComponent(next)}`)
+  }
 
   const { data: customer } = await supabase
     .from('customers')
@@ -86,6 +101,8 @@ async function createBooking(formData: FormData) {
     notes,
     commission,
     description: `Booking: ${service.title}`,
+    source,
+    originDomain,
   })
 
   if (!booking.ok) {
@@ -99,13 +116,19 @@ async function createBooking(formData: FormData) {
 }
 
 export default async function CheckoutPage({ searchParams }: Props) {
-  const { serviceId, packageId } = await searchParams
+  const { serviceId, packageId, source: rawSource, originDomain: rawOriginDomain } = await searchParams
 
   if (!serviceId || !packageId) notFound()
 
+  const source: BookingSource = rawSource === 'embed' ? 'embed' : 'site'
+  const originDomain = source === 'embed' ? normalizeOriginDomain(rawOriginDomain ?? null) : null
+
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect(`/sign-in?next=/checkout?serviceId=${serviceId}&packageId=${packageId}`)
+  if (!user) {
+    const next = `/checkout?serviceId=${serviceId}&packageId=${packageId}${sourceQueryString(rawSource, rawOriginDomain)}`
+    redirect(`/sign-in?next=${encodeURIComponent(next)}`)
+  }
 
   const [{ data: customer }, { data: service }, { data: pkg }] = await Promise.all([
     supabase
@@ -253,6 +276,8 @@ export default async function CheckoutPage({ searchParams }: Props) {
       <form action={createBooking} className="space-y-5">
         <input type="hidden" name="serviceId" value={serviceId} />
         <input type="hidden" name="packageId" value={packageId} />
+        {source === 'embed' && <input type="hidden" name="source" value="embed" />}
+        {originDomain && <input type="hidden" name="originDomain" value={originDomain} />}
 
         <div className="space-y-2">
           <label htmlFor="notes" className="text-sm font-medium">

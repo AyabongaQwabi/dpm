@@ -32,7 +32,13 @@ export type ProviderAnalyticsEventType =
   | 'profile_contact_click'
   | 'profile_service_click'
   | 'profile_share_click'
-export type FunnelEventType = 'search_performed' | 'profile_viewed' | 'service_viewed' | 'review_submitted'
+export type FunnelEventType =
+  | 'search_performed'
+  | 'profile_viewed'
+  | 'service_viewed'
+  | 'review_submitted'
+  | 'embed_view'
+  | 'embed_interaction'
 export type BookingSource = 'site' | 'embed'
 export type QuoteRequestStatus = 'requested' | 'quoted' | 'accepted' | 'declined' | 'expired'
 export type QuoteStatus = 'sent' | 'accepted' | 'declined' | 'expired' | 'superseded'
@@ -265,6 +271,7 @@ export interface FunnelEvent {
   city: string | null
   provider_id: string | null
   session_id: string
+  origin_domain: string | null
   metadata: Record<string, unknown>
   created_at: string
 }

@@ -1,0 +1,16 @@
+{
+  "modes": ["services", "card", "reviews"],
+  "rateLimit": {
+    "maxRequestsPerWindow": 60,
+    "windowMinutes": 5
+  },
+  "commission": {
+    "embedCommissionDiscountBps": 0
+  },
+  "cache": {
+    "widgetDataMaxAgeSeconds": 300
+  },
+  "reviews": {
+    "maxItems": 20
+  }
+}

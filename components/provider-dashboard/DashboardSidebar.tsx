@@ -138,6 +138,18 @@ const NAV_ITEMS = [
     ),
   },
   {
+    href: '/provider-dashboard/widgets',
+    label: 'Widgets',
+    icon: (
+      <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <rect x="3" y="3" width="7" height="7" rx="1.5" />
+        <rect x="14" y="3" width="7" height="7" rx="1.5" />
+        <rect x="3" y="14" width="7" height="7" rx="1.5" />
+        <rect x="14" y="14" width="7" height="7" rx="1.5" />
+      </svg>
+    ),
+  },
+  {
     href: '/provider-dashboard/pro',
     label: 'Pro',
     icon: (
@@ -156,7 +168,7 @@ export function DashboardSidebar({ hasProvider }: DashboardSidebarProps) {
   const pathname = usePathname()
 
   return (
-    <aside className="w-56 flex-shrink-0 border-r bg-background hidden md:flex flex-col py-6 px-3 gap-1">
+    <aside className="w-56 flex-shrink-0 border-r bg-background hidden md:flex flex-col py-6 px-3 gap-1 overflow-y-auto sticky top-14 self-start h-[calc(100vh-3.5rem)]">
       {hasProvider
         ? NAV_ITEMS.map((item) => {
             const active = 'exact' in item && item.exact

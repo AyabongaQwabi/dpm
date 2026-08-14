@@ -12,9 +12,11 @@ import { breadcrumbJsonLd, canonicalAlternates, serviceJsonLd } from '@/lib/seo'
 import { ProviderAnalyticsTracker } from '@/components/analytics/ProviderAnalyticsTracker'
 import { FunnelEventTracker } from '@/components/analytics/FunnelEventTracker'
 import { createQuoteRequest } from '@/lib/actions/custom-quotes'
+import { normalizeOriginDomain } from '@/lib/domain/embed'
 
 interface Props {
   params: Promise<{ id: string }>
+  searchParams: Promise<{ source?: string; originDomain?: string }>
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
@@ -72,8 +74,10 @@ function effectivePrice(price: number, type: DiscountType, amount: number | null
   return price * (1 - amount / 100)
 }
 
-export default async function ServiceDetailPage({ params }: Props) {
+export default async function ServiceDetailPage({ params, searchParams }: Props) {
   const { id } = await params
+  const { source, originDomain: rawOriginDomain } = await searchParams
+  const embedOriginDomain = source === 'embed' ? normalizeOriginDomain(rawOriginDomain ?? null) : null
   const supabase = await createClient()
 
   const [{ data: service, error: serviceError }, { data: { user } }] = await Promise.all([
@@ -167,7 +171,10 @@ export default async function ServiceDetailPage({ params }: Props) {
   const articleHtml = service.article_json ? tiptapToHtml(service.article_json) : null
   const serviceType = service.service_type as ServiceType
   const ctaVerb = serviceType === 'time_based' ? 'Book' : 'Order'
-  const signInUrl = `/sign-in?next=/services/${id}`
+  const signInNextParams = embedOriginDomain
+    ? `?source=embed&originDomain=${encodeURIComponent(embedOriginDomain)}`
+    : ''
+  const signInUrl = `/sign-in?next=${encodeURIComponent(`/services/${id}${signInNextParams}`)}`
 
   const lowestPrice = packages.length
     ? Math.min(...packages.map((p) => effectivePrice(Number(p.price), p.discount_type, p.discount_amount)))
@@ -433,6 +440,8 @@ export default async function ServiceDetailPage({ params }: Props) {
             providerId={provider.id}
             acceptsCustomQuotes={!!service.accepts_custom_quotes}
             quoteRequestAction={createQuoteRequest}
+            source={embedOriginDomain ? 'embed' : undefined}
+            originDomain={embedOriginDomain}
           />
         </aside>
       </div>

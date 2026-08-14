@@ -32,7 +32,9 @@ import { formatCredits } from '@/lib/format-credits'
 import {
   breadcrumbJsonLd,
   canonicalAlternates,
+  canonicalUrl,
   localBusinessJsonLd,
+  SITE_URL,
 } from '@/lib/seo'
 import { JsonLd } from '@/components/seo/JsonLd'
 import { reviewerDisplayName } from '@/lib/domain/reviews'
@@ -142,10 +144,19 @@ export async function generateMetadata({ params }: ProfilePageProps): Promise<Me
   const title = `${provider.business_name}${provider.location_city ? ` in ${provider.location_city}` : ''}`
   const profilePath = provider.slug ?? provider.id
   const description = provider.bio?.slice(0, 160) ?? `View services, reviews, posts, and contact details for ${provider.business_name}.`
+  const profileUrl = canonicalUrl(`/providers/${profilePath}`)
   return {
     title,
     description,
-    alternates: canonicalAlternates(`/providers/${profilePath}`),
+    alternates: {
+      ...canonicalAlternates(`/providers/${profilePath}`),
+      // oEmbed auto-discovery: pasting profileUrl into an oEmbed-consuming
+      // tool (Notion, WordPress, Slack) finds this without the tool needing
+      // to know ServicePros' endpoint shape in advance.
+      types: {
+        'application/json+oembed': `${SITE_URL}/oembed?url=${encodeURIComponent(profileUrl)}`,
+      },
+    },
     // No explicit openGraph.images here — app/(public)/providers/[slug]/opengraph-image.tsx
     // (name, badges, rating) is auto-discovered by Next and takes over the OG image.
     openGraph: { type: 'website', locale: 'en_ZA', title, description },

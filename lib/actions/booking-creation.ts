@@ -6,6 +6,7 @@ import { canAfford, shortfall } from '@/lib/domain/credits'
 import { snapshotBookingRequirements } from '@/lib/actions/booking-requirements'
 import { sendBookingCreatedEmails } from '@/lib/booking-emails'
 import type { FullCommissionResult } from '@/lib/domain/payments'
+import type { BookingSource } from '@/lib/db'
 
 export type CreateBookingWithCreditsResult =
   | { ok: true; bookingId: string }
@@ -21,6 +22,8 @@ export async function createBookingWithCredits(params: {
   notes: string | null
   commission: FullCommissionResult
   description: string
+  source?: BookingSource
+  originDomain?: string | null
 }): Promise<CreateBookingWithCreditsResult> {
   const spendCredits = Math.round(params.commission.finalPrice)
 
@@ -44,6 +47,8 @@ export async function createBookingWithCredits(params: {
     p_provider_payout_amount: params.commission.providerPayoutAmount,
     p_spend_credits: spendCredits,
     p_description: params.description,
+    p_source: params.source ?? 'site',
+    p_origin_domain: params.originDomain ?? null,
   })
 
   if (error || !bookingId) {
